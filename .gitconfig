@@ -1,0 +1,70 @@
+[hub]
+    protocol = https
+
+[user]
+    email = 1491414+TomGrozev@users.noreply.github.com
+    name = Tom Grozev
+	signingkey = 8649CEF3514FE780
+
+[color]
+    diff = auto
+    status = auto
+    branch = auto
+    ui = true
+
+[core]
+	excludesfile = /Users/user/.gitignore_global
+    attributesfile = ~/.gitattributes_global
+    editor = nvim
+    pager = delta
+
+[interactive]
+    diffFilter = delta --color-only
+
+[delta]
+    navigate = true
+    side-by-side = true
+    line-numbers = true
+
+[merge]
+    conflictstyle = diff3
+
+[diff]
+    colorMoved = default
+
+[commit]
+	gpgsign = true
+
+[alias]
+    a = add
+    st = status
+    s = status
+    co = checkout
+    cob = checkout -b
+    c = checkout
+    ci = commit
+    noff = merge --no-ff
+    plr = pull --rebase
+    amend = commit --amend
+    br = branch
+    rn = branch -m
+
+    please = push --force-with-lease
+    publish = "!git push -u origin $(git rev-parse --abbrev-ref HEAD)"
+    publish = "!f() { git push -u ${1:-origin} $(git rev-parse --abbrev-ref HEAD);  }; f"
+
+    unstage = reset -q HEAD
+    discard = checkout --
+    uncomit = reset --mised HEAD~
+
+    l = log --grapg --decorate --oneline --all
+
+[gpg]
+	program = /opt/homebrew/bin/gpg
+[init]
+	defaultBranch = master
+[filter "lfs"]
+	clean = git-lfs clean -- %f
+	smudge = git-lfs smudge -- %f
+	process = git-lfs filter-process
+	required = true

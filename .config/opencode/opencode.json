@@ -1,0 +1,71 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "plugin": ["@plannotator/opencode@latest"],
+  "default_agent": "orchestrator",
+  "model": "opencode-go/minimax-m2.7",
+  "instructions": ["./AGENTS.md"],
+  "mcp": {
+    "hexdocs-mcp": {
+      "enabled": true,
+      "type": "local",
+      "command": ["npx", "-y", "hexdocs-mcp@0.5.0"]
+    },
+    "context7": {
+      "enabled": true,
+      "type": "remote",
+      "url": "https://mcp.context7.com/mcp"
+    },
+    "gh_grep": {
+      "enabled": true,
+      "type": "remote",
+      "url": "https://mcp.grep.app"
+    },
+    "gitnexus": {
+      "type": "local",
+      "command": ["npx", "-y", "gitnexus@latest", "mcp"]
+    },
+    "searxng": {
+      "type": "local",
+      "command": ["npx", "-y", "mcp-searxng"],
+      "environment": {
+        "SEARXNG_URL": "https://search.theg.house"
+      }
+    }
+  },
+  "permission": {
+    "*": "ask",
+    "glob": "allow",
+    "grep": "allow",
+    "read": "allow",
+    "todowrite": "allow",
+    "question": "allow",
+    "task": "allow",
+    "skill": "allow",
+    "lsp": "allow",
+    "webfetch": "allow",
+    "websearch": "allow",
+    "gitnexus_impact": "allow",
+    "external_directory": {
+      "~/.ssh/**": "deny",
+      "~/.gnupg/**": "deny",
+      "~/.aws/**": "deny",
+      "~/.kube/**": "ask",
+      "~/.docker/**": "deny"
+    }
+  },
+  "agent": {
+    "build": {
+      "description": "Direct coding agent for implementation tasks",
+      "model": "opencode-go/kimi-k2.6",
+      "mode": "primary",
+      "permission": {
+        "bash": "ask"
+      }
+    },
+    "plan": {
+      "description": "Structured planning with Matt Pocock skills",
+      "model": "opencode-go/glm-5.1",
+      "mode": "primary"
+    }
+  }
+}
