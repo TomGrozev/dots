@@ -2,7 +2,7 @@
 description: Security vulnerability review agent
 mode: subagent
 hidden: true
-model: opencode-go/minimax-m2.7
+model: opencode-go/deepseek-v4-pro
 permission:
   edit: deny
   write: deny

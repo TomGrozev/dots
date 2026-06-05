@@ -2,7 +2,7 @@
 description: Documentation writer - writes .md files only
 mode: subagent
 hidden: true
-model: opencode-go/minimax-m2.7
+model: opencode-go/deepseek-v4-pro
 permission:
   edit: ask
   write: ask

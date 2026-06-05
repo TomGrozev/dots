@@ -4,9 +4,12 @@
 # for all agents and subagents in the opencode config.
 #
 # Model mappings:
-#   nano-gpt/minimax/minimax-m2.5       <-> opencode-go/minimax-m2.7
-#   nano-gpt/moonshotai/kimi-k2.6:thinking <-> opencode-go/kimi-k2.6
-#   nano-gpt/zai-org/glm-5:thinking     <-> opencode-go/glm-5.1
+#   nano-gpt/minimax/minimax-m3                  <-> opencode-go/minimax-m3
+#   nano-gpt/zai-org/glm-5:thinking              <-> opencode-go/glm-5.1
+#   nano-gpt/moonshotai/kimi-k2.6:thinking       <-> opencode-go/qwen3.7-max
+#   nano-gpt/mimo/mimo-v2.5-pro                  <-> opencode-go/mimo-v2.5-pro
+#   nano-gpt/deepseek/deepseek-v4-pro:thinking   <-> opencode-go/deepseek-v4-pro
+#   nano-gpt/deepseek/deepseek-v4-flash          <-> opencode-go/deepseek-v4-flash
 
 set -euo pipefail
 
@@ -38,27 +41,38 @@ echo "Switching provider ($direction)..."
 if [[ "$current_provider" == "nano-gpt" ]]; then
     # nano-gpt -> opencode-go
     sed -i.bak \
-        -e 's|nano-gpt/minimax/minimax-m2.5|opencode-go/minimax-m2.7|g' \
-        -e 's|nano-gpt/moonshotai/kimi-k2.6:thinking|opencode-go/kimi-k2.6|g' \
+        -e 's|nano-gpt/minimax/minimax-m3|opencode-go/minimax-m3|g' \
         -e 's|nano-gpt/zai-org/glm-5:thinking|opencode-go/glm-5.1|g' \
+        -e 's|nano-gpt/moonshotai/kimi-k2.6:thinking|opencode-go/qwen3.7-max|g' \
+        -e 's|nano-gpt/mimo/mimo-v2.5-pro|opencode-go/mimo-v2.5-pro|g' \
+        -e 's|nano-gpt/deepseek/deepseek-v4-pro:thinking|opencode-go/deepseek-v4-pro|g' \
+        -e 's|nano-gpt/deepseek/deepseek-v4-flash|opencode-go/deepseek-v4-flash|g' \
         "$JSON_FILE"
     rm -f "$JSON_FILE.bak"
 
     for f in "$AGENTS_DIR"/*.md; do
         if [[ -f "$f" ]]; then
             sed -i.bak \
-                -e 's|nano-gpt/minimax/minimax-m2.5|opencode-go/minimax-m2.7|g' \
-                -e 's|nano-gpt/moonshotai/kimi-k2.6:thinking|opencode-go/kimi-k2.6|g' \
+                -e 's|nano-gpt/minimax/minimax-m3|opencode-go/minimax-m3|g' \
                 -e 's|nano-gpt/zai-org/glm-5:thinking|opencode-go/glm-5.1|g' \
+                -e 's|nano-gpt/moonshotai/kimi-k2.6:thinking|opencode-go/qwen3.7-max|g' \
+                -e 's|nano-gpt/mimo/mimo-v2.5-pro|opencode-go/mimo-v2.5-pro|g' \
+                -e 's|nano-gpt/deepseek/deepseek-v4-pro:thinking|opencode-go/deepseek-v4-pro|g' \
+                -e 's|nano-gpt/deepseek/deepseek-v4-flash|opencode-go/deepseek-v4-flash|g' \
                 "$f"
             rm -f "$f.bak"
         fi
     done
 else
     # opencode-go -> nano-gpt
+    # NOTE: longer/more-specific opencode-go model strings must come before shorter ones
+    # to avoid partial matches. deepseek-v4-pro is listed before deepseek-v4-flash as a safeguard.
     sed -i.bak \
-        -e 's|opencode-go/minimax-m2.7|nano-gpt/minimax/minimax-m2.5|g' \
-        -e 's|opencode-go/kimi-k2.6|nano-gpt/moonshotai/kimi-k2.6:thinking|g' \
+        -e 's|opencode-go/deepseek-v4-pro|nano-gpt/deepseek/deepseek-v4-pro:thinking|g' \
+        -e 's|opencode-go/deepseek-v4-flash|nano-gpt/deepseek/deepseek-v4-flash|g' \
+        -e 's|opencode-go/minimax-m3|nano-gpt/minimax/minimax-m3|g' \
+        -e 's|opencode-go/qwen3.7-max|nano-gpt/moonshotai/kimi-k2.6:thinking|g' \
+        -e 's|opencode-go/mimo-v2.5-pro|nano-gpt/mimo/mimo-v2.5-pro|g' \
         -e 's|opencode-go/glm-5.1|nano-gpt/zai-org/glm-5:thinking|g' \
         "$JSON_FILE"
     rm -f "$JSON_FILE.bak"
@@ -66,8 +80,11 @@ else
     for f in "$AGENTS_DIR"/*.md; do
         if [[ -f "$f" ]]; then
             sed -i.bak \
-                -e 's|opencode-go/minimax-m2.7|nano-gpt/minimax/minimax-m2.5|g' \
-                -e 's|opencode-go/kimi-k2.6|nano-gpt/moonshotai/kimi-k2.6:thinking|g' \
+                -e 's|opencode-go/deepseek-v4-pro|nano-gpt/deepseek/deepseek-v4-pro:thinking|g' \
+                -e 's|opencode-go/deepseek-v4-flash|nano-gpt/deepseek/deepseek-v4-flash|g' \
+                -e 's|opencode-go/minimax-m3|nano-gpt/minimax/minimax-m3|g' \
+                -e 's|opencode-go/qwen3.7-max|nano-gpt/moonshotai/kimi-k2.6:thinking|g' \
+                -e 's|opencode-go/mimo-v2.5-pro|nano-gpt/mimo/mimo-v2.5-pro|g' \
                 -e 's|opencode-go/glm-5.1|nano-gpt/zai-org/glm-5:thinking|g' \
                 "$f"
             rm -f "$f.bak"

@@ -2,7 +2,7 @@
 description: Fast read-only codebase exploration - locate files, patterns, architecture
 mode: subagent
 hidden: true
-model: opencode-go/minimax-m2.7
+model: opencode-go/deepseek-v4-flash
 permission:
   edit: deny
   write: deny

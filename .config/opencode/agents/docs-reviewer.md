@@ -2,7 +2,7 @@
 description: Documentation review agent
 mode: subagent
 hidden: true
-model: opencode-go/minimax-m2.7
+model: opencode-go/qwen3.7-max
 permission:
   edit: deny
   write: deny

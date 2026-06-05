@@ -2,7 +2,7 @@
 description: A specialized agent for executing shell commands quickly without code editing capabilities
 mode: subagent
 hidden: true
-model: opencode-go/minimax-m2.7
+model: opencode-go/deepseek-v4-flash
 permission:
  edit: deny
  write: deny

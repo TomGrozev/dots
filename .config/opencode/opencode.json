@@ -2,7 +2,7 @@
   "$schema": "https://opencode.ai/config.json",
   "plugin": ["@plannotator/opencode@latest"],
   "default_agent": "orchestrator",
-  "model": "opencode-go/minimax-m2.7",
+  "model": "opencode-go/minimax-m3",
   "instructions": ["./AGENTS.md"],
   "mcp": {
     "hexdocs-mcp": {
@@ -56,7 +56,7 @@
   "agent": {
     "build": {
       "description": "Direct coding agent for implementation tasks",
-      "model": "opencode-go/kimi-k2.6",
+      "model": "opencode-go/minimax-m3",
       "mode": "primary",
       "permission": {
         "bash": "ask"
@@ -64,7 +64,7 @@
     },
     "plan": {
       "description": "Structured planning with Matt Pocock skills",
-      "model": "opencode-go/glm-5.1",
+      "model": "opencode-go/qwen3.7-max",
       "mode": "primary"
     }
   }

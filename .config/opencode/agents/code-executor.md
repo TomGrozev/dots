@@ -2,7 +2,7 @@
 description: Execution specialist for orchestrated coding work that requires both code writing/edits and shell command execution
 mode: subagent
 hidden: true
-model: opencode-go/kimi-k2.6
+model: opencode-go/minimax-m3
 permission:
   edit: ask
   write: ask

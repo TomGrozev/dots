@@ -2,7 +2,7 @@
 description: Code quality and style review agent
 mode: subagent
 hidden: true
-model: opencode-go/minimax-m2.7
+model: opencode-go/mimo-v2.5-pro
 permission:
   edit: deny
   write: deny
