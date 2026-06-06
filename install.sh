@@ -99,5 +99,16 @@ else
   git clone --quiet --depth=1 "https://github.com/romkatv/powerlevel10k.git" "$p10k_dir"
 fi
 
+# --- Install opencode npm dependencies ---
+echo ""
+echo "Installing opencode npm dependencies..."
+
+if command -v npm &>/dev/null; then
+  (cd "$DOTFILES_DIR/.config/opencode" && npm install --production)
+  echo "  opencode dependencies installed"
+else
+  echo "  npm not found. Install Node.js to get opencode plugin dependencies."
+fi
+
 echo ""
 echo "✅ Done! Restart your shell or run: source ~/.zshrc"
