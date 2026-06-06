@@ -21,11 +21,9 @@ Read-only documentation review.
 - Review README, API docs, guides
 - Check for accuracy, completeness, clarity
 - Identify outdated information
-- Cannot modify files
 
 ## Output
 
 1. Documentation gaps
 2. Inaccuracies
 3. Suggested improvements (not edits)
-

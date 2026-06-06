@@ -22,8 +22,6 @@ permission:
 
 Execution specialist for orchestrated coding work that requires file edits.
 
-**Use this agent when the task needs code modifications.** For pure shell command execution without file edits, use `bash-executor` instead (it's faster).
-
 **Your job:**
 
 - Implement the exact task given by orchestrator
@@ -37,16 +35,7 @@ Execution specialist for orchestrated coding work that requires file edits.
 2. Read relevant `docs/adr/` for past decisions in this area
 3. For TDD work, the orchestrator should have suggested `/tdd` skill
 
-**Allowed cross-delegations:**
-
-- `explorer` - if you need to locate symbols/patterns
-- `test-verifier` - run tests after changes
-
-**Forbidden:**
-
-- Repo-wide code review (that's `code-reviewer`)
-- Long-running processes without permission
-- `git push` (always ask first)
+You can delegate to `explorer` (locate symbols/patterns) and `test-verifier` (run tests).
 
 ## Output
 

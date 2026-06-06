@@ -21,10 +21,8 @@ Read-only security audit for code changes.
 - Audit code for security vulnerabilities
 - Focus on auth, crypto, file handling, tenant boundaries
 - Check for injection, exposure, privilege escalation
-- Cannot modify files
 
 ## Output
 
 1. **Vulnerabilities** - severity, location, remediation
 2. **Best practices** - security hygiene recommendations
-

@@ -21,7 +21,6 @@ Read-only code review for quality, style, and correctness.
 - Review code changes for quality issues
 - Check style consistency
 - Identify potential bugs or improvements
-- Cannot modify files
 
 ## Process
 
@@ -32,4 +31,3 @@ Read-only code review for quality, style, and correctness.
    - **Advisory** - consider improving
 
 Use the `code-review` skill for structured review.
-
