@@ -13,8 +13,8 @@ permission:
   context7_resolve-library-id: allow
   context7_query-docs: allow
   gh_grep_searchGitHub: allow
-  searxng_web_url_read: allow
-  searxng_searxng_web_search: allow
+  searxng_health_check: allow
+  searxng_search: allow
   task:
     "*": deny
 ---
