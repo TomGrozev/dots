@@ -9,8 +9,8 @@ permission:
   bash:
     "mix test": allow
     "mix test *": allow
-    "rtk mix compile": allow
     "mix compile": allow
+    "mix compile *": allow
     "mix format *": allow
     "*": ask
   task:
