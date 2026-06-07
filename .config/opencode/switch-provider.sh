@@ -7,6 +7,7 @@
 #   nano-gpt/minimax/minimax-m3                  <-> opencode-go/minimax-m3
 #   nano-gpt/zai-org/glm-5:thinking              <-> opencode-go/glm-5.1
 #   nano-gpt/moonshotai/kimi-k2.6:thinking       <-> opencode-go/qwen3.7-max
+#   nano-gpt/mimo/mimo-v2.5                      <-> opencode-go/mimo-v2.5
 #   nano-gpt/mimo/mimo-v2.5-pro                  <-> opencode-go/mimo-v2.5-pro
 #   nano-gpt/deepseek/deepseek-v4-pro:thinking   <-> opencode-go/deepseek-v4-pro
 #   nano-gpt/deepseek/deepseek-v4-flash          <-> opencode-go/deepseek-v4-flash
@@ -45,6 +46,7 @@ if [[ "$current_provider" == "nano-gpt" ]]; then
         -e 's|nano-gpt/zai-org/glm-5:thinking|opencode-go/glm-5.1|g' \
         -e 's|nano-gpt/moonshotai/kimi-k2.6:thinking|opencode-go/qwen3.7-max|g' \
         -e 's|nano-gpt/mimo/mimo-v2.5-pro|opencode-go/mimo-v2.5-pro|g' \
+        -e 's|nano-gpt/mimo/mimo-v2.5|opencode-go/mimo-v2.5|g' \
         -e 's|nano-gpt/deepseek/deepseek-v4-pro:thinking|opencode-go/deepseek-v4-pro|g' \
         -e 's|nano-gpt/deepseek/deepseek-v4-flash|opencode-go/deepseek-v4-flash|g' \
         "$JSON_FILE"
@@ -57,6 +59,7 @@ if [[ "$current_provider" == "nano-gpt" ]]; then
                 -e 's|nano-gpt/zai-org/glm-5:thinking|opencode-go/glm-5.1|g' \
                 -e 's|nano-gpt/moonshotai/kimi-k2.6:thinking|opencode-go/qwen3.7-max|g' \
                 -e 's|nano-gpt/mimo/mimo-v2.5-pro|opencode-go/mimo-v2.5-pro|g' \
+                -e 's|nano-gpt/mimo/mimo-v2.5|opencode-go/mimo-v2.5|g' \
                 -e 's|nano-gpt/deepseek/deepseek-v4-pro:thinking|opencode-go/deepseek-v4-pro|g' \
                 -e 's|nano-gpt/deepseek/deepseek-v4-flash|opencode-go/deepseek-v4-flash|g' \
                 "$f"
@@ -66,13 +69,15 @@ if [[ "$current_provider" == "nano-gpt" ]]; then
 else
     # opencode-go -> nano-gpt
     # NOTE: longer/more-specific opencode-go model strings must come before shorter ones
-    # to avoid partial matches. deepseek-v4-pro is listed before deepseek-v4-flash as a safeguard.
+    # to avoid partial matches. mimo-v2.5-pro and deepseek-v4-pro are listed before their
+    # shorter siblings as a safeguard.
     sed -i.bak \
         -e 's|opencode-go/deepseek-v4-pro|nano-gpt/deepseek/deepseek-v4-pro:thinking|g' \
         -e 's|opencode-go/deepseek-v4-flash|nano-gpt/deepseek/deepseek-v4-flash|g' \
         -e 's|opencode-go/minimax-m3|nano-gpt/minimax/minimax-m3|g' \
         -e 's|opencode-go/qwen3.7-max|nano-gpt/moonshotai/kimi-k2.6:thinking|g' \
         -e 's|opencode-go/mimo-v2.5-pro|nano-gpt/mimo/mimo-v2.5-pro|g' \
+        -e 's|opencode-go/mimo-v2.5|nano-gpt/mimo/mimo-v2.5|g' \
         -e 's|opencode-go/glm-5.1|nano-gpt/zai-org/glm-5:thinking|g' \
         "$JSON_FILE"
     rm -f "$JSON_FILE.bak"
@@ -85,6 +90,7 @@ else
                 -e 's|opencode-go/minimax-m3|nano-gpt/minimax/minimax-m3|g' \
                 -e 's|opencode-go/qwen3.7-max|nano-gpt/moonshotai/kimi-k2.6:thinking|g' \
                 -e 's|opencode-go/mimo-v2.5-pro|nano-gpt/mimo/mimo-v2.5-pro|g' \
+                -e 's|opencode-go/mimo-v2.5|nano-gpt/mimo/mimo-v2.5|g' \
                 -e 's|opencode-go/glm-5.1|nano-gpt/zai-org/glm-5:thinking|g' \
                 "$f"
             rm -f "$f.bak"

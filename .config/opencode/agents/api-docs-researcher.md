@@ -2,7 +2,7 @@
 description: External library/API documentation researcher - ONLY agent with MCP docs access
 mode: subagent
 hidden: true
-model: opencode-go/glm-5.1
+model: opencode-go/mimo-v2.5
 permission:
   edit: deny
   write: deny

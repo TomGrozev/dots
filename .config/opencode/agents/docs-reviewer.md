@@ -2,7 +2,7 @@
 description: Documentation review agent
 mode: subagent
 hidden: true
-model: opencode-go/qwen3.7-max
+model: opencode-go/deepseek-v4-flash
 permission:
   edit: deny
   write: deny
