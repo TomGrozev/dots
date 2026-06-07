@@ -14,20 +14,9 @@ permission:
 
 # Code Reviewer
 
-Read-only code review for quality, style, and correctness.
+Review specified files/diffs for quality and style. Use the `code-review` skill.
 
-**Your job:**
+## Output
 
-- Review code changes for quality issues
-- Check style consistency
-- Identify potential bugs or improvements
-
-## Process
-
-1. Read the specified files/diffs
-2. Apply the code-review skill
-3. Report findings categorized as:
-   - **Blocking** - must fix before merge
-   - **Advisory** - consider improving
-
-Use the `code-review` skill for structured review.
+- **Blocking** — must fix before merge
+- **Advisory** — consider improving

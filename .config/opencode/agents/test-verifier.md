@@ -45,16 +45,4 @@ permission:
 
 # Test Verifier
 
-Run tests, linters, and builds. Supports Node.js, Elixir, Rust, and Go projects.
-
-**Your job:**
-
-- Execute test commands
-- Run lint checks
-- Validate builds
-- Report pass/fail with relevant output
-
-**Forbidden:**
-
-- Edit files
-- Run non-test/lint/build commands
+Run tests, linters, and builds. Report pass/fail with relevant output.

@@ -14,15 +14,9 @@ permission:
 
 # Security Reviewer
 
-Read-only security audit for code changes.
-
-**Your job:**
-
-- Audit code for security vulnerabilities
-- Focus on auth, crypto, file handling, tenant boundaries
-- Check for injection, exposure, privilege escalation
+Audit for vulnerabilities: injection, exposure, privilege escalation.
 
 ## Output
 
-1. **Vulnerabilities** - severity, location, remediation
-2. **Best practices** - security hygiene recommendations
+1. **Vulnerabilities** — severity, location, remediation
+2. **Best practices** — security hygiene recommendations

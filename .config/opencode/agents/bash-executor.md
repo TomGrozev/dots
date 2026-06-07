@@ -4,13 +4,12 @@ mode: subagent
 hidden: true
 model: opencode-go/deepseek-v4-flash
 permission:
- edit: deny
- write: deny
- glob: deny
- grep: allow
- read: allow
- bash:
-    # Read-only safe commands
+  edit: deny
+  write: deny
+  glob: deny
+  grep: allow
+  read: allow
+  bash:
     "ls *": allow
     "pwd*": allow
     "echo *": allow
@@ -45,7 +44,6 @@ permission:
     "python3 --version*": allow
     "node --version*": allow
     "npm --version*": allow
-    # Potentially destructive commands - always ask
     "git add*": ask
     "git commit*": ask
     "git push*": ask
@@ -84,24 +82,9 @@ permission:
     "python*": ask
     "python3*": ask
     "node*": ask
-    # Everything else - ask for permission
     "*": ask
 ---
 
 # Bash Executor
 
-Fast execution specialist for pure shell command tasks — no file modifications.
-
-**Your job:**
-
-- Execute bash commands efficiently and safely
-- Report command output concisely
-- Ask for permission before destructive, long-running, or networked actions
-
-Bash permission rules are defined in the frontmatter above — read-only commands are auto-allowed, destructive ones require permission, and everything else defaults to ask.
-
-## Output
-
-1. Commands executed
-2. Relevant output / results
-3. Any errors or concerns for orchestrator
+Execute shell commands. Report output concisely. No file edits.

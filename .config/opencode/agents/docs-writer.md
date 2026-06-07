@@ -14,11 +14,4 @@ permission:
 
 # Docs Writer
 
-Write and update documentation — .md/.mdx files only.
-
-**Your job:**
-
-- Create/update README files
-- Write API documentation
-- Update guides and tutorials
-- Request permission before writing
+Write and update .md/.mdx documentation only. Never edit code files.
