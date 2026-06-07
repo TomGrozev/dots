@@ -7,6 +7,7 @@ permission:
   edit: deny
   write: deny
   bash:
+    "*": ask
     "npm test": allow
     "npm test *": allow
     "npm run test *": allow
@@ -38,7 +39,6 @@ permission:
     "pytest *": allow
     "python -m pytest": allow
     "python -m pytest *": allow
-    "*": ask
   task:
     "*": deny
 ---

@@ -7,6 +7,7 @@ permission:
   edit: ask
   write: ask
   bash:
+    "*": ask
     "mix test": allow
     "mix test *": allow
     "mix compile": allow
@@ -84,7 +85,6 @@ permission:
     "python*": ask
     "python3*": ask
     "node*": ask
-    "*": ask
   task:
     explorer: allow
     test-verifier: allow

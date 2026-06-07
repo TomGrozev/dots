@@ -10,6 +10,7 @@ permission:
   grep: allow
   read: allow
   bash:
+    "*": ask
     "ls *": allow
     "pwd*": allow
     "echo *": allow
@@ -82,7 +83,6 @@ permission:
     "python*": ask
     "python3*": ask
     "node*": ask
-    "*": ask
 ---
 
 # Bash Executor
