@@ -4,15 +4,19 @@ mode: subagent
 hidden: true
 model: opencode-go/deepseek-v4-flash
 permission:
+  read: allow
+  glob: allow
+  grep: allow
+  list: allow
   edit: deny
-  write: deny
   bash:
-    "git log *": allow
-    "git show *": allow
-    "git diff *": allow
-    "rg *": allow
-    "find *": allow
+    "*git log*": allow
+    "*git show*": allow
+    "*git diff*": allow
+    "*rg *": allow
+    "*find *": allow
     "*": deny
+  gitnexus_query: allow
   task:
     api-docs-researcher: allow
     explorer: allow

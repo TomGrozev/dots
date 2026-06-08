@@ -4,41 +4,36 @@ mode: subagent
 hidden: true
 model: opencode-go/deepseek-v4-flash
 permission:
+  read: allow
+  glob: allow
+  grep: allow
+  list: allow
+  todowrite: allow
+  question: allow
+  skill: allow
+  lsp: allow
   edit: deny
-  write: deny
   bash:
     "*": ask
-    "npm test": allow
-    "npm test *": allow
-    "npm run test *": allow
-    "pnpm test": allow
-    "pnpm test *": allow
-    "pnpm run test *": allow
-    "yarn test": allow
-    "yarn test *": allow
-    "npm run lint": allow
-    "npm run lint*": allow
-    "pnpm run lint": allow
-    "pnpm run lint*": allow
-    "npm run build": allow
-    "pnpm run build": allow
-    "mix test": allow
-    "mix test *": allow
-    "mix compile": allow
-    "mix format": allow
-    "mix format *": allow
-    "cargo test": allow
-    "cargo test *": allow
-    "cargo build": allow
-    "cargo build *": allow
-    "go test": allow
-    "go test *": allow
-    "go build": allow
-    "go build *": allow
-    "pytest": allow
-    "pytest *": allow
-    "python -m pytest": allow
-    "python -m pytest *": allow
+    "*npm test*": allow
+    "*npm run test*": allow
+    "*pnpm test*": allow
+    "*pnpm run test*": allow
+    "*yarn test*": allow
+    "*npm run lint*": allow
+    "*pnpm run lint*": allow
+    "*npm run build*": allow
+    "*pnpm run build*": allow
+    "*mix test*": allow
+    "*mix compile*": allow
+    "*mix format*": allow
+    "*cargo test*": allow
+    "*cargo build*": allow
+    "*go test*": allow
+    "*go build*": allow
+    "*pytest*": allow
+    "*python -m pytest*": allow
+  gitnexus_query: allow
   task:
     "*": deny
 ---

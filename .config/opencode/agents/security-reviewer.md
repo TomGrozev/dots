@@ -4,9 +4,15 @@ mode: subagent
 hidden: true
 model: opencode-go/deepseek-v4-pro
 permission:
+  read: allow
+  glob: allow
+  grep: allow
+  list: allow
+  skill: allow
+  lsp: allow
   edit: deny
-  write: deny
   bash: deny
+  gitnexus_query: allow
   task:
     api-docs-researcher: allow
     "*": deny

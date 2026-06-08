@@ -4,8 +4,13 @@ mode: subagent
 hidden: true
 model: opencode-go/mimo-v2.5-pro
 permission:
+  read: allow
+  glob: allow
+  grep: allow
+  list: allow
+  skill: allow
+  lsp: allow
   edit: deny
-  write: deny
   bash: deny
   task:
     api-docs-researcher: allow
