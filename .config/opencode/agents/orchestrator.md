@@ -1,7 +1,7 @@
 ---
 description: Central router that analyzes requests and delegates to specialized subagents
 mode: primary
-model: opencode-go/kimi-k2.6
+model: opencode-go/qwen3.7-plus
 permission:
   read: allow
   glob: allow
