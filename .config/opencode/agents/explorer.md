@@ -20,6 +20,7 @@ permission:
   task:
     api-docs-researcher: allow
     explorer: allow
+    "*": deny
 ---
 
 # Explorer
