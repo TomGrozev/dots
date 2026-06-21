@@ -11,7 +11,7 @@ permission:
   skill: allow
   lsp: allow
   edit: deny
-  bash: deny
+  bash: ask
   task:
     api-docs-researcher: allow
     "*": deny

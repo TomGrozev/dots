@@ -2,7 +2,7 @@
 description: Execution specialist for orchestrated coding work that requires both code writing/edits and shell command execution
 mode: subagent
 hidden: true
-model: opencode-go/mimo-v2.5-pro
+model: opencode-go/minimax-m3
 permission:
   read: allow
   glob: allow
@@ -18,6 +18,7 @@ permission:
     "*mix test*": allow
     "*mix compile*": allow
     "*mix format*": allow
+    "*mix credo*": allow
     "*ls *": allow
     "*pwd*": allow
     "*echo *": allow

@@ -7,9 +7,9 @@
 #   nano-gpt/minimax/minimax-m3                  <-> opencode-go/minimax-m3
 #   nano-gpt/zai-org/glm-5:thinking              <-> opencode-go/glm-5.1
 #   nano-gpt/moonshotai/kimi-k2.6:thinking       <-> opencode-go/qwen3.7-max
-#   nano-gpt/moonshotai/kimi-k2.6               <-> opencode-go/qwen3.7-plus
-#   nano-gpt/mimo/mimo-v2.5                      <-> opencode-go/mimo-v2.5
-#   nano-gpt/mimo/mimo-v2.5-pro                  <-> opencode-go/mimo-v2.5-pro
+#   nano-gpt/moonshotai/kimi-k2.6                <-> opencode-go/qwen3.7-plus
+#   nano-gpt/xiaomi/mimo-v2.5                    <-> opencode-go/mimo-v2.5
+#   nano-gpt/xiaomi/mimo-v2.5-pro                <-> opencode-go/mimo-v2.5-pro
 #   nano-gpt/deepseek/deepseek-v4-pro:thinking   <-> opencode-go/deepseek-v4-pro
 #   nano-gpt/deepseek/deepseek-v4-flash          <-> opencode-go/deepseek-v4-flash
 
