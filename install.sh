@@ -10,19 +10,26 @@ ZSH_CUSTOM="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}"
 
 # Matt Pocock engineering skills to install for opencode
 MATT_POCOCK_SKILLS=(
-  diagnose
-  find-skills
+  ask-matt
+  codebase-design
+  diagnosing-bugs
+  domain-modeling
   grill-me
   grill-with-docs
+  grilling
   handoff
   improve-codebase-architecture
   prototype
   setup-matt-pocock-skills
   tdd
+  teach
   to-issues
   to-prd
   triage
-  zoom-out
+  writing-great-skills
+  review
+  design-an-interface
+  implement
 )
 
 # --- Symlink dotfiles ---

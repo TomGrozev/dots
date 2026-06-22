@@ -4,7 +4,9 @@
     "@plannotator/opencode@latest",
     "cc-safety-net",
     "envsitter-guard",
-    "opencode-notify"
+    "opencode-notify",
+    "@tarquinen/opencode-dcp@latest",
+    "opencode-mem"
   ],
   "default_agent": "orchestrator",
   "model": "opencode-go/mimo-v2.5",
