@@ -8,6 +8,23 @@ set -e
 DOTFILES_DIR="$HOME/dotfiles"
 ZSH_CUSTOM="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}"
 
+# Matt Pocock engineering skills to install for opencode
+MATT_POCOCK_SKILLS=(
+  diagnose
+  find-skills
+  grill-me
+  grill-with-docs
+  handoff
+  improve-codebase-architecture
+  prototype
+  setup-matt-pocock-skills
+  tdd
+  to-issues
+  to-prd
+  triage
+  zoom-out
+)
+
 # --- Symlink dotfiles ---
 echo "Creating symlinks..."
 
@@ -106,9 +123,20 @@ echo "Installing opencode npm dependencies..."
 if command -v npm &>/dev/null; then
   (cd "$DOTFILES_DIR/.config/opencode" && npm install --production)
   echo "  opencode dependencies installed"
+  
+  echo "  Installing Matt Pocock skills for opencode..."
+  matt_pocock_skill_args=()
+  for skill in "${MATT_POCOCK_SKILLS[@]}"; do
+    matt_pocock_skill_args+=(-s "$skill")
+  done
+  npx skills add mattpocock/skills "${matt_pocock_skill_args[@]}" -a opencode -y -g
 else
   echo "  npm not found. Install Node.js to get opencode plugin dependencies."
 fi
 
 echo ""
 echo "✅ Done! Restart your shell or run: source ~/.zshrc"
+
+
+
+
