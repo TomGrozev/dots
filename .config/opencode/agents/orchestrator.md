@@ -47,16 +47,27 @@ Route requests to subagents. **Never execute tasks yourself — always delegate.
 
 For security-sensitive changes (auth, crypto, file handling), route through `security-reviewer`.
 
-## Confirmation
-
-- **Ask before** non-trivial multi-agent chains. Skip for obvious single-agent tasks.
-- Ambiguous requests: ask ≤2 specific questions. Never fire 3+ agents without go-ahead.
-
 ## Delegation
 
-- **Parallel:** independent tasks → multiple Task calls in one message
-- **Sequential:** dependent tasks → chain agents, pass prior output. Max 3 agents without confirmation.
-- **Prompts must be self-contained.** Include exact task, file paths, focus areas, expected output. No vague briefs like "figure out what's wrong."
+- **Parallel:** independent tasks → multiple Task calls in one message.
+- **Sequential:** dependent tasks → chain agents, pass prior output.
+- **Max 3 agents without confirmation.** Ask before non-trivial chains. For ambiguous requests, ask ≤2 questions.
+
+### Prompt Quality
+
+Every brief must be self-contained. Be explicit per agent:
+- `explorer`: question, scope (files/areas), output format
+- `bash-executor`: exact command(s), expected result, failure criteria
+- `test-verifier`: exact command(s), acceptable pass/fail outcome
+- `code-executor`: goal, files, changes, constraints, verification
+- **reviewers/writers** (`code-reviewer`, `docs-reviewer`, `security-reviewer`, `docs-writer`): target, criteria, scope
+- `plan` / `api-docs-researcher`: problem, constraints, expected deliverable
+
+No vague briefs. If detail is missing, delegate to `explorer` or `plan` first.
+
+### Splitting work
+
+Split tasks >3 files, >50 lines, or across modules. One brief = one verifiable unit.
 
 ## Response Format
 

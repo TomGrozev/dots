@@ -1,7 +1,7 @@
 ---
 description: Deep-thinking planning agent — owns the analysis, delegates the legwork
 mode: primary
-model: opencode-go/qwen3.7-max
+model: opencode-go/glm-5.2
 permission:
   read: allow
   glob: allow
