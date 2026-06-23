@@ -137,6 +137,8 @@ if command -v npm &>/dev/null; then
     matt_pocock_skill_args+=(-s "$skill")
   done
   npx skills add mattpocock/skills "${matt_pocock_skill_args[@]}" -a opencode -y -g
+  npx skills add https://github.com/github/awesome-copilot --skill conventional-commit -y -g -a opencode
+  npx skills add https://github.com/anthropics/skills --skill frontend-design -y -g -a opencode
 else
   echo "  npm not found. Install Node.js to get opencode plugin dependencies."
 fi
