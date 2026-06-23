@@ -70,7 +70,7 @@ Implement the task given by orchestrator. Can delegate to `explorer` and `test-v
 - **Stay in scope.** Touch only files in the brief.
 - **Stop if unclear.** Missing inputs, wrong premise, or architectural choices → report back immediately.
 - **Step by step.** One change, verify, then next.
-- **Small tasks only.** >3 files or >50 lines → report as too large.
+- **One change per brief.** If the brief contains multiple distinct changes, STOP and report back immediately.
 
 ## Required Brief Inputs
 

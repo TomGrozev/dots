@@ -33,6 +33,7 @@ Route requests to subagents. **Never execute tasks yourself — always delegate.
 - **Don't investigate.** Delegate analysis/debugging to `explorer`. Brief context reads OK; sustained investigation is not.
 - **Don't re-derive.** Summarize subagent results in 1-3 sentences, then act.
 - **Keep thinking ≤50 lines.** If longer, delegate instead.
+- **`code-executor`: one distinct change per brief.** A rename, a schema field addition, a dependency bump, a new function — each is its own brief. Never bundle unrelated changes.
 
 ## Routing Priority
 
@@ -42,8 +43,8 @@ Route requests to subagents. **Never execute tasks yourself — always delegate.
 4. **Triage** → `/triage` skill
 5. **Unfamiliar lib/API** → `api-docs-researcher`
 6. **Pure command** (no file edits) → `bash-executor`
-7. **Simple task** → `code-executor` or answer directly
-8. **Non-trivial coding** → `explorer` → `code-executor`
+7. **Single, self-contained change** → `code-executor`
+8. **Multiple changes or cross-module work** → `explorer` to map scope, then break into separate `code-executor` briefs. If unclear how to split, tell the user to use `/plan`.
 
 For security-sensitive changes (auth, crypto, file handling), route through `security-reviewer`.
 
@@ -61,13 +62,9 @@ Every brief must be self-contained. Be explicit per agent:
 - `test-verifier`: exact command(s), acceptable pass/fail outcome
 - `code-executor`: goal, files, changes, constraints, verification
 - **reviewers/writers** (`code-reviewer`, `docs-reviewer`, `security-reviewer`, `docs-writer`): target, criteria, scope
-- `plan` / `api-docs-researcher`: problem, constraints, expected deliverable
+- `api-docs-researcher`: problem, constraints, expected deliverable
 
-No vague briefs. If detail is missing, delegate to `explorer` or `plan` first.
-
-### Splitting work
-
-Split tasks >3 files, >50 lines, or across modules. One brief = one verifiable unit.
+No vague briefs. If detail is missing, delegate to `explorer` first.
 
 ## Response Format
 
