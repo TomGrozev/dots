@@ -26,10 +26,6 @@
       "type": "remote",
       "url": "https://mcp.grep.app"
     },
-    "gitnexus": {
-      "type": "local",
-      "command": ["npx", "-y", "gitnexus@latest", "mcp"]
-    },
     "searxng": {
       "type": "local",
       "command": ["npx", "-y", "@nitish-raj/searxng-mcp-bridge"],
@@ -42,11 +38,20 @@
     "glob": "allow",
     "grep": "allow",
     "read": "allow",
+    "list": "allow",
     "todowrite": "allow",
     "question": "allow",
     "task": "allow",
     "skill": "allow",
     "lsp": "allow",
+    "webfetch": "deny",
+    "context7_resolve-library-id": "deny",
+    "context7_query-docs": "deny",
+    "hexdocs-mcp_fetch": "deny",
+    "hexdocs-mcp_search": "deny",
+    "searxng_health_check": "deny",
+    "searxng_search": "deny",
+    "gh_grep_searchGitHub": "deny",
     "external_directory": {
       "~/.ssh/**": "deny",
       "~/.gnupg/**": "deny",
@@ -62,14 +67,6 @@
       "model": "opencode-go/mimo-v2.5-pro",
       "mode": "primary",
       "permission": {
-        "read": "allow",
-        "glob": "allow",
-        "grep": "allow",
-        "list": "allow",
-        "todowrite": "allow",
-        "question": "allow",
-        "skill": "allow",
-        "lsp": "allow",
         "edit": "ask",
         "task": "allow",
         "bash": {
@@ -150,23 +147,6 @@
           "*python3*": "ask",
           "*node*": "ask"
         }
-      }
-    },
-    "plan": {
-      "description": "Structured planning with Matt Pocock skills",
-      "model": "opencode-go/qwen3.7-max",
-      "mode": "primary",
-      "permission": {
-        "read": "allow",
-        "glob": "allow",
-        "grep": "allow",
-        "list": "allow",
-        "todowrite": "allow",
-        "question": "allow",
-        "skill": "allow",
-        "edit": "deny",
-        "bash": "deny",
-        "task": "allow"
       }
     }
   }

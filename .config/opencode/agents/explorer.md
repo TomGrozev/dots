@@ -4,19 +4,26 @@ mode: subagent
 hidden: true
 model: opencode-go/mimo-v2.5
 permission:
-  read: allow
-  glob: allow
-  grep: allow
-  list: allow
   edit: deny
   bash:
+    "*": ask
+    "*rg*": allow
+    "*git grep*": allow
+    "*find *": allow
+    "*ls *": allow
+    "*git status*": allow
+    "*git diff*": allow
     "*git log*": allow
     "*git show*": allow
-    "*git diff*": allow
-    "*rg *": allow
-    "*find *": allow
-    "*": deny
-  gitnexus_query: allow
+    "*git branch*": allow
+    "*git ls-files*": allow
+    "*cat *": allow
+    "*head *": allow
+    "*tail *": allow
+    "*wc*": allow
+    "*sort*": allow
+    "*uniq*": allow
+    "*jq*": allow
   task:
     api-docs-researcher: allow
     explorer: allow

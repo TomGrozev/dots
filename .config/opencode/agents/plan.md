@@ -3,13 +3,6 @@ description: Deep-thinking planning agent — owns the analysis, delegates the l
 mode: primary
 model: opencode-go/glm-5.2
 permission:
-  read: allow
-  glob: allow
-  grep: allow
-  list: allow
-  todowrite: allow
-  question: allow
-  skill: allow
   edit: deny
   bash: deny
   task:

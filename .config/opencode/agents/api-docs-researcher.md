@@ -5,7 +5,6 @@ hidden: true
 model: opencode-go/mimo-v2.5
 permission:
   edit: deny
-  write: deny
   bash: deny
   webfetch: allow
   hexdocs-mcp_search: allow

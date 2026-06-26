@@ -4,11 +4,6 @@ mode: subagent
 hidden: true
 model: opencode-go/deepseek-v4-pro
 permission:
-  read: allow
-  glob: allow
-  grep: allow
-  list: allow
-  skill: allow
   edit: ask
   bash: deny
   task:

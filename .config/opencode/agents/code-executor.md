@@ -4,29 +4,60 @@ mode: subagent
 hidden: true
 model: opencode-go/mimo-v2.5
 permission:
-  read: allow
-  glob: allow
-  grep: allow
-  list: allow
-  todowrite: allow
-  question: allow
-  skill: allow
-  lsp: allow
   edit: ask
   bash:
     "*": ask
+    # Elixir
     "*mix test*": allow
     "*mix compile*": allow
     "*mix format*": allow
     "*mix credo*": allow
+    "*mix dialyzer*": allow
+    "*mix deps.get*": allow
+    "*mix deps.update*": allow
+    "*mix deps.unlock*": allow
+    "*mix release*": allow
+    "*mix run*": allow
+    "*mix ecto*": allow
+    "*elixir*": allow
+    "*iex*": allow
+    # JavaScript
+    "*npm install*": allow
+    "*npm ci*": allow
+    "*pnpm install*": allow
+    "*yarn install*": allow
+    "*npm run*": allow
+    "*pnpm run*": allow
+    "*yarn run*": allow
+    # Python
+    "*pip install*": allow
+    "*pip3 install*": allow
+    "*pytest*": allow
+    "*python -m pytest*": allow
+    # Go
+    "*go mod*": allow
+    "*go build*": allow
+    "*go test*": allow
+    "*go run*": allow
+    # Rust
+    "*cargo build*": allow
+    "*cargo test*": allow
+    "*cargo check*": allow
+    # Ruby / PHP
+    "*bundle install*": allow
+    "*composer install*": allow
+    # General build
+    "*make*": allow
+    "*cmake*": allow
+    # Read-only helpers
     "*ls *": allow
     "*pwd*": allow
-    "*echo *": allow
     "*cat *": allow
     "*head *": allow
     "*tail *": allow
     "*which *": allow
     "*find *": allow
+    "*rg*": allow
     "*ps*": allow
     "*date*": allow
     "*whoami*": allow
@@ -53,9 +84,15 @@ permission:
     "*python3 --version*": allow
     "*node --version*": allow
     "*npm --version*": allow
+    "*wc*": allow
+    "*sort*": allow
+    "*uniq*": allow
+    "*jq*": allow
   task:
     explorer: allow
     test-verifier: allow
+    api-docs-researcher: allow
+    code-executor: allow
 ---
 
 # Code Executor

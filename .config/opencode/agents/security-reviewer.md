@@ -4,18 +4,18 @@ mode: subagent
 hidden: true
 model: opencode-go/deepseek-v4-pro
 permission:
-  read: allow
-  glob: allow
-  grep: allow
-  list: allow
-  skill: allow
-  lsp: allow
   edit: deny
-  bash: deny
-  gitnexus_query: allow
+  bash: ask
   task:
     api-docs-researcher: allow
     "*": deny
+  webfetch: allow
+  context7_resolve-library-id: allow
+  context7_query-docs: allow
+  hexdocs-mcp_fetch: allow
+  hexdocs-mcp_search: allow
+  searxng_search: allow
+  gh_grep_searchGitHub: allow
 ---
 
 # Security Reviewer

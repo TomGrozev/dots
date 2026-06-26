@@ -4,13 +4,6 @@ mode: subagent
 hidden: true
 model: opencode-go/mimo-v2.5
 permission:
-  read: allow
-  glob: allow
-  grep: allow
-  list: allow
-  todowrite: allow
-  question: allow
-  skill: allow
   edit: deny
   bash:
     "*": ask
@@ -22,6 +15,8 @@ permission:
     "*tail *": allow
     "*which *": allow
     "*find *": allow
+    "*rg*": allow
+    "*git grep*": allow
     "*ps*": allow
     "*date*": allow
     "*whoami*": allow
@@ -48,6 +43,10 @@ permission:
     "*python3 --version*": allow
     "*node --version*": allow
     "*npm --version*": allow
+    "*wc*": allow
+    "*sort*": allow
+    "*uniq*": allow
+    "*jq*": allow
 ---
 
 # Bash Executor

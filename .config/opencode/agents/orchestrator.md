@@ -3,13 +3,6 @@ description: Central router that thinks through requests itself and delegates on
 mode: primary
 model: opencode-go/minimax-m3
 permission:
-  read: allow
-  glob: allow
-  grep: allow
-  list: allow
-  todowrite: allow
-  skill: allow
-  question: allow
   edit: deny
   bash: deny
   task:
