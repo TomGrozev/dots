@@ -57,7 +57,8 @@
       "~/.gnupg/**": "deny",
       "~/.aws/**": "deny",
       "~/.kube/**": "ask",
-      "~/.docker/**": "deny"
+      "~/.docker/**": "deny",
+      "/tmp/**": "allow"
     }
   },
   "agent": {
