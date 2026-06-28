@@ -13,7 +13,7 @@
     ui = true
 
 [core]
-	excludesfile = /Users/user/.gitignore_global
+	excludesfile = ~/.gitignore_global
     attributesfile = ~/.gitattributes_global
     editor = nvim
     pager = delta
@@ -60,7 +60,7 @@
     l = log --grapg --decorate --oneline --all
 
 [gpg]
-	program = /opt/homebrew/bin/gpg
+	program = gpg
 [init]
 	defaultBranch = master
 [filter "lfs"]
