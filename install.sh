@@ -143,6 +143,17 @@ else
   echo "  npm not found. Install Node.js to get opencode plugin dependencies."
 fi
 
+# --- Install Plannotator ---
+echo ""
+echo "Installing Plannotator..."
+
+if command -v plannotator &>/dev/null; then
+  echo "  plannotator already installed, skipping"
+else
+  curl -fsSL https://plannotator.ai/install.sh | bash
+  echo "  plannotator installed"
+fi
+
 echo ""
 echo "✅ Done! Restart your shell or run: source ~/.zshrc"
 
