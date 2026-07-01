@@ -27,7 +27,7 @@ Subagent IDs match definitions in `~/.config/opencode/agents/<id>.md`. Invoke wi
 - Run smallest validation step first
 - The rtk wrapper is automatically applied to bash commands you run to shorten
   the output to preserve context. This is intended behaviour and cannot be
-  overridden.
+  overridden, assume the output is correct and intended.
 
 ## Safety
 
