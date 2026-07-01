@@ -3,50 +3,6 @@ description: A specialized agent for executing shell commands quickly without co
 mode: subagent
 hidden: true
 model: opencode-go/mimo-v2.5
-permission:
-  edit: deny
-  bash:
-    "*": ask
-    "*ls *": allow
-    "*pwd*": allow
-    "*echo *": allow
-    "*cat *": allow
-    "*head *": allow
-    "*tail *": allow
-    "*which *": allow
-    "*find *": allow
-    "*rg*": allow
-    "*git grep*": allow
-    "*ps*": allow
-    "*date*": allow
-    "*whoami*": allow
-    "*id*": allow
-    "*uname*": allow
-    "*cd *": allow
-    "*pip list*": allow
-    "*npm list*": allow
-    "*brew list*": allow
-    "*df*": allow
-    "*du *": allow
-    "*top*": allow
-    "*htop*": allow
-    "*git status*": allow
-    "*git log*": allow
-    "*git diff*": allow
-    "*git branch*": allow
-    "*git remote*": allow
-    "*git config*": allow
-    "*git rev-parse*": allow
-    "*git show*": allow
-    "*git ls-files*": allow
-    "*python --version*": allow
-    "*python3 --version*": allow
-    "*node --version*": allow
-    "*npm --version*": allow
-    "*wc*": allow
-    "*sort*": allow
-    "*uniq*": allow
-    "*jq*": allow
 ---
 
 # Bash Executor

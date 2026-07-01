@@ -2,19 +2,6 @@
 description: Central router that thinks through requests itself and delegates only tactical work to specialized subagents
 mode: primary
 model: opencode-go/minimax-m3
-permission:
-  edit: deny
-  bash: deny
-  task:
-    explorer: allow
-    bash-executor: allow
-    code-executor: allow
-    code-reviewer: allow
-    docs-reviewer: allow
-    security-reviewer: allow
-    docs-writer: allow
-    test-verifier: allow
-    api-docs-researcher: allow
 ---
 
 # Orchestrator

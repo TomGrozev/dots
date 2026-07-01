@@ -3,12 +3,6 @@ description: Documentation writer - writes .md files only
 mode: subagent
 hidden: true
 model: opencode-go/deepseek-v4-pro
-permission:
-  edit: ask
-  bash: deny
-  task:
-    api-docs-researcher: allow
-    "*": deny
 ---
 
 # Docs Writer

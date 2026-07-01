@@ -3,19 +3,6 @@ description: External library/API documentation researcher - ONLY agent with MCP
 mode: subagent
 hidden: true
 model: opencode-go/mimo-v2.5
-permission:
-  edit: deny
-  bash: deny
-  webfetch: allow
-  hexdocs-mcp_search: allow
-  hexdocs-mcp_fetch: allow
-  context7_resolve-library-id: allow
-  context7_query-docs: allow
-  gh_grep_searchGitHub: allow
-  searxng_health_check: allow
-  searxng_search: allow
-  task:
-    "*": deny
 ---
 
 # API Docs Researcher

@@ -149,6 +149,328 @@
           "*node*": "ask"
         }
       }
+    },
+    "orchestrator": {
+      "permission": {
+        "edit": "deny",
+        "bash": "deny",
+        "task": {
+          "explorer": "allow",
+          "bash-executor": "allow",
+          "code-executor": "allow",
+          "code-reviewer": "allow",
+          "docs-reviewer": "allow",
+          "security-reviewer": "allow",
+          "docs-writer": "allow",
+          "test-verifier": "allow",
+          "api-docs-researcher": "allow"
+        }
+      }
+    },
+    "plan": {
+      "permission": {
+        "edit": "deny",
+        "bash": "deny",
+        "task": {
+          "explorer": "allow",
+          "bash-executor": "allow",
+          "code-executor": "allow",
+          "code-reviewer": "allow",
+          "docs-reviewer": "allow",
+          "security-reviewer": "allow",
+          "docs-writer": "allow",
+          "test-verifier": "allow",
+          "api-docs-researcher": "allow"
+        }
+      }
+    },
+    "code-executor": {
+      "permission": {
+        "edit": "ask",
+        "bash": {
+          "*": "ask",
+          "*mix test*": "allow",
+          "*mix compile*": "allow",
+          "*mix format*": "allow",
+          "*mix credo*": "allow",
+          "*mix dialyzer*": "allow",
+          "*mix deps.get*": "allow",
+          "*mix deps.update*": "allow",
+          "*mix deps.unlock*": "allow",
+          "*mix release*": "allow",
+          "*mix run*": "allow",
+          "*mix ecto*": "allow",
+          "*elixir*": "allow",
+          "*iex*": "allow",
+          "*npm install*": "allow",
+          "*npm ci*": "allow",
+          "*pnpm install*": "allow",
+          "*yarn install*": "allow",
+          "*npm run*": "allow",
+          "*pnpm run*": "allow",
+          "*yarn run*": "allow",
+          "*pip install*": "allow",
+          "*pip3 install*": "allow",
+          "*pytest*": "allow",
+          "*python -m pytest*": "allow",
+          "*go mod*": "allow",
+          "*go build*": "allow",
+          "*go test*": "allow",
+          "*go run*": "allow",
+          "*cargo build*": "allow",
+          "*cargo test*": "allow",
+          "*cargo check*": "allow",
+          "*bundle install*": "allow",
+          "*composer install*": "allow",
+          "*make*": "allow",
+          "*cmake*": "allow",
+          "*ls *": "allow",
+          "*pwd*": "allow",
+          "*cat *": "allow",
+          "*head *": "allow",
+          "*tail *": "allow",
+          "*which *": "allow",
+          "*find *": "allow",
+          "*rg*": "allow",
+          "*ps*": "allow",
+          "*date*": "allow",
+          "*whoami*": "allow",
+          "*id*": "allow",
+          "*uname*": "allow",
+          "*cd *": "allow",
+          "*pip list*": "allow",
+          "*npm list*": "allow",
+          "*brew list*": "allow",
+          "*df*": "allow",
+          "*du *": "allow",
+          "*top*": "allow",
+          "*htop*": "allow",
+          "*git status*": "allow",
+          "*git log*": "allow",
+          "*git diff*": "allow",
+          "*git branch*": "allow",
+          "*git remote*": "allow",
+          "*git config*": "allow",
+          "*git rev-parse*": "allow",
+          "*git show*": "allow",
+          "*git ls-files*": "allow",
+          "*python --version*": "allow",
+          "*python3 --version*": "allow",
+          "*node --version*": "allow",
+          "*npm --version*": "allow",
+          "*wc*": "allow",
+          "*sort*": "allow",
+          "*uniq*": "allow",
+          "*jq*": "allow"
+        },
+        "task": {
+          "explorer": "allow",
+          "test-verifier": "allow",
+          "api-docs-researcher": "allow",
+          "code-executor": "allow"
+        }
+      }
+    },
+    "bash-executor": {
+      "permission": {
+        "edit": "deny",
+        "bash": {
+          "*": "ask",
+          "*ls *": "allow",
+          "*pwd*": "allow",
+          "*echo *": "allow",
+          "*cat *": "allow",
+          "*head *": "allow",
+          "*tail *": "allow",
+          "*which *": "allow",
+          "*find *": "allow",
+          "*rg*": "allow",
+          "*git grep*": "allow",
+          "*ps*": "allow",
+          "*date*": "allow",
+          "*whoami*": "allow",
+          "*id*": "allow",
+          "*uname*": "allow",
+          "*cd *": "allow",
+          "*pip list*": "allow",
+          "*npm list*": "allow",
+          "*brew list*": "allow",
+          "*df*": "allow",
+          "*du *": "allow",
+          "*top*": "allow",
+          "*htop*": "allow",
+          "*git status*": "allow",
+          "*git log*": "allow",
+          "*git diff*": "allow",
+          "*git branch*": "allow",
+          "*git remote*": "allow",
+          "*git config*": "allow",
+          "*git rev-parse*": "allow",
+          "*git show*": "allow",
+          "*git ls-files*": "allow",
+          "*python --version*": "allow",
+          "*python3 --version*": "allow",
+          "*node --version*": "allow",
+          "*npm --version*": "allow",
+          "*wc*": "allow",
+          "*sort*": "allow",
+          "*uniq*": "allow",
+          "*jq*": "allow"
+        }
+      }
+    },
+    "test-verifier": {
+      "permission": {
+        "edit": "deny",
+        "bash": {
+          "*": "ask",
+          "*mix test*": "allow",
+          "*mix compile*": "allow",
+          "*mix format*": "allow",
+          "*mix credo*": "allow",
+          "*mix dialyzer*": "allow",
+          "*mix deps.get*": "allow",
+          "*mix deps.update*": "allow",
+          "*npm test*": "allow",
+          "*npm run test*": "allow",
+          "*pnpm test*": "allow",
+          "*pnpm run test*": "allow",
+          "*yarn test*": "allow",
+          "*npm run lint*": "allow",
+          "*pnpm run lint*": "allow",
+          "*yarn run lint*": "allow",
+          "*npm run build*": "allow",
+          "*pnpm run build*": "allow",
+          "*yarn run build*": "allow",
+          "*npm install*": "allow",
+          "*npm ci*": "allow",
+          "*pnpm install*": "allow",
+          "*yarn install*": "allow",
+          "*pytest*": "allow",
+          "*python -m pytest*": "allow",
+          "*pip install*": "allow",
+          "*pip3 install*": "allow",
+          "*go test*": "allow",
+          "*go build*": "allow",
+          "*go run*": "allow",
+          "*cargo test*": "allow",
+          "*cargo build*": "allow",
+          "*cargo check*": "allow",
+          "*make*": "allow",
+          "*cmake*": "allow",
+          "*ls *": "allow",
+          "*git status*": "allow",
+          "*git diff*": "allow",
+          "*git log*": "allow",
+          "*git show*": "allow"
+        },
+        "task": { "*": "deny" }
+      }
+    },
+    "explorer": {
+      "permission": {
+        "edit": "deny",
+        "bash": {
+          "*": "ask",
+          "*rg*": "allow",
+          "*git grep*": "allow",
+          "*find *": "allow",
+          "*ls *": "allow",
+          "*git status*": "allow",
+          "*git diff*": "allow",
+          "*git log*": "allow",
+          "*git show*": "allow",
+          "*git branch*": "allow",
+          "*git ls-files*": "allow",
+          "*cat *": "allow",
+          "*head *": "allow",
+          "*tail *": "allow",
+          "*wc*": "allow",
+          "*sort*": "allow",
+          "*uniq*": "allow",
+          "*jq*": "allow"
+        },
+        "task": {
+          "api-docs-researcher": "allow",
+          "explorer": "allow",
+          "*": "deny"
+        }
+      }
+    },
+    "code-reviewer": {
+      "permission": {
+        "edit": "deny",
+        "bash": "ask",
+        "task": {
+          "api-docs-researcher": "allow",
+          "*": "deny"
+        },
+        "webfetch": "allow",
+        "context7_resolve-library-id": "allow",
+        "context7_query-docs": "allow",
+        "hexdocs-mcp_fetch": "allow",
+        "hexdocs-mcp_search": "allow",
+        "searxng_search": "allow",
+        "gh_grep_searchGitHub": "allow"
+      }
+    },
+    "security-reviewer": {
+      "permission": {
+        "edit": "deny",
+        "bash": "ask",
+        "task": {
+          "api-docs-researcher": "allow",
+          "*": "deny"
+        },
+        "webfetch": "allow",
+        "context7_resolve-library-id": "allow",
+        "context7_query-docs": "allow",
+        "hexdocs-mcp_fetch": "allow",
+        "hexdocs-mcp_search": "allow",
+        "searxng_search": "allow",
+        "gh_grep_searchGitHub": "allow"
+      }
+    },
+    "docs-reviewer": {
+      "permission": {
+        "edit": "deny",
+        "bash": "deny",
+        "task": {
+          "api-docs-researcher": "allow",
+          "*": "deny"
+        },
+        "webfetch": "allow",
+        "context7_query-docs": "allow",
+        "hexdocs-mcp_fetch": "allow",
+        "hexdocs-mcp_search": "allow",
+        "searxng_search": "allow",
+        "gh_grep_searchGitHub": "allow"
+      }
+    },
+    "docs-writer": {
+      "permission": {
+        "edit": "ask",
+        "bash": "deny",
+        "task": {
+          "api-docs-researcher": "allow",
+          "*": "deny"
+        }
+      }
+    },
+    "api-docs-researcher": {
+      "permission": {
+        "edit": "deny",
+        "bash": "deny",
+        "webfetch": "allow",
+        "context7_resolve-library-id": "allow",
+        "context7_query-docs": "allow",
+        "hexdocs-mcp_search": "allow",
+        "hexdocs-mcp_fetch": "allow",
+        "searxng_health_check": "allow",
+        "searxng_search": "allow",
+        "gh_grep_searchGitHub": "allow",
+        "task": { "*": "deny" }
+      }
     }
   }
 }
