@@ -16,14 +16,15 @@ These are by personal dot files that I use to setup mainly dev pods.
 - Unix-like system (macOS, Linux)
 - Zsh
 - Git with GPG signing configured
-- [Oh My Zsh](https://ohmyz.sh/) (installed automatically)
 - [asdf](https://asdf.io/) for version management
+
+The install script will install [Oh My Zsh](https://ohmyz.sh/) if it is not already present.
 
 ## Quick Setup
 
 ```bash
 cd ~
-git clone https://github.com/tomgrozev/dotfiles.git
+git clone https://github.com/TomGrozev/dots dotfiles
 cd dotfiles
 ./install.sh
 ```
@@ -32,7 +33,7 @@ The install script will:
 
 1. Symlink dotfiles from `~/dotfiles` to your home directory
 2. Back up any existing files with `.bak` suffix
-3. Install Oh My Zsh plugins (zsh-syntax-highlighting, zsh-autosuggestions)
+3. Install Oh My Zsh (if missing) and Oh My Zsh plugins (zsh-syntax-highlighting, zsh-autosuggestions)
 4. Install Powerlevel10k theme
 5. Set up `.config/` subdirectories for gh, nvim, and opencode
 
@@ -47,4 +48,3 @@ ln -s ~/dotfiles/.zshrc ~/.zshrc
 ln -s ~/dotfiles/.gitconfig ~/.gitconfig
 # ... etc.
 ```
-

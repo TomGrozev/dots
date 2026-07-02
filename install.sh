@@ -32,6 +32,18 @@ MATT_POCOCK_SKILLS=(
   implement
 )
 
+# --- Install Oh My Zsh ------------------------------------------------------
+
+echo ""
+echo "Installing Oh My Zsh..."
+
+if [ -d "$HOME/.oh-my-zsh" ]; then
+  echo "  Oh My Zsh already installed, skipping"
+else
+  echo "  Installing Oh My Zsh..."
+  sh -c '$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)' "" --unattended
+fi
+
 # --- Symlink dotfiles ---
 echo "Creating symlinks..."
 
@@ -85,11 +97,6 @@ done
 # --- Install Oh My Zsh plugins ---
 echo ""
 echo "Installing Oh My Zsh plugins..."
-
-if [ ! -d "$HOME/.oh-my-zsh" ]; then
-  echo "  Oh My Zsh not found. Install it first: sh <(curl -fsSL https://raw.github.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
-  exit 1
-fi
 
 plugins=(
   "zsh-users/zsh-syntax-highlighting"
