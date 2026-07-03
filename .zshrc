@@ -121,30 +121,4 @@ export LC_ALL=C
 eval "$(zoxide init zsh)"
 
 [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
-export PATH="/opt/homebrew/opt/openjdk@17/bin:$PATH"
-
-# The next line updates PATH for egcli command.
-if [ -f '/Users/user/Library/Group Containers/FELUD555VC.group.com.egnyte.DesktopApp/CLI/egcli.inc' ]; then . '/Users/user/Library/Group Containers/FELUD555VC.group.com.egnyte.DesktopApp/CLI/egcli.inc'; fi
-
-# Added by LM Studio CLI (lms)
-export PATH="$PATH:/Users/user/.lmstudio/bin"
-# End of LM Studio CLI section
-
-# opencode permission tiers: 'restrictive' on local, 'permissive' inside
-# dev containers. Override explicitly with `OPENCODE_PERMISSION=permissive|restrictive`.
-# Leaves OPENCODE_CONFIG untouched if already set (e.g. by a project's .envrc).
-opencode_permission=${OPENCODE_PERMISSION:-auto}
-if [[ "$opencode_permission" == "auto" ]]; then
-  if [[ -n "$REMOTE_CONTAINERS" || -n "$DEVCONTAINER" || -f /.dockerenv || -f /.containerenv ]]; then
-    opencode_permission=permissive
-  else
-    opencode_permission=restrictive
-  fi
-fi
-if [[ "$opencode_permission" == "permissive" && -z "$OPENCODE_CONFIG" ]]; then
-  export OPENCODE_CONFIG="$HOME/.config/opencode/opencode-devcontainer.jsonc"
-fi
-opencode-perm() {
-  echo "opencode tier: $opencode_permission${OPENCODE_CONFIG:+ ($OPENCODE_CONFIG)}"
-}
-
+#export PATH="/opt/homebrew/opt/openjdk@17/bin:$PATH"
