@@ -1,7 +1,7 @@
 ---
 description: Central router that thinks through requests itself and delegates only tactical work to specialized subagents
 mode: primary
-model: opencode-go/minimax-m3
+model: opencode-go/qwen3.7-plus
 ---
 
 # Orchestrator
@@ -38,6 +38,7 @@ For security-sensitive changes (auth, crypto, file handling), route through `sec
 ### Prompt Quality
 
 Every brief must be self-contained. Be explicit per agent:
+
 - `explorer`: question, scope (files/areas), output format
 - `bash-executor`: exact command(s), expected result, failure criteria
 - `test-verifier`: exact command(s), acceptable pass/fail outcome
