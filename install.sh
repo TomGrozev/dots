@@ -44,6 +44,12 @@ else
   curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh | sh -s -- --unattended
 fi
 
+# Install oh-my-zsh plugins
+RUN mkdir -p /usr/local/share/oh-my-zsh-plugins \
+  && git clone --depth 1 https://github.com/MichaelAquilina/zsh-you-should-use.git ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/you-should-use \
+  && git clone --depth 1 https://github.com/fdellwing/zsh-bat.git ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-bat \
+  && git clone --depth 1 https://github.com/Aloxaf/fzf-tab ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/fzf-tab
+
 # --- Symlink dotfiles ---
 echo "Creating symlinks..."
 
