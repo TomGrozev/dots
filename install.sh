@@ -100,9 +100,9 @@ echo "Installing Oh My Zsh plugins..."
 
 plugins=(
   "zsh-users/zsh-syntax-highlighting"
-  "zsh-users/zsh-autosuggestions",
-  "MichaelAquilina/zsh-you-should-use",
-  "fdellwing/zsh-bat",
+  "zsh-users/zsh-autosuggestions"
+  "MichaelAquilina/zsh-you-should-use"
+  "fdellwing/zsh-bat"
   "Aloxaf/fzf-tab"
 )
 
