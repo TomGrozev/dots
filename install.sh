@@ -45,7 +45,7 @@ else
 fi
 
 # Install oh-my-zsh plugins
-mkdir -p /usr/local/share/oh-my-zsh-plugins \
+mkdir -p ${ZSH_CUSTOM:-~/.oh-my-zsh/custom} \
   && git clone --depth 1 https://github.com/MichaelAquilina/zsh-you-should-use.git ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/you-should-use \
   && git clone --depth 1 https://github.com/fdellwing/zsh-bat.git ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-bat \
   && git clone --depth 1 https://github.com/Aloxaf/fzf-tab ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/fzf-tab
