@@ -77,7 +77,7 @@ done
 echo ""
 echo "Creating .config symlinks..."
 
-config_dirs=(gh nvim opencode)
+config_dirs=(gh nvim opencode cortexkit)
 
 mkdir -p "$HOME/.config"
 

@@ -1,0 +1,12 @@
+{
+  "$schema": "https://raw.githubusercontent.com/cortexkit/magic-context/master/assets/magic-context.schema.json",
+  "historian": {
+    "model": "nano-gpt/xiaomi/mimo-v2.5"
+  },
+  "dreamer": {
+    "model": "nano-gpt/xiaomi/mimo-v2.5"
+  },
+  "sidekick": {
+    "disable": true
+  }
+}

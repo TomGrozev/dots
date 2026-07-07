@@ -5,16 +5,22 @@
     "cc-safety-net",
     "envsitter-guard",
     "opencode-notify",
-    "@tarquinen/opencode-dcp@latest"
+    "@cortexkit/opencode-magic-context@latest"
   ],
   "default_agent": "orchestrator",
   "model": "opencode-go/mimo-v2.5",
-  "instructions": ["./AGENTS.md"],
+  "instructions": [
+    "./AGENTS.md"
+  ],
   "mcp": {
     "hexdocs-mcp": {
       "enabled": true,
       "type": "local",
-      "command": ["npx", "-y", "hexdocs-mcp@0.5.0"]
+      "command": [
+        "npx",
+        "-y",
+        "hexdocs-mcp@0.5.0"
+      ]
     },
     "context7": {
       "enabled": true,
@@ -28,7 +34,11 @@
     },
     "searxng": {
       "type": "local",
-      "command": ["npx", "-y", "@nitish-raj/searxng-mcp-bridge"],
+      "command": [
+        "npx",
+        "-y",
+        "@nitish-raj/searxng-mcp-bridge"
+      ],
       "environment": {
         "SEARXNG_INSTANCE_URL": "https://search.theg.house"
       }
@@ -62,7 +72,9 @@
     }
   },
   "agent": {
-    "explore": { "disable": true },
+    "explore": {
+      "disable": true
+    },
     "build": {
       "description": "Direct coding agent for implementation tasks",
       "model": "opencode-go/mimo-v2.5-pro",
@@ -364,7 +376,9 @@
           "*git log*": "allow",
           "*git show*": "allow"
         },
-        "task": { "*": "deny" }
+        "task": {
+          "*": "deny"
+        }
       }
     },
     "explorer": {
@@ -469,8 +483,14 @@
         "searxng_health_check": "allow",
         "searxng_search": "allow",
         "gh_grep_searchGitHub": "allow",
-        "task": { "*": "deny" }
+        "task": {
+          "*": "deny"
+        }
       }
     }
+  },
+  "compaction": {
+    "auto": false,
+    "prune": false
   }
 }
