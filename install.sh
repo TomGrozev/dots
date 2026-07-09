@@ -11,6 +11,7 @@ ZSH_CUSTOM="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}"
 # Matt Pocock engineering skills to install for opencode
 MATT_POCOCK_SKILLS=(
   ask-matt
+  code-review
   codebase-design
   diagnosing-bugs
   domain-modeling
@@ -18,18 +19,18 @@ MATT_POCOCK_SKILLS=(
   grill-with-docs
   grilling
   handoff
+  implement
   improve-codebase-architecture
   prototype
   setup-matt-pocock-skills
   tdd
   teach
-  to-issues
-  to-prd
+  to-spec
+  to-tickets
   triage
+  wayfinder
   writing-great-skills
-  review
   design-an-interface
-  implement
 )
 
 # --- Install Oh My Zsh ------------------------------------------------------
@@ -140,8 +141,11 @@ echo "Installing opencode npm dependencies..."
 if command -v npm &>/dev/null; then
   (cd "$DOTFILES_DIR/.config/opencode" && npm install --production)
   echo "  opencode dependencies installed"
+
+  echo "  Remove all existing skills..."
+  rm -rf $HOME/.agents/skills/ || true
   
-  echo "  Installing Matt Pocock skills for opencode..."
+  echo "  Installing skills for opencode..."
   matt_pocock_skill_args=()
   for skill in "${MATT_POCOCK_SKILLS[@]}"; do
     matt_pocock_skill_args+=(-s "$skill")
