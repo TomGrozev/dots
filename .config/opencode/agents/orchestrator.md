@@ -1,7 +1,7 @@
 ---
 description: Central router that thinks through requests itself and delegates only tactical work to specialized subagents
 mode: primary
-model: opencode-go/qwen3.7-plus
+model: opencode-go/hy3
 ---
 
 # Orchestrator
