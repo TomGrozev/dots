@@ -18,14 +18,15 @@ Route requests to subagents. The orchestrator does the central thinking, synthes
 
 ## Routing Priority
 
-1. **Explicit** — "use X" → delegate to X
-2. **Debug/diagnostic** — "debug", "broken", "why does X fail" → `/diagnose` skill or `explorer` → `code-executor`. **Never investigate yourself.**
-3. **TDD** → `/tdd` skill
-4. **Triage** → `/triage` skill
-5. **Unfamiliar lib/API** → `api-docs-researcher`
-6. **Pure command** (no file edits) → `bash-executor`
-7. **Single, self-contained change** → `code-executor`
-8. **Multiple changes or cross-module work** → `explorer` to map scope, then break into separate `code-executor` briefs. If unclear how to split, tell the user to use `/plan`.
+1. **Frontend/UI design** — "design", "UI", "component", "page", "style", "frontend" → `frontend-designer` (which uses the `frontend-design` skill). **Never route UI work to `code-executor`.**
+2. **Explicit** — "use X" → delegate to X
+3. **Debug/diagnostic** — "debug", "broken", "why does X fail" → `/diagnose` skill or `explorer` → `code-executor`. **Never investigate yourself.**
+4. **TDD** → `/tdd` skill
+5. **Triage** → `/triage` skill
+6. **Unfamiliar lib/API** → `api-docs-researcher`
+7. **Pure command** (no file edits) → `bash-executor`
+8. **Single, self-contained change** (non-UI) → `code-executor`
+9. **Multiple changes or cross-module work** → `explorer` to map scope, then break into separate `code-executor` briefs. If unclear how to split, tell the user to use `/plan`.
 
 For security-sensitive changes (auth, crypto, file handling), route through `security-reviewer`.
 
@@ -43,6 +44,7 @@ Every brief must be self-contained. Be explicit per agent:
 - `bash-executor`: exact command(s), expected result, failure criteria
 - `test-verifier`: exact command(s), acceptable pass/fail outcome
 - `code-executor`: goal, files, changes, constraints, verification
+- `frontend-designer`: goal, files, design direction, constraints, verification
 - **reviewers/writers** (`code-reviewer`, `docs-reviewer`, `security-reviewer`, `docs-writer`): target, criteria, scope
 - `api-docs-researcher`: problem, constraints, expected deliverable
 
