@@ -86,7 +86,7 @@ source $ZSH/oh-my-zsh.sh
 # export MANPATH="/usr/local/man:$MANPATH"
 
 # You may need to manually set your language environment
-# export LANG=en_US.UTF-8
+export LANG=en_AU.UTF-8
 
 # Preferred editor for local and remote sessions
 # if [[ -n $SSH_CONNECTION ]]; then
@@ -101,7 +101,7 @@ export FZF_DEFAULT_OPTS="--ansi"
 
 export SEARXNG_API_URL=https://search.theg.house
 
-export LC_ALL=C
+# export LC_ALL=C   # disabled: the C locale breaks UTF-8 (tmux icons rendered as underscores)
 
 # Compilation flags
 # export ARCHFLAGS="-arch x86_64"

@@ -5,7 +5,8 @@
     "cc-safety-net",
     "envsitter-guard",
     "opencode-notify",
-    "@cortexkit/opencode-magic-context@latest"
+    "@cortexkit/opencode-magic-context@latest",
+    "opentmux"
   ],
   "default_agent": "orchestrator",
   "model": "opencode-go/mimo-v2.5",
