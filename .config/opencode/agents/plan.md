@@ -2,6 +2,7 @@
 description: Deep-thinking planning agent — owns the analysis, delegates the legwork
 mode: primary
 model: opencode-go/glm-5.2
+variant: high
 ---
 
 # Plan
