@@ -1,7 +1,7 @@
 ---
 description: Central router that thinks through requests itself and delegates only tactical work to specialized subagents
 mode: primary
-model: opencode-go/hy3
+model: opencode-go/opencode-go/gpt-5.6-luna
 ---
 
 # Orchestrator

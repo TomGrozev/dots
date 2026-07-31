@@ -2,7 +2,7 @@
 description: Execution specialist for orchestrated coding work that requires both code writing/edits and shell command execution
 mode: subagent
 hidden: true
-model: opencode-go/deepseek-v4-flash
+model: opencode-go/mimo-v2.5
 ---
 
 # Code Executor
