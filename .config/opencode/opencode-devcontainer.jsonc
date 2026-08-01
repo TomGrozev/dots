@@ -3,7 +3,8 @@
 
   // Top-level: flip the laptop's web/MCP research denials to allow. Agents
   // that don't override webfetch (build, bash-executor, test-verifier,
-  // code-executor, docs-writer, orchestrator, plan, explorer) inherit this.
+  // code-executor, frontend-designer, docs-writer) inherit this.
+  // orchestrator, plan, and explorer pin these back to deny below.
   "permission": {
     "webfetch": "allow",
     "context7_resolve-library-id": "allow",
@@ -16,9 +17,16 @@
   },
 
   "agent": {
-    // --- Permissive agents: relax edit / bash, broaden task delegation ---
+    // --- Permissive agents: relax edit / bash. build is the unrestricted
+    // exception (task: allow). Workers below have task allowlists that
+    // enforce bounded-worker delegation boundaries. ---
     "build":               { "permission": { "edit": "allow", "bash": "allow", "task": "allow" } },
-    "code-executor":       { "permission": { "edit": "allow", "bash": "allow", "task": "allow" } },
+    "code-executor":       { "permission": { "edit": "allow", "bash": "allow",
+      "task": { "explorer": "allow", "test-verifier": "allow", "api-docs-researcher": "allow", "*": "deny" }
+    }},
+    "frontend-designer":   { "permission": { "edit": "allow", "bash": "allow",
+      "task": { "explorer": "allow", "api-docs-researcher": "allow", "*": "deny" }
+    }},
     "bash-executor":       { "permission": { "bash": "allow" } },
     "test-verifier":       { "permission": { "bash": "allow" } },
     "code-reviewer":       { "permission": { "edit": "allow", "bash": "allow" } },

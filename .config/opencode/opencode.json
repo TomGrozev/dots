@@ -169,7 +169,8 @@
           "security-reviewer": "allow",
           "docs-writer": "allow",
           "test-verifier": "allow",
-          "api-docs-researcher": "allow"
+          "api-docs-researcher": "allow",
+          "frontend-designer": "allow"
         }
       }
     },
@@ -186,7 +187,8 @@
           "security-reviewer": "allow",
           "docs-writer": "allow",
           "test-verifier": "allow",
-          "api-docs-researcher": "allow"
+          "api-docs-researcher": "allow",
+          "frontend-designer": "allow"
         }
       }
     },
@@ -272,8 +274,7 @@
         "task": {
           "explorer": "allow",
           "test-verifier": "allow",
-          "api-docs-researcher": "allow",
-          "code-executor": "allow"
+          "api-docs-researcher": "allow"
         }
       }
     },
@@ -322,6 +323,9 @@
           "*sort*": "allow",
           "*uniq*": "allow",
           "*jq*": "allow"
+        },
+        "task": {
+          "*": "deny"
         }
       }
     },
@@ -400,7 +404,6 @@
         },
         "task": {
           "api-docs-researcher": "allow",
-          "explorer": "allow",
           "*": "deny"
         }
       }
@@ -478,6 +481,45 @@
         "searxng_search": "allow",
         "gh_grep_searchGitHub": "allow",
         "task": {
+          "*": "deny"
+        }
+      }
+    },
+    "frontend-designer": {
+      "permission": {
+        "edit": "ask",
+        "bash": {
+          "*": "ask",
+          "*ls *": "allow",
+          "*pwd*": "allow",
+          "*cat *": "allow",
+          "*head *": "allow",
+          "*tail *": "allow",
+          "*find *": "allow",
+          "*which *": "allow",
+          "*npm install*": "allow",
+          "*npm ci*": "allow",
+          "*pnpm install*": "allow",
+          "*yarn install*": "allow",
+          "*npm run*": "allow",
+          "*pnpm run*": "allow",
+          "*yarn run*": "allow",
+          "*npm test*": "allow",
+          "*pnpm test*": "allow",
+          "*yarn test*": "allow",
+          "*npm run test*": "allow",
+          "*pnpm run test*": "allow",
+          "*yarn run test*": "allow",
+          "*npm run build*": "allow",
+          "*pnpm run build*": "allow",
+          "*yarn run build*": "allow",
+          "*git status*": "allow",
+          "*git diff*": "allow",
+          "*git log*": "allow"
+        },
+        "task": {
+          "explorer": "allow",
+          "api-docs-researcher": "allow",
           "*": "deny"
         }
       }

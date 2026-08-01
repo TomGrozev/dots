@@ -36,8 +36,9 @@ Delegate to subagents via the Task tool. Be specific — include exact task, fil
 - **`code-reviewer`** / **`security-reviewer`** — Review implementation quality. Security-sensitive work (auth, crypto, secrets) → `security-reviewer`.
 - **`docs-writer`** / **`docs-reviewer`** — Write or review documentation.
 - **`test-verifier`** — Run tests, linters, builds.
+- **`frontend-designer`** — UI/frontend implementation with design freedom within the brief's goal, files, and constraints.
 
-Parallelise independent tasks. Chain sequential ones (max 3 without confirmation).
+Parallelise independent tasks. Chain dependent tasks explicitly. Split larger work into more bounded calls rather than broadening a brief. Ask before a long or costly chain.
 
 ## Planning Skills
 
@@ -45,8 +46,8 @@ Use a skill when the request warrants structure beyond a simple plan.
 
 - **`/grill-me`** — Stress-test a design or approach via relentless Q&A.
 - **`/grill-with-docs`** — Same, but produces ADRs and glossary entries.
-- **`/to-prd`** — Synthesise the conversation into a PRD.
-- **`/to-issues`** — Break a plan into independently-grabbable issues.
+- **`/to-spec`** — Synthesise the conversation into a spec.
+- **`/to-tickets`** — Break a plan into independently-grabbable tickets.
 - **`/handoff`** — Compact context into a handoff doc for another agent.
 - **No skill** — Simple, well-scoped requests. Just reason it out and present the plan.
 
