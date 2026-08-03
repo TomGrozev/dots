@@ -85,24 +85,24 @@ tmux_conf_24b_colour=auto
 #   - tmux_conf_theme_synchronized
 tmux_conf_theme=enabled
 
-# default theme
-tmux_conf_theme_colour_1="#2E3440"   # nord
-tmux_conf_theme_colour_2="#3B4252"   # nord
-tmux_conf_theme_colour_3="#D8DEE9"   # nord
-tmux_conf_theme_colour_4="#88C0D0"   # nord
-tmux_conf_theme_colour_5="#EBCB8B"   # nord
-tmux_conf_theme_colour_6="#D8DEE9"   # nord
-tmux_conf_theme_colour_7="#E5E9F0"   # nord
-tmux_conf_theme_colour_8="#ECEFF4"   # nord
-tmux_conf_theme_colour_9="#3B4252"   # nord
-tmux_conf_theme_colour_10="#434C5E"   # nord
-tmux_conf_theme_colour_11="#4C566A"   # nord
-tmux_conf_theme_colour_12="#D8DEE9"   # nord
-tmux_conf_theme_colour_13="#E5E9F0"   # nord
-tmux_conf_theme_colour_14="#ECEFF4"   # nord
-tmux_conf_theme_colour_15="#3B4252"   # nord
-tmux_conf_theme_colour_16="#BF616A"   # nord
-tmux_conf_theme_colour_17="#ECEFF4"   # nord
+# default theme (Nord palette)
+tmux_conf_theme_colour_1="#2E3440"    # nord0  dark bg
+tmux_conf_theme_colour_2="#4C566A"    # nord3  medium dark
+tmux_conf_theme_colour_3="#D8DEE9"    # nord4  light text
+tmux_conf_theme_colour_4="#88C0D0"    # nord8  frost accent
+tmux_conf_theme_colour_5="#EBCB8B"    # nord13 yellow accent
+tmux_conf_theme_colour_6="#ECEFF4"    # nord6  left main fg
+tmux_conf_theme_colour_7="#2E3440"    # nord0  left sub-main fg
+tmux_conf_theme_colour_8="#2E3440"    # nord0  left sub fg
+tmux_conf_theme_colour_9="#5E81AC"    # nord10 left main bg
+tmux_conf_theme_colour_10="#88C0D0"   # nord8  left sub-main bg
+tmux_conf_theme_colour_11="#81A1C1"   # nord9  left sub bg
+tmux_conf_theme_colour_12="#E5E9F0"   # nord6  right sub fg
+tmux_conf_theme_colour_13="#ECEFF4"   # nord6  right sub-main fg
+tmux_conf_theme_colour_14="#2E3440"   # nord0  right main fg
+tmux_conf_theme_colour_15="#3B4252"   # nord2  right sub bg
+tmux_conf_theme_colour_16="#BF616A"   # nord11 right sub-main bg
+tmux_conf_theme_colour_17="#ECEFF4"   # nord6  right main bg / visible edge
 
 # default theme (ansi)
 #tmux_conf_theme_colour_1="colour0"
@@ -196,8 +196,8 @@ tmux_conf_theme_terminal_title="#h ❐ #S ● #I #W"
 #     - #{pretty_pane_current_path}
 #     - #{username}
 #     - #{username_ssh}
-tmux_conf_theme_window_status_fg="$tmux_conf_theme_colour_3"
-tmux_conf_theme_window_status_bg="$tmux_conf_theme_colour_1"
+tmux_conf_theme_window_status_fg="#E5E9F0"   # Nord snow-storm bright text
+tmux_conf_theme_window_status_bg="#3B4252"   # Nord polar-night raised inactive tab
 tmux_conf_theme_window_status_attr="none"
 tmux_conf_theme_window_status_format="#I #W#{?#{||:#{window_bell_flag},#{window_zoomed_flag}}, ,}#{?window_bell_flag,!,}#{?window_zoomed_flag,Z,}"
 #tmux_conf_theme_window_status_format="#{circled_window_index} #W#{?#{||:#{window_bell_flag},#{window_zoomed_flag}}, ,}#{?window_bell_flag,!,}#{?window_zoomed_flag,Z,}"
@@ -221,30 +221,26 @@ tmux_conf_theme_window_status_current_format="#I #W#{?#{||:#{window_bell_flag},#
 #tmux_conf_theme_window_status_current_format="#{circled_window_index} #W#{?#{||:#{window_bell_flag},#{window_zoomed_flag}}, ,}#{?window_bell_flag,!,}#{?window_zoomed_flag,Z,}"
 #tmux_conf_theme_window_status_current_format="#I #W#{?#{||:#{window_bell_flag},#{window_zoomed_flag}}, ,}#{?window_bell_flag,🔔,}#{?window_zoomed_flag,🔍,}"
 
-# window activity status style
-tmux_conf_theme_window_status_activity_fg="default"
-tmux_conf_theme_window_status_activity_bg="default"
-tmux_conf_theme_window_status_activity_attr="underscore"
+# window activity status style (Nord)
+tmux_conf_theme_window_status_activity_fg="#EBCB8B"  # Nord aurora yellow
+tmux_conf_theme_window_status_activity_bg="#3B4252"  # Nord polar-night raised tab
+tmux_conf_theme_window_status_activity_attr="bold"
 
-# window bell status style
-tmux_conf_theme_window_status_bell_fg="$tmux_conf_theme_colour_5"
-tmux_conf_theme_window_status_bell_bg="default"
-tmux_conf_theme_window_status_bell_attr="blink,bold"
+# window bell status style (Nord)
+tmux_conf_theme_window_status_bell_fg="#BF616A"  # Nord aurora red
+tmux_conf_theme_window_status_bell_bg="#3B4252"  # Nord polar-night raised tab
+tmux_conf_theme_window_status_bell_attr="bold"
 
-# window last status style
-tmux_conf_theme_window_status_last_fg="$tmux_conf_theme_colour_4"
-tmux_conf_theme_window_status_last_bg="$tmux_conf_theme_colour_2"
+# window last status style (Nord)
+tmux_conf_theme_window_status_last_fg="#81A1C1"  # Nord aurora blue
+tmux_conf_theme_window_status_last_bg="#434C5E"  # Nord polar-night surface
 tmux_conf_theme_window_status_last_attr="none"
 
 # status left/right sections separators
-tmux_conf_theme_left_separator_main=""
-tmux_conf_theme_left_separator_sub="|"
-tmux_conf_theme_right_separator_main=""
-tmux_conf_theme_right_separator_sub="|"
-#tmux_conf_theme_left_separator_main='\uE0B0'  # /!\ you don't need to install Powerline
-#tmux_conf_theme_left_separator_sub='\uE0B1'   #   you only need fonts patched with
-#tmux_conf_theme_right_separator_main='\uE0B2' #   Powerline symbols or the standalone
-#tmux_conf_theme_right_separator_sub='\uE0B3'  #   PowerlineSymbols.otf font, see README.md
+tmux_conf_theme_left_separator_main='\uE0B0'  # /!\ you don't need to install Powerline
+tmux_conf_theme_left_separator_sub='\uE0B1'   #   you only need fonts patched with
+tmux_conf_theme_right_separator_main='\uE0B2' #   Powerline symbols or the standalone
+tmux_conf_theme_right_separator_sub='\uE0B3'  #   PowerlineSymbols.otf font, see README.md
 
 # status left/right content:
 #   - separate main sections with "|"
@@ -334,7 +330,7 @@ tmux_conf_battery_bar_length="auto"
 #   - heat
 #   - "colour_full_fg,colour_empty_fg,colour_bg"
 #   - gradient(colour_fg_1,colour_fg_2,...,colour_fg_n)
-tmux_conf_battery_bar_palette="gradient"
+tmux_conf_battery_bar_palette="gradient(#BF616A,#D08770,#EBCB8B,#A3BE8C,#88C0D0,#5E81AC)"
 #tmux_conf_battery_bar_palette="#d70000,#e4e4e4,#000000"   # red, white, black
 #tmux_conf_battery_bar_palette="gradient(#00afff,#47a2ff,#7c91ff,#ac7afb,#d65be2,#e163df,#eb6cdd,#f475db,#ec9ff1,#eac3fe,#efe2ff,#ffffff)"
 
@@ -343,7 +339,7 @@ tmux_conf_battery_bar_palette="gradient"
 #   - heat
 #   - "colour_low,colour_half,colour_full"
 #   - gradient(colour_fg_1,colour_fg_2,...,colour_fg_n)
-tmux_conf_battery_hbar_palette="gradient"
+tmux_conf_battery_hbar_palette="gradient(#BF616A,#D08770,#EBCB8B,#A3BE8C,#88C0D0,#5E81AC)"
 #tmux_conf_battery_hbar_palette="#d70000,#ff5f00,#5fff00"  # red, orange, green
 #tmux_conf_battery_hbar_palette="gradient(#00afff,#47a2ff,#7c91ff,#ac7afb,#d65be2,#e163df,#eb6cdd,#f475db,#ec9ff1,#eac3fe,#efe2ff,#ffffff)"
 
@@ -356,7 +352,7 @@ tmux_conf_battery_hbar_symbols="▏ ▎ ▍ ▌ ▋ ▊ ▉ █"
 #   - heat
 #   - "colour_low,colour_half,colour_full"
 #   - gradient(colour_fg_1,colour_fg_2,...,colour_fg_n)
-tmux_conf_battery_vbar_palette="gradient"
+tmux_conf_battery_vbar_palette="gradient(#BF616A,#D08770,#EBCB8B,#A3BE8C,#88C0D0,#5E81AC)"
 #tmux_conf_battery_vbar_palette="#d70000,#ff5f00,#5fff00"  # red, orange, green
 #tmux_conf_battery_vbar_palette="gradient(#00afff,#47a2ff,#7c91ff,#ac7afb,#d65be2,#e163df,#eb6cdd,#f475db,#ec9ff1,#eac3fe,#efe2ff,#ffffff)"
 
@@ -423,6 +419,11 @@ tmux_conf_urlscan_options="--compact --dedupe"
 # move status line to top
 #set -g status-position top
 
+# justify status left (override default centre)
+set -g status-justify left
+
+# keep status-right aligned to the terminal edge
+set -g status-right-style 'default' #!important
 
 # -- tpm -----------------------------------------------------------------------
 
@@ -520,7 +521,4 @@ tmux_conf_uninstall_plugins_on_reload=false
 # "$@"
 # # /!\ do not remove the previous line
 # #     do not write below this line
-
-# --- nord-tmux theme ---------------------------------------------------------
-# auto-installed by gpakosz's built-in TPM support on tmux launch
-set -g @plugin 'arcticicestudio/nord-tmux'
+set -g extended-keys always

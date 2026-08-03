@@ -121,7 +121,7 @@ if [ -e "$DOTFILES_DIR/.tmux/.tmux.conf" ]; then
   fi
   ln -sfn "$tmux_local_source" "$tmux_local_target"
   echo "  Linked .tmux.conf.local"
-  echo "  (tmux plugins, including the nord-tmux theme, auto-install on first tmux launch)"
+  echo "  (tmux plugins auto-install on first tmux launch when configured)"
 else
   echo "  .tmux submodule not found; run: git submodule update --init --recursive"
 fi
