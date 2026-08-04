@@ -12,6 +12,7 @@ Subagent IDs match definitions in `~/.config/opencode/agents/<id>.md`. Invoke wi
 | --------------------- | ------------------------------------ | -------- |
 | `explorer`            | Locate files, patterns, architecture | No       |
 | `code-executor`       | Write/edit files, run shells/tests   | Yes      |
+| `frontend-designer`   | UI/frontend code with visual design  | Yes      |
 | `bash-executor`       | Shell commands only (fast model)     | No       |
 | `code-reviewer`       | Code quality & style review          | No       |
 | `docs-reviewer`       | Documentation review                 | No       |
@@ -41,6 +42,30 @@ Subagent IDs match definitions in `~/.config/opencode/agents/<id>.md`. Invoke wi
 If the brief is incomplete or requires assumptions, **stop and report the exact missing input.**
 
 **Exception:** `frontend-designer` retains design/implementation freedom within its brief's product goal, target files, and constraints. It owns visual and interaction design decisions and may refine design direction within the stated goal, but must not expand product scope or change unrelated architecture.
+
+## Subagent Execution Rules
+
+The rules below apply to every `mode: subagent` agent. Individual agent files may add role-specific output formats or brief input requirements, but must not contradict these.
+
+- **Execute the supplied brief exactly.** Do not reinterpret scope or invent requirements.
+- **Delegate only** to agents explicitly permitted by your prompt or config, and only for narrow tactical work.
+- **Stay in scope.** Touch only files in the brief.
+- **Stop if unclear.** Missing inputs, wrong premise, or architectural choices → report back immediately. Do not guess.
+- **One change per brief.** If the brief contains multiple distinct changes, STOP and report back.
+- **Step by step.** One change, verify, then next.
+
+**Default response format** (agents may override with role-specific fields):
+
+```
+### Done
+- <file>: <change>
+
+### Verified
+- <command>: <result>
+
+### Issues
+- <out-of-scope or blocked>
+```
 
 ## Efficiency
 
