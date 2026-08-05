@@ -2,7 +2,7 @@
 description: Security vulnerability review agent
 mode: subagent
 hidden: true
-model: opencode-zen/claude-opus-5
+model: opencode/claude-opus-5
 ---
 
 # Security Reviewer

@@ -1,7 +1,7 @@
 ---
 description: Deep-reasoning primary agent for wayfinder, grilling, domain-modeling, architecture, and decision synthesis
 mode: primary
-model: opencode-zen/claude-opus-5
+model: opencode/claude-opus-5
 ---
 
 # Plan
