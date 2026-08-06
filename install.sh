@@ -6,10 +6,6 @@
 set -e
 
 DOTFILES_DIR="$(cd "$(dirname "$0")" && pwd)"
-# --- Initialize git submodules (e.g. .tmux) -----------------------------------
-echo ""
-echo "Initializing git submodules..."
-git submodule update --init --recursive || echo "  Warning: submodule init failed (check network)"
 
 ZSH_CUSTOM="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}"
 
@@ -129,31 +125,6 @@ for i in "${!ZELLIJ_PLUGIN_NAMES[@]}"; do
     }
   fi
 done
-
-# --- Symlink tmux config (gpakosz/.tmux, a git submodule) --------------------
-echo ""
-echo "Creating tmux config symlinks..."
-if [ -e "$DOTFILES_DIR/.tmux/.tmux.conf" ]; then
-  tmux_target="$HOME/.tmux.conf"
-  if [ -e "$tmux_target" ] && [ ! -L "$tmux_target" ]; then
-    echo "  Backing up existing .tmux.conf -> .tmux.conf.bak"
-    mv "$tmux_target" "${tmux_target}.bak"
-  fi
-  ln -sfn "$DOTFILES_DIR/.tmux/.tmux.conf" "$tmux_target"
-  echo "  Linked .tmux.conf"
-
-  tmux_local_target="$HOME/.tmux.conf.local"
-  tmux_local_source="$DOTFILES_DIR/.tmux.conf.local"
-  if [ -e "$tmux_local_target" ] && [ ! -L "$tmux_local_target" ]; then
-    echo "  Backing up existing .tmux.conf.local -> .tmux.conf.local.bak"
-    mv "$tmux_local_target" "${tmux_local_target}.bak"
-  fi
-  ln -sfn "$tmux_local_source" "$tmux_local_target"
-  echo "  Linked .tmux.conf.local"
-  echo "  (tmux plugins auto-install on first tmux launch when configured)"
-else
-  echo "  .tmux submodule not found; run: git submodule update --init --recursive"
-fi
 
 # --- Install Oh My Zsh plugins ---
 echo ""
