@@ -92,7 +92,7 @@ export LANG=en_AU.UTF-8
 # if [[ -n $SSH_CONNECTION ]]; then
 #   export EDITOR='vim'
 # else
-#   export EDITOR='mvim'
+export EDITOR='nvim'
 # fi
 
 export FZF_DEFAULT_COMMAND='fd --type file --follow --hidden --exclude .git --color=always'
@@ -115,10 +115,49 @@ export SEARXNG_API_URL=https://search.theg.house
 # alias zshconfig="mate ~/.zshrc"
 # alias ohmyzsh="mate ~/.oh-my-zsh"
 
+# yazi — cd on exit (y to open yazi, exit lands in the directory you were browsing)
+function y() {
+	local tmp="$(mktemp -t "yazi-cwd.XXXXXX")" cwd
+	command yazi "$@" --cwd-file="$tmp"
+	IFS= read -r -d '' cwd < "$tmp"
+	[ "$cwd" != "$PWD" ] && [ -d "$cwd" ] && builtin cd -- "$cwd"
+	command rm -f -- "$tmp"
+}
+
 # To customize prompt, run `p10k configure` or edit ~/.p10k.zsh.
 [[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
 
 eval "$(zoxide init zsh)"
 
 [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
-#export PATH="/opt/homebrew/opt/openjdk@17/bin:$PATH"
+
+# ── Zellij ──────────────────────────────────────────────────────────────
+
+# Aliases
+alias zj='zellij'
+alias zja='zellij attach'
+alias zjls='zellij list-sessions'
+alias zjk='zellij kill-session'
+alias zjka='zellij kill-all-sessions'
+
+export ZELLIJ_AUTO_ATTACH="true"
+export ZELLIJ_AUTO_EXIT="true"
+if [[ -z "$ZELLIJ" ]] && [[ "$TERM" != "dumb" ]] && command -v zellij &>/dev/null; then
+  if [[ "$ZELLIJ_AUTO_ATTACH" == "true" ]]; then
+    if command -v timeout &>/dev/null; then
+      if ! timeout 5 zellij attach -c 2>/dev/null; then
+        # Attach hung or failed — kill stale sessions and start fresh.
+        zellij kill-all-sessions --yes 2>/dev/null
+        zellij
+      fi
+    else
+      # No `timeout` available — fall back to the unguarded official behavior.
+      zellij attach -c
+    fi
+  else
+    zellij
+  fi
+  if [[ "$ZELLIJ_AUTO_EXIT" == "true" ]]; then
+    exit
+  fi
+fi

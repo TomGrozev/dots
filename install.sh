@@ -83,7 +83,7 @@ done
 echo ""
 echo "Creating .config symlinks..."
 
-config_dirs=(gh nvim opencode cortexkit)
+config_dirs=(gh ghostty nvim opencode cortexkit yazi zellij)
 
 mkdir -p "$HOME/.config"
 
@@ -100,6 +100,35 @@ for dir in "${config_dirs[@]}"; do
   echo "  Linked .config/$dir"
 done
 
+# --- Download Zellij WASM plugins ------------------------------------------
+echo ""
+echo "Downloading Zellij plugins..."
+
+ZELLIJ_PLUGIN_DIR="$HOME/.config/zellij/plugins"
+mkdir -p "$ZELLIJ_PLUGIN_DIR"
+
+ZELLIJ_PLUGIN_NAMES=("zjstatus.wasm" "zjframes.wasm" "zjstatus-hints.wasm" "zellij_forgot.wasm")
+ZELLIJ_PLUGIN_URLS=(
+  "https://github.com/dj95/zjstatus/releases/latest/download/zjstatus.wasm"
+  "https://github.com/dj95/zjstatus/releases/latest/download/zjframes.wasm"
+  "https://github.com/b0o/zjstatus-hints/releases/latest/download/zjstatus-hints.wasm"
+  "https://github.com/karimould/zellij-forgot/releases/download/0.4.2/zellij_forgot.wasm"
+)
+
+for i in "${!ZELLIJ_PLUGIN_NAMES[@]}"; do
+  plugin_name="${ZELLIJ_PLUGIN_NAMES[$i]}"
+  plugin_url="${ZELLIJ_PLUGIN_URLS[$i]}"
+  plugin_path="$ZELLIJ_PLUGIN_DIR/$plugin_name"
+
+  if [ -f "$plugin_path" ]; then
+    echo "  $plugin_name already downloaded, skipping"
+  else
+    echo "  Downloading $plugin_name..."
+    curl -fL --progress-bar -o "$plugin_path" "$plugin_url" || {
+      echo "    Warning: Failed to download $plugin_name"
+    }
+  fi
+done
 
 # --- Symlink tmux config (gpakosz/.tmux, a git submodule) --------------------
 echo ""
@@ -174,8 +203,8 @@ if command -v npm &>/dev/null; then
   echo "  opencode dependencies installed"
 
   echo "  Remove all existing skills..."
-  rm -rf $HOME/.agents/skills/ || true
-  
+  rm -rf "$HOME/.agents/skills/" || true
+
   echo "  Installing skills for opencode..."
   matt_pocock_skill_args=()
   for skill in "${MATT_POCOCK_SKILLS[@]}"; do
@@ -201,7 +230,3 @@ fi
 
 echo ""
 echo "✅ Done! Restart your shell or run: source ~/.zshrc"
-
-
-
-

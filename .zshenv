@@ -1,5 +1,5 @@
 # uv
-export PATH="/Users/user/.local/bin:$PATH"
+export PATH="$HOME/.local/bin:$PATH"
 
 # opencode permission tiers: 'restrictive' on local, 'permissive' inside
 # dev containers. Override explicitly with `OPENCODE_PERMISSION=permissive|restrictive`.

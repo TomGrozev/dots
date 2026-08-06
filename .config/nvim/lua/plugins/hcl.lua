@@ -18,6 +18,17 @@ vim.api.nvim_create_autocmd("LspAttach", {
   end,
 })
 
+-- Map file extensions to filetypes using Neovim's built-in API.
+-- This replaces nathom/filetype.nvim which calls dist#ft#SetFileTypeSH
+-- (a Vim autoload function not present in Neovim 0.12+).
+vim.filetype.add({
+  extension = {
+    tf = "terraform",
+    tfvars = "terraform",
+    tfstate = "json",
+  },
+})
+
 return {
   {
     "stevearc/conform.nvim",
@@ -36,20 +47,5 @@ return {
         },
       },
     },
-  },
-  {
-    "nathom/filetype.nvim",
-    config = function()
-      -- Setup overrides for file extensions
-      require("filetype").setup({
-        overrides = {
-          extensions = {
-            tf = "terraform",
-            tfvars = "terraform",
-            tfstate = "json",
-          },
-        },
-      })
-    end,
   },
 }

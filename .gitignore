@@ -1,2 +1,7 @@
 .DS_Store
 *.zwc
+
+# Zellij WASM plugins (downloaded by install.sh)
+.config/zellij/plugins/
+
+.cortexkit/
