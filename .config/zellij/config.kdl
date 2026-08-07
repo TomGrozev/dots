@@ -13,8 +13,20 @@ show_release_notes false
 
 keybinds clear-defaults=true {
     locked {
-        bind "Ctrl g" { SwitchToMode "normal"; }
+        //bind "Ctrl g" { SwitchToMode "normal"; }
+	bind "Ctrl g" {
+            // Disable the autolock plugin.
+            MessagePlugin "autolock" {payload "disable";};
+            // Unlock Zellij.
+            SwitchToMode "Normal";
+        }
     }
+    shared {
+        bind "Alt Shift z" {
+            // Enable the autolock plugin.
+            MessagePlugin "autolock" {payload "enable";};
+        }
+   }
     shared_except "locked" "renametab" "renamepane" {
         bind "Ctrl g" { SwitchToMode "locked"; }
         bind "Ctrl q" { Quit; }
@@ -192,6 +204,15 @@ keybinds clear-defaults=true {
             }
             SwitchToMode "locked"
         }
+        // Intercept `Enter`.
+        bind "Enter" {
+            // Passthru `Enter`.
+            WriteChars "\u{000D}";
+            // Invoke autolock to immediately assess proper lock state.
+            // (This provides a snappier experience compared to
+            // solely relying on `reaction_seconds` to elapse.)
+            MessagePlugin "autolock" {};
+        }
     }
 
     shared_except "locked" {
@@ -216,6 +237,12 @@ keybinds clear-defaults=true {
                 floating true
             }
             SwitchToMode "locked"
+        }
+        bind "Ctrl g" {
+            // Disable the autolock plugin.
+            MessagePlugin "autolock" {payload "disable";};
+            // Lock Zellij.
+            SwitchToMode "Locked";
         }
     }
 
@@ -287,6 +314,12 @@ plugins {
         max_length 100
         overflow_str "…"
     }
+    autolock location="file:~/.config/zellij/plugins/zellij-autolock.wasm" {
+        is_enabled true
+        triggers "nvim|vim|git|fzf|zoxide|atuin|opencode"
+        reaction_seconds "0.3"
+        print_to_log false
+    }
 }
 
 // ── Background plugins loaded at session start ────────────────────────────
@@ -296,4 +329,5 @@ load_plugins {
     "file:~/.config/zellij/plugins/zjframes.wasm" {
         hide_frame_for_single_pane "false"
     }
+    autolock
 }
