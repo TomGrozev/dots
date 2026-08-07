@@ -99,6 +99,7 @@ export FZF_DEFAULT_COMMAND='fd --type file --follow --hidden --exclude .git --co
 export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"
 export FZF_DEFAULT_OPTS="--ansi"
 
+export OPENCODE_ENABLE_EXA=1
 export SEARXNG_API_URL=https://search.theg.house
 
 # export LC_ALL=C   # disabled: the C locale breaks UTF-8 (tmux icons rendered as underscores)

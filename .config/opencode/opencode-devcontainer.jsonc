@@ -11,47 +11,85 @@
     "context7_query-docs": "allow",
     "hexdocs-mcp_fetch": "allow",
     "hexdocs-mcp_search": "allow",
-    "searxng_health_check": "allow",
-    "searxng_search": "allow",
-    "gh_grep_searchGitHub": "allow"
+    "websearch": "allow",
+    "gh_grep_searchGitHub": "allow",
   },
 
   "agent": {
     // --- Permissive agents: relax edit / bash. build is the unrestricted
     // exception (task: allow). Workers below have task allowlists that
     // enforce bounded-worker delegation boundaries. ---
-    "build":               { "permission": { "edit": "allow", "bash": "allow", "task": "allow" } },
-    "code-executor":       { "permission": { "edit": "allow", "bash": "allow",
-      "task": { "explorer": "allow", "test-verifier": "allow", "api-docs-researcher": "allow", "*": "deny" }
-    }},
-    "frontend-designer":   { "permission": { "edit": "allow", "bash": "allow",
-      "task": { "explorer": "allow", "api-docs-researcher": "allow", "*": "deny" }
-    }},
-    "bash-executor":       { "permission": { "bash": "allow" } },
-    "test-verifier":       { "permission": { "bash": "allow" } },
-    "code-reviewer":       { "permission": { "edit": "allow", "bash": "allow" } },
-    "security-reviewer":   { "permission": { "edit": "allow", "bash": "allow" } },
-    "docs-reviewer":       { "permission": { "edit": "allow", "bash": "allow" } },
-    "docs-writer":         { "permission": { "edit": "allow" } },
-    "api-docs-researcher": { "permission": { "edit": "allow", "bash": "allow" } },
+    "build": {
+      "permission": { "edit": "allow", "bash": "allow", "task": "allow" },
+    },
+    "code-executor": {
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "task": {
+          "explorer": "allow",
+          "test-verifier": "allow",
+          "api-docs-researcher": "allow",
+          "*": "deny",
+        },
+      },
+    },
+    "frontend-designer": {
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "task": {
+          "explorer": "allow",
+          "api-docs-researcher": "allow",
+          "*": "deny",
+        },
+      },
+    },
+    "bash-executor": { "permission": { "bash": "allow" } },
+    "test-verifier": { "permission": { "bash": "allow" } },
+    "code-reviewer": { "permission": { "edit": "allow", "bash": "allow" } },
+    "security-reviewer": { "permission": { "edit": "allow", "bash": "allow" } },
+    "docs-reviewer": { "permission": { "edit": "allow", "bash": "allow" } },
+    "docs-writer": { "permission": { "edit": "allow" } },
+    "api-docs-researcher": {
+      "permission": { "edit": "allow", "bash": "allow" },
+    },
 
     // --- Restrictive agents: top-level web/MCP flip would leak here (they
     // don't set these in their config and would inherit allow). Pin them
     // back to deny so planners and explorer stay locked down in containers. ---
-    "orchestrator": { "permission": {
-      "webfetch": "deny", "context7_resolve-library-id": "deny", "context7_query-docs": "deny",
-      "hexdocs-mcp_fetch": "deny", "hexdocs-mcp_search": "deny",
-      "searxng_health_check": "deny", "searxng_search": "deny", "gh_grep_searchGitHub": "deny"
-    }},
-    "plan": { "permission": {
-      "webfetch": "deny", "context7_resolve-library-id": "deny", "context7_query-docs": "deny",
-      "hexdocs-mcp_fetch": "deny", "hexdocs-mcp_search": "deny",
-      "searxng_health_check": "deny", "searxng_search": "deny", "gh_grep_searchGitHub": "deny"
-    }},
-    "explorer": { "permission": {
-      "webfetch": "deny", "context7_resolve-library-id": "deny", "context7_query-docs": "deny",
-      "hexdocs-mcp_fetch": "deny", "hexdocs-mcp_search": "deny",
-      "searxng_health_check": "deny", "searxng_search": "deny", "gh_grep_searchGitHub": "deny"
-    }}
-  }
+    "orchestrator": {
+      "permission": {
+        "webfetch": "deny",
+        "context7_resolve-library-id": "deny",
+        "context7_query-docs": "deny",
+        "hexdocs-mcp_fetch": "deny",
+        "hexdocs-mcp_search": "deny",
+        "websearch": "deny",
+        "gh_grep_searchGitHub": "deny",
+      },
+    },
+    "plan": {
+      "permission": {
+        "webfetch": "deny",
+        "context7_resolve-library-id": "deny",
+        "context7_query-docs": "deny",
+        "hexdocs-mcp_fetch": "deny",
+        "hexdocs-mcp_search": "deny",
+        "websearch": "deny",
+        "gh_grep_searchGitHub": "deny",
+      },
+    },
+    "explorer": {
+      "permission": {
+        "webfetch": "deny",
+        "context7_resolve-library-id": "deny",
+        "context7_query-docs": "deny",
+        "hexdocs-mcp_fetch": "deny",
+        "hexdocs-mcp_search": "deny",
+        "websearch": "deny",
+        "gh_grep_searchGitHub": "deny",
+      },
+    },
+  },
 }

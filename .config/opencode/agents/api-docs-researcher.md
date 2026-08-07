@@ -10,10 +10,11 @@ model: opencode-go/qwen3.7-plus
 Fetch external library/API documentation. The only agent with MCP docs access.
 
 **Tool selection:**
+
 - Elixir/Erlang → `hexdocs-mcp_search/fetch`
 - Third-party libs → `context7_resolve-library-id` + `context7_query-docs`
 - Production code patterns → `gh_grep_searchGitHub`
-- General web → `searxng_search` or `webfetch`
+- General web → `websearch` or `webfetch`
 
 ## Output
 

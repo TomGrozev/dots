@@ -33,13 +33,6 @@
       "enabled": true,
       "type": "remote",
       "url": "https://mcp.grep.app"
-    },
-    "searxng": {
-      "type": "local",
-      "command": ["npx", "-y", "@nitish-raj/searxng-mcp-bridge"],
-      "environment": {
-        "SEARXNG_INSTANCE_URL": "https://search.theg.house"
-      }
     }
   },
   "permission": {
@@ -53,12 +46,11 @@
     "skill": "allow",
     "lsp": "allow",
     "webfetch": "deny",
+    "websearch": "deny",
     "context7_resolve-library-id": "deny",
     "context7_query-docs": "deny",
     "hexdocs-mcp_fetch": "deny",
     "hexdocs-mcp_search": "deny",
-    "searxng_health_check": "deny",
-    "searxng_search": "deny",
     "gh_grep_searchGitHub": "deny",
     "external_directory": {
       "~/.ssh/**": "deny",
@@ -83,6 +75,7 @@
       "permission": {
         "edit": "ask",
         "task": "allow",
+        "websearch": "allow",
         "bash": {
           "*": "ask",
           "*mix test*": "allow",
@@ -429,7 +422,7 @@
         "context7_query-docs": "allow",
         "hexdocs-mcp_fetch": "allow",
         "hexdocs-mcp_search": "allow",
-        "searxng_search": "allow",
+        "websearch": "allow",
         "gh_grep_searchGitHub": "allow"
       }
     },
@@ -446,7 +439,7 @@
         "context7_query-docs": "allow",
         "hexdocs-mcp_fetch": "allow",
         "hexdocs-mcp_search": "allow",
-        "searxng_search": "allow",
+        "websearch": "allow",
         "gh_grep_searchGitHub": "allow"
       }
     },
@@ -462,7 +455,7 @@
         "context7_query-docs": "allow",
         "hexdocs-mcp_fetch": "allow",
         "hexdocs-mcp_search": "allow",
-        "searxng_search": "allow",
+        "websearch": "allow",
         "gh_grep_searchGitHub": "allow"
       }
     },
@@ -485,8 +478,7 @@
         "context7_query-docs": "allow",
         "hexdocs-mcp_search": "allow",
         "hexdocs-mcp_fetch": "allow",
-        "searxng_health_check": "allow",
-        "searxng_search": "allow",
+        "websearch": "allow",
         "gh_grep_searchGitHub": "allow",
         "task": {
           "*": "deny"
