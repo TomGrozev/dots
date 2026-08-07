@@ -57,7 +57,7 @@
 
     // --- Restrictive agents: top-level web/MCP flip would leak here (they
     // don't set these in their config and would inherit allow). Pin them
-    // back to deny so planners and explorer stay locked down in containers. ---
+    // back to deny so architect and explorer stay locked down in containers. ---
     "orchestrator": {
       "permission": {
         "webfetch": "deny",
@@ -69,7 +69,7 @@
         "gh_grep_searchGitHub": "deny",
       },
     },
-    "plan": {
+    "architect": {
       "permission": {
         "webfetch": "deny",
         "context7_resolve-library-id": "deny",
