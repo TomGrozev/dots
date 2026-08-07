@@ -17,6 +17,7 @@
   "default_agent": "orchestrator",
   "model": "opencode-go/mimo-v2.5",
   "instructions": ["./AGENTS.md"],
+  "lsp": true,
   "mcp": {
     "hexdocs-mcp": {
       "enabled": true,
@@ -191,10 +192,10 @@
           "*gh api*": "allow"
         },
         "task": {
+          "*": "deny",
           "explorer": "allow",
           "api-docs-researcher": "allow",
-          "docs-reviewer": "allow",
-          "*": "deny"
+          "docs-reviewer": "allow"
         }
       }
     },
@@ -278,6 +279,7 @@
           "*jq*": "allow"
         },
         "task": {
+          "*": "deny",
           "explorer": "allow",
           "test-verifier": "allow",
           "api-docs-researcher": "allow"
@@ -409,8 +411,8 @@
           "*jq*": "allow"
         },
         "task": {
-          "api-docs-researcher": "allow",
-          "*": "deny"
+          "*": "deny",
+          "api-docs-researcher": "allow"
         }
       }
     },
@@ -419,8 +421,8 @@
         "edit": "deny",
         "bash": "ask",
         "task": {
-          "api-docs-researcher": "allow",
-          "*": "deny"
+          "*": "deny",
+          "api-docs-researcher": "allow"
         },
         "webfetch": "allow",
         "context7_resolve-library-id": "allow",
@@ -436,8 +438,8 @@
         "edit": "deny",
         "bash": "ask",
         "task": {
-          "api-docs-researcher": "allow",
-          "*": "deny"
+          "*": "deny",
+          "api-docs-researcher": "allow"
         },
         "webfetch": "allow",
         "context7_resolve-library-id": "allow",
@@ -453,8 +455,8 @@
         "edit": "deny",
         "bash": "deny",
         "task": {
-          "api-docs-researcher": "allow",
-          "*": "deny"
+          "*": "deny",
+          "api-docs-researcher": "allow"
         },
         "webfetch": "allow",
         "context7_query-docs": "allow",
@@ -469,8 +471,8 @@
         "edit": "ask",
         "bash": "deny",
         "task": {
-          "api-docs-researcher": "allow",
-          "*": "deny"
+          "*": "deny",
+          "api-docs-researcher": "allow"
         }
       }
     },
@@ -524,9 +526,9 @@
           "*git log*": "allow"
         },
         "task": {
+          "*": "deny",
           "explorer": "allow",
-          "api-docs-researcher": "allow",
-          "*": "deny"
+          "api-docs-researcher": "allow"
         }
       }
     }
