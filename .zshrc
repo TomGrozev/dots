@@ -142,18 +142,19 @@ alias zjka='zellij kill-all-sessions'
 
 export ZELLIJ_AUTO_ATTACH="true"
 export ZELLIJ_AUTO_EXIT="true"
+
 if [[ -z "$ZELLIJ" ]] && [[ "$TERM" != "dumb" ]] && command -v zellij &>/dev/null; then
   if [[ "$ZELLIJ_AUTO_ATTACH" == "true" ]]; then
-    if command -v timeout &>/dev/null; then
-      if ! timeout 5 zellij attach -c 2>/dev/null; then
-        # Attach hung or failed — kill stale sessions and start fresh.
-        zellij kill-all-sessions --yes 2>/dev/null
-        zellij
-      fi
-    else
-      # No `timeout` available — fall back to the unguarded official behavior.
-      zellij attach -c
+    # Health-check the daemon before launching the session picker.
+    # `list-sessions` connects and returns immediately; if it hangs, the
+    # daemon is wedged (zellij-org/zellij#5440) — kill stale sessions so
+    # the picker can start against a fresh daemon.
+    if command -v timeout &>/dev/null && ! timeout 5 zellij list-sessions &>/dev/null; then
+      timeout 5 zellij kill-all-sessions --yes 2>/dev/null
     fi
+    # Launch the welcome screen — an interactive picker that lists live
+    # sessions, offers resurrection of exited ones, and creates new ones.
+    zellij -l welcome
   else
     zellij
   fi
