@@ -12,8 +12,17 @@
     "envsitter-guard",
     "opencode-notify",
     "@cortexkit/opencode-magic-context@0.33.1",
-    "opencode-costs"
+    "opencode-costs",
+    "opencode-with-claude"
   ],
+  "provider": {
+    "anthropic": {
+      "options": {
+        "baseURL": "http://127.0.0.1:3456",
+        "apiKey": "dummy"
+      }
+    }
+  },
   "default_agent": "orchestrator",
   "model": "opencode-go/mimo-v2.5",
   "instructions": ["./AGENTS.md"],

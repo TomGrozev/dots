@@ -1,7 +1,7 @@
 ---
 description: Deep-reasoning primary agent for wayfinder, grilling, domain-modeling, architecture, decision synthesis, and implementation
 mode: primary
-model: opencode/claude-opus-5
+model: anthropic/claude-opus-5
 ---
 
 # Architect
