@@ -1,0 +1,28 @@
+// ── zjsh session launcher configuration ──────────────────────────────────
+// Dotfiles-managed. https://github.com/tassis/zjsh
+//
+// Add your projects below: each project requires a name and either a `path`
+// (absolute or ~-prefixed) or `cwd true` (launch in current directory).
+// Optional: `session` (session name), `layout` ("compact" or "default"),
+// `layout_file` (path to a .kdl layout), `restart_on_resurrection true`.
+//
+// Example:
+//   project "api" {
+//     path "~/work/api"
+//     session "api"
+//     layout "compact"
+//   }
+
+defaults {
+    shell "zsh"
+    restart_on_resurrection false
+}
+
+// zoxide: add --zoxide to `zjsh list` to include zoxide paths in results
+// fzf integration: choice=$(zjsh list -i | fzf --prompt='session> ') && zjsh connect "$choice"
+// macros can define reusable workflows executed in a new pane:
+//   macro "prod-ssh" {
+//     exec "ssh" "prod"
+//   }
+
+// ── Project definitions ───────────────────────────────────────────────────

@@ -1,0 +1,49 @@
+// ── Nord swap layouts ─────────────────────────────────────────────────────
+// Companion to nord.kdl. Pane arrangements cycled with Alt+[ / Alt+].
+// The Base layout (nord.kdl) is always option 1 and never listed here.
+
+// 2 panes side by side (even)
+swap_tiled_layout name="2horizontal" {
+    tab exact_panes=2 {
+        pane
+        pane
+    }
+}
+
+// 2 panes stacked (even)
+swap_tiled_layout name="2vertical" {
+    tab exact_panes=2 {
+        pane split_direction="vertical" {
+            pane
+            pane
+        }
+    }
+}
+
+// Main + side: 65% main pane, 35% secondary (vim-style)
+swap_tiled_layout name="main-side" {
+    tab exact_panes=2 {
+        pane size="65%"
+        pane
+    }
+}
+
+// 3 equal columns
+swap_tiled_layout name="3cols" {
+    tab exact_panes=3 {
+        pane
+        pane
+        pane
+    }
+}
+
+// Main + 2-stack: large left, two stacked on right
+swap_tiled_layout name="main-stack" {
+    tab exact_panes=3 {
+        pane size="60%"
+        pane split_direction="vertical" {
+            pane
+            pane
+        }
+    }
+}

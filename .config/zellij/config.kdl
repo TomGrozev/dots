@@ -2,197 +2,25 @@
 // Dotfiles-managed. Stripped to essentials for zjstatus compatibility.
 
 theme "nord"
-default_mode "locked"
+default_mode "normal"
 default_layout "nord"
 pane_frames false
 on_force_close "detach"
 show_startup_tips false
 show_release_notes false
+session_serialization true
+pane_viewport_serialization true
+serialization_interval 1
+copy_command "pbcopy"
+focus_follows_mouse false
+mouse_click_through false
 
 // ── Keybindings ──────────────────────────────────────────────────────────
 
 keybinds clear-defaults=true {
-    locked {
-        //bind "Ctrl g" { SwitchToMode "normal"; }
-	bind "Ctrl g" {
-            // Disable the autolock plugin.
-            MessagePlugin "autolock" {payload "disable";};
-            // Unlock Zellij.
-            SwitchToMode "Normal";
-        }
-    }
-    shared {
-        bind "Alt Shift z" {
-            // Enable the autolock plugin.
-            MessagePlugin "autolock" {payload "enable";};
-        }
-   }
-    shared_except "locked" "renametab" "renamepane" {
-        bind "Ctrl g" { SwitchToMode "locked"; }
-        bind "Ctrl q" { Quit; }
-    }
-
-    pane {
-        bind "left" { MoveFocus "left"; }
-        bind "down" { MoveFocus "down"; }
-        bind "up" { MoveFocus "up"; }
-        bind "right" { MoveFocus "right"; }
-        bind "c" { SwitchToMode "renamepane"; PaneNameInput 0; }
-        bind "d" { NewPane "down"; SwitchToMode "locked"; }
-        bind "e" { TogglePaneEmbedOrFloating; SwitchToMode "locked"; }
-        bind "f" { ToggleFocusFullscreen; SwitchToMode "locked"; }
-        bind "h" { MoveFocus "left"; }
-        bind "i" { TogglePanePinned; SwitchToMode "locked"; }
-        bind "j" { MoveFocus "down"; }
-        bind "k" { MoveFocus "up"; }
-        bind "l" { MoveFocus "right"; }
-        bind "n" { NewPane; SwitchToMode "locked"; }
-        bind "p" { SwitchToMode "normal"; }
-        bind "r" { NewPane "right"; SwitchToMode "locked"; }
-        bind "s" { NewPane "stacked"; SwitchToMode "locked"; }
-        bind "w" { ToggleFloatingPanes; SwitchToMode "locked"; }
-        bind "x" { CloseFocus; SwitchToMode "locked"; }
-        bind "z" { TogglePaneFrames; SwitchToMode "locked"; }
-        bind "tab" { SwitchFocus; }
-    }
-
-    tab {
-        bind "left" { GoToPreviousTab; }
-        bind "down" { GoToNextTab; }
-        bind "up" { GoToPreviousTab; }
-        bind "right" { GoToNextTab; }
-        bind "1" { GoToTab 1; SwitchToMode "locked"; }
-        bind "2" { GoToTab 2; SwitchToMode "locked"; }
-        bind "3" { GoToTab 3; SwitchToMode "locked"; }
-        bind "4" { GoToTab 4; SwitchToMode "locked"; }
-        bind "5" { GoToTab 5; SwitchToMode "locked"; }
-        bind "6" { GoToTab 6; SwitchToMode "locked"; }
-        bind "7" { GoToTab 7; SwitchToMode "locked"; }
-        bind "8" { GoToTab 8; SwitchToMode "locked"; }
-        bind "9" { GoToTab 9; SwitchToMode "locked"; }
-        bind "[" { BreakPaneLeft; SwitchToMode "locked"; }
-        bind "]" { BreakPaneRight; SwitchToMode "locked"; }
-        bind "b" { BreakPane; SwitchToMode "locked"; }
-        bind "h" { GoToPreviousTab; }
-        bind "j" { GoToNextTab; }
-        bind "k" { GoToPreviousTab; }
-        bind "l" { GoToNextTab; }
-        bind "n" { NewTab; SwitchToMode "locked"; }
-        bind "r" { SwitchToMode "renametab"; TabNameInput 0; }
-        bind "s" { ToggleActiveSyncTab; SwitchToMode "locked"; }
-        bind "t" { SwitchToMode "normal"; }
-        bind "x" { CloseTab; SwitchToMode "locked"; }
-        bind "tab" { ToggleTab; }
-    }
-
-    resize {
-        bind "left" { Resize "Increase left"; }
-        bind "down" { Resize "Increase down"; }
-        bind "up" { Resize "Increase up"; }
-        bind "right" { Resize "Increase right"; }
-        bind "+" { Resize "Increase"; }
-        bind "-" { Resize "Decrease"; }
-        bind "=" { Resize "Increase"; }
-        bind "H" { Resize "Decrease left"; }
-        bind "J" { Resize "Decrease down"; }
-        bind "K" { Resize "Decrease up"; }
-        bind "L" { Resize "Decrease right"; }
-        bind "h" { Resize "Increase left"; }
-        bind "j" { Resize "Increase down"; }
-        bind "k" { Resize "Increase up"; }
-        bind "l" { Resize "Increase right"; }
-        bind "r" { SwitchToMode "normal"; }
-    }
-
-    move {
-        bind "left" { MovePane "left"; }
-        bind "down" { MovePane "down"; }
-        bind "up" { MovePane "up"; }
-        bind "right" { MovePane "right"; }
-        bind "h" { MovePane "left"; }
-        bind "j" { MovePane "down"; }
-        bind "k" { MovePane "up"; }
-        bind "l" { MovePane "right"; }
-        bind "m" { SwitchToMode "normal"; }
-        bind "n" { MovePane; }
-        bind "p" { MovePaneBackwards; }
-        bind "tab" { MovePane; }
-    }
-
-    scroll {
-        bind "Alt left" { MoveFocusOrTab "left"; SwitchToMode "locked"; }
-        bind "Alt down" { MoveFocus "down"; SwitchToMode "locked"; }
-        bind "Alt up" { MoveFocus "up"; SwitchToMode "locked"; }
-        bind "Alt right" { MoveFocusOrTab "right"; SwitchToMode "locked"; }
-        bind "e" { EditScrollback; SwitchToMode "locked"; }
-        bind "f" { SwitchToMode "entersearch"; SearchInput 0; }
-        bind "Alt h" { MoveFocusOrTab "left"; SwitchToMode "locked"; }
-        bind "Alt j" { MoveFocus "down"; SwitchToMode "locked"; }
-        bind "Alt k" { MoveFocus "up"; SwitchToMode "locked"; }
-        bind "Alt l" { MoveFocusOrTab "right"; SwitchToMode "locked"; }
-        bind "s" { SwitchToMode "normal"; }
-    }
-
-    search {
-        bind "c" { SearchToggleOption "CaseSensitivity"; }
-        bind "n" { Search "down"; }
-        bind "o" { SearchToggleOption "WholeWord"; }
-        bind "p" { Search "up"; }
-        bind "w" { SearchToggleOption "Wrap"; }
-    }
-
-    session {
-        bind "a" {
-            LaunchOrFocusPlugin "zellij:about" { floating true; move_to_focused_tab true; }
-            SwitchToMode "locked"
-        }
-        bind "c" {
-            LaunchOrFocusPlugin "configuration" { floating true; move_to_focused_tab true; }
-            SwitchToMode "locked"
-        }
-        bind "d" { Detach; }
-        bind "l" {
-            LaunchOrFocusPlugin "zellij:layout-manager" { floating true; move_to_focused_tab true; }
-            SwitchToMode "locked"
-        }
-        bind "o" { SwitchToMode "normal"; }
-        bind "p" {
-            LaunchOrFocusPlugin "plugin-manager" { floating true; move_to_focused_tab true; }
-            SwitchToMode "locked"
-        }
-        bind "s" {
-            LaunchOrFocusPlugin "zellij:share" { floating true; move_to_focused_tab true; }
-            SwitchToMode "locked"
-        }
-        bind "w" {
-            LaunchOrFocusPlugin "session-manager" { floating true; move_to_focused_tab true; }
-            SwitchToMode "locked"
-        }
-    }
-
-    shared_among "normal" "locked" {
-        bind "Alt left" { MoveFocusOrTab "left"; }
-        bind "Alt down" { MoveFocus "down"; }
-        bind "Alt up" { MoveFocus "up"; }
-        bind "Alt right" { MoveFocusOrTab "right"; }
-        bind "Alt +" { Resize "Increase"; }
-        bind "Alt -" { Resize "Decrease"; }
-        bind "Alt =" { Resize "Increase"; }
-        bind "Alt [" { PreviousSwapLayout; }
-        bind "Alt ]" { NextSwapLayout; }
-        bind "Alt f" { ToggleFloatingPanes; }
-        bind "Alt h" { MoveFocusOrTab "left"; }
-        bind "Alt i" { MoveTab "left"; }
-        bind "Alt j" { MoveFocus "down"; }
-        bind "Alt k" { MoveFocus "up"; }
-        bind "Alt l" { MoveFocusOrTab "right"; }
-        bind "Alt n" { NewPane; }
-        bind "Alt o" { MoveTab "right"; }
-        bind "Alt p" { TogglePaneInGroup; }
-        bind "Alt Shift p" { ToggleGroupMarking; }
-    }
-
+    // ── Normal mode: home base. Single letters pass through to the shell. ──
     normal {
+        // Launch yazi file manager (locked so yazi owns the keyboard).
         bind "Alt y" {
             Run "zsh" "-ic" "command yazi" {
                 floating true
@@ -204,89 +32,226 @@ keybinds clear-defaults=true {
             }
             SwitchToMode "locked"
         }
-        // Intercept `Enter`.
+        // Passthru Enter, and poke autolock to re-assess lock state snappily.
         bind "Enter" {
-            // Passthru `Enter`.
             WriteChars "\u{000D}";
-            // Invoke autolock to immediately assess proper lock state.
-            // (This provides a snappier experience compared to
-            // solely relying on `reaction_seconds` to elapse.)
             MessagePlugin "autolock" {};
         }
     }
 
+    // ── Locked mode: everything passes through (nvim/opencode/shell own keys). ──
+    locked {
+        // Manual unlock: disable autolock (so it won't instantly re-lock) → normal.
+        bind "Ctrl g" {
+            MessagePlugin "autolock" {payload "disable";};
+            SwitchToMode "Normal";
+        }
+    }
+
+    // ── Re-enable autolock from any mode. ──
+    shared {
+        bind "Alt Shift z" {
+            MessagePlugin "autolock" {payload "enable";};
+        }
+    }
+
+    // ── Mode entry + global shortcuts (every mode except locked). ──
     shared_except "locked" {
-        bind "Ctrl h" {
+        bind "Ctrl p" { SwitchToMode "pane"; }
+        bind "Ctrl t" { SwitchToMode "tab"; }
+        bind "Ctrl n" { SwitchToMode "resize"; }
+        bind "Ctrl s" { SwitchToMode "scroll"; }
+        bind "Ctrl o" { SwitchToMode "session"; }
+        bind "Ctrl q" { Quit; }
+        // Manual lock: disable autolock (so it won't instantly unlock) → locked.
+        bind "Ctrl g" {
+            MessagePlugin "autolock" {payload "disable";};
+            SwitchToMode "Locked";
+        }
+        // Keybinding cheatsheet.
+        bind "Ctrl e" {
             LaunchOrFocusPlugin "file:~/.config/zellij/plugins/zellij_forgot.wasm" {
-                "lock/unlock"      "ctrl + g"
-                "pane mode"        "ctrl + p + p"
-                "tab mode"         "ctrl + t + t"
-                "resize mode"      "ctrl + t + r"
-                "scroll mode"      "ctrl + t + s"
-                "session menu"     "ctrl + o + o"
-                "new pane down"    "ctrl + p + d"
-                "new pane right"   "ctrl + p + r"
-                "close pane"       "ctrl + p + x"
-                "new tab"          "ctrl + t + n"
-                "close tab"        "ctrl + t + x"
-                "fullscreen pane"  "ctrl + p + f"
-                "detach"           "ctrl + o + d"
-                "quit zellij"      "ctrl + q"
-                "yazi (files)"     "ctrl + g, alt + y"
-                "next pane"        "ctrl + p + tab"
+                "lock / unlock"   "ctrl + g"
+                "pane mode"       "ctrl + p"
+                "tab mode"        "ctrl + t"
+                "resize mode"     "ctrl + n"
+                "scroll mode"     "ctrl + s"
+                "session mode"    "ctrl + o"
+                "quit zellij"     "ctrl + q"
+                "harpoon"         "ctrl + y"
+                "cheatsheet"      "ctrl + e"
+                "yazi (files)"    "alt + y"
+                "sessionizer"     "ctrl + o, j"
+                "move focus"      "alt + h/j/k/l"
+                "new pane"        "alt + n"
+                "float toggle"    "alt + f"
+                "swap layout"     "alt + [ / ]"
                 floating true
             }
             SwitchToMode "locked"
         }
-        bind "Ctrl g" {
-            // Disable the autolock plugin.
-            MessagePlugin "autolock" {payload "disable";};
-            // Lock Zellij.
-            SwitchToMode "Locked";
+        // Harpoon pane bookmarks.
+        bind "Ctrl y" {
+            LaunchOrFocusPlugin "file:~/.config/zellij/plugins/harpoon.wasm" {
+                floating true
+                move_to_focused_tab true
+            }
+            SwitchToMode "locked"
         }
     }
 
-    shared_except "locked" "entersearch" {
-        bind "enter" { SwitchToMode "locked"; }
+    // ── Exit sub-modes with Esc / Enter (never in normal → shell keeps them). ──
+    shared_except "locked" "normal" "entersearch" "renametab" "renamepane" {
+        bind "esc" { SwitchToMode "normal"; }
+        bind "enter" { SwitchToMode "normal"; }
     }
-    shared_except "locked" "entersearch" "renametab" "renamepane" {
-        bind "esc" { SwitchToMode "locked"; }
+
+    // ── Navigation + quick actions available in normal AND locked. ──
+    shared_among "normal" "locked" {
+        bind "Alt left" { MoveFocusOrTab "left"; }
+        bind "Alt down" { MoveFocus "down"; }
+        bind "Alt up" { MoveFocus "up"; }
+        bind "Alt right" { MoveFocusOrTab "right"; }
+        bind "Alt h" { MoveFocusOrTab "left"; }
+        bind "Alt j" { MoveFocus "down"; }
+        bind "Alt k" { MoveFocus "up"; }
+        bind "Alt l" { MoveFocusOrTab "right"; }
+        bind "Alt +" { Resize "Increase"; }
+        bind "Alt =" { Resize "Increase"; }
+        bind "Alt -" { Resize "Decrease"; }
+        bind "Alt [" { PreviousSwapLayout; }
+        bind "Alt ]" { NextSwapLayout; }
+        bind "Alt f" { ToggleFloatingPanes; }
+        bind "Alt n" { NewPane; }
+        bind "Alt i" { MoveTab "left"; }
+        bind "Alt o" { MoveTab "right"; }
+        bind "Alt p" { TogglePaneInGroup; }
+        bind "Alt Shift p" { ToggleGroupMarking; }
     }
-    shared_except "locked" "entersearch" "renametab" "renamepane" "move" {
+
+    pane {
+        bind "Ctrl p" { SwitchToMode "normal"; }
+        bind "left" { MoveFocus "left"; }
+        bind "down" { MoveFocus "down"; }
+        bind "up" { MoveFocus "up"; }
+        bind "right" { MoveFocus "right"; }
+        bind "h" { MoveFocus "left"; }
+        bind "j" { MoveFocus "down"; }
+        bind "k" { MoveFocus "up"; }
+        bind "l" { MoveFocus "right"; }
+        bind "n" { NewPane; SwitchToMode "normal"; }
+        bind "d" { NewPane "down"; SwitchToMode "normal"; }
+        bind "r" { NewPane "right"; SwitchToMode "normal"; }
+        bind "s" { NewPane "stacked"; SwitchToMode "normal"; }
+        bind "x" { CloseFocus; SwitchToMode "normal"; }
+        bind "f" { ToggleFocusFullscreen; SwitchToMode "normal"; }
+        bind "z" { TogglePaneFrames; SwitchToMode "normal"; }
+        bind "w" { ToggleFloatingPanes; SwitchToMode "normal"; }
+        bind "e" { TogglePaneEmbedOrFloating; SwitchToMode "normal"; }
+        bind "i" { TogglePanePinned; SwitchToMode "normal"; }
+        bind "c" { SwitchToMode "renamepane"; PaneNameInput 0; }
         bind "m" { SwitchToMode "move"; }
+        bind "tab" { SwitchFocus; }
     }
-    shared_except "locked" "entersearch" "search" "renametab" "renamepane" "session" {
-        bind "o" { SwitchToMode "session"; }
+
+    tab {
+        bind "Ctrl t" { SwitchToMode "normal"; }
+        bind "left" { GoToPreviousTab; }
+        bind "up" { GoToPreviousTab; }
+        bind "down" { GoToNextTab; }
+        bind "right" { GoToNextTab; }
+        bind "h" { GoToPreviousTab; }
+        bind "k" { GoToPreviousTab; }
+        bind "j" { GoToNextTab; }
+        bind "l" { GoToNextTab; }
+        bind "n" { NewTab; SwitchToMode "normal"; }
+        bind "x" { CloseTab; SwitchToMode "normal"; }
+        bind "r" { SwitchToMode "renametab"; TabNameInput 0; }
+        bind "s" { ToggleActiveSyncTab; SwitchToMode "normal"; }
+        bind "b" { BreakPane; SwitchToMode "normal"; }
+        bind "[" { BreakPaneLeft; SwitchToMode "normal"; }
+        bind "]" { BreakPaneRight; SwitchToMode "normal"; }
+        bind "1" { GoToTab 1; SwitchToMode "normal"; }
+        bind "2" { GoToTab 2; SwitchToMode "normal"; }
+        bind "3" { GoToTab 3; SwitchToMode "normal"; }
+        bind "4" { GoToTab 4; SwitchToMode "normal"; }
+        bind "5" { GoToTab 5; SwitchToMode "normal"; }
+        bind "6" { GoToTab 6; SwitchToMode "normal"; }
+        bind "7" { GoToTab 7; SwitchToMode "normal"; }
+        bind "8" { GoToTab 8; SwitchToMode "normal"; }
+        bind "9" { GoToTab 9; SwitchToMode "normal"; }
+        bind "tab" { ToggleTab; }
     }
-    shared_except "locked" "tab" "entersearch" "renametab" "renamepane" {
-        bind "t" { SwitchToMode "tab"; }
+
+    resize {
+        bind "Ctrl n" { SwitchToMode "normal"; }
+        bind "left" { Resize "Increase left"; }
+        bind "down" { Resize "Increase down"; }
+        bind "up" { Resize "Increase up"; }
+        bind "right" { Resize "Increase right"; }
+        bind "h" { Resize "Increase left"; }
+        bind "j" { Resize "Increase down"; }
+        bind "k" { Resize "Increase up"; }
+        bind "l" { Resize "Increase right"; }
+        bind "H" { Resize "Decrease left"; }
+        bind "J" { Resize "Decrease down"; }
+        bind "K" { Resize "Decrease up"; }
+        bind "L" { Resize "Decrease right"; }
+        bind "+" { Resize "Increase"; }
+        bind "=" { Resize "Increase"; }
+        bind "-" { Resize "Decrease"; }
     }
-    shared_among "normal" "resize" "tab" "scroll" "prompt" "tmux" {
-        bind "p" { SwitchToMode "pane"; }
+
+    move {
+        bind "left" { MovePane "left"; }
+        bind "down" { MovePane "down"; }
+        bind "up" { MovePane "up"; }
+        bind "right" { MovePane "right"; }
+        bind "h" { MovePane "left"; }
+        bind "j" { MovePane "down"; }
+        bind "k" { MovePane "up"; }
+        bind "l" { MovePane "right"; }
+        bind "n" { MovePane; }
+        bind "p" { MovePaneBackwards; }
+        bind "tab" { MovePane; }
     }
-    shared_among "normal" "resize" "search" "move" "prompt" "tmux" {
-        bind "s" { SwitchToMode "scroll"; }
+
+    scroll {
+        bind "Ctrl s" { SwitchToMode "normal"; }
+        bind "e" { EditScrollback; SwitchToMode "normal"; }
+        bind "f" { SwitchToMode "entersearch"; SearchInput 0; }
+        bind "Alt left" { MoveFocusOrTab "left"; SwitchToMode "normal"; }
+        bind "Alt right" { MoveFocusOrTab "right"; SwitchToMode "normal"; }
+        bind "Alt h" { MoveFocusOrTab "left"; SwitchToMode "normal"; }
+        bind "Alt l" { MoveFocusOrTab "right"; SwitchToMode "normal"; }
+        bind "Alt j" { MoveFocus "down"; SwitchToMode "normal"; }
+        bind "Alt k" { MoveFocus "up"; SwitchToMode "normal"; }
     }
-    shared_except "locked" "resize" "pane" "tab" "entersearch" "renametab" "renamepane" {
-        bind "r" { SwitchToMode "resize"; }
+
+    search {
+        bind "c" { SearchToggleOption "CaseSensitivity"; }
+        bind "n" { Search "down"; }
+        bind "p" { Search "up"; }
+        bind "o" { SearchToggleOption "WholeWord"; }
+        bind "w" { SearchToggleOption "Wrap"; }
     }
 
     shared_among "scroll" "search" {
         bind "PageDown" { PageScrollDown; }
         bind "PageUp" { PageScrollUp; }
         bind "left" { PageScrollUp; }
+        bind "right" { PageScrollDown; }
         bind "down" { ScrollDown; }
         bind "up" { ScrollUp; }
-        bind "right" { PageScrollDown; }
-        bind "Ctrl b" { PageScrollUp; }
-        bind "Ctrl c" { ScrollToBottom; SwitchToMode "locked"; }
-        bind "d" { HalfPageScrollDown; }
-        bind "Ctrl f" { PageScrollDown; }
         bind "h" { PageScrollUp; }
+        bind "l" { PageScrollDown; }
         bind "j" { ScrollDown; }
         bind "k" { ScrollUp; }
-        bind "l" { PageScrollDown; }
+        bind "d" { HalfPageScrollDown; }
         bind "u" { HalfPageScrollUp; }
+        bind "Ctrl b" { PageScrollUp; }
+        bind "Ctrl f" { PageScrollDown; }
+        bind "Ctrl c" { ScrollToBottom; SwitchToMode "normal"; }
     }
 
     entersearch {
@@ -294,14 +259,54 @@ keybinds clear-defaults=true {
         bind "esc" { SwitchToMode "scroll"; }
         bind "enter" { SwitchToMode "search"; }
     }
+
+    session {
+        bind "Ctrl o" { SwitchToMode "normal"; }
+        bind "d" { Detach; }
+        bind "w" {
+            LaunchOrFocusPlugin "session-manager" { floating true; move_to_focused_tab true; }
+            SwitchToMode "normal"
+        }
+        bind "a" {
+            LaunchOrFocusPlugin "zellij:about" { floating true; move_to_focused_tab true; }
+            SwitchToMode "normal"
+        }
+        bind "c" {
+            LaunchOrFocusPlugin "configuration" { floating true; move_to_focused_tab true; }
+            SwitchToMode "normal"
+        }
+        bind "l" {
+            LaunchOrFocusPlugin "zellij:layout-manager" { floating true; move_to_focused_tab true; }
+            SwitchToMode "normal"
+        }
+        bind "p" {
+            LaunchOrFocusPlugin "plugin-manager" { floating true; move_to_focused_tab true; }
+            SwitchToMode "normal"
+        }
+        bind "s" {
+            LaunchOrFocusPlugin "zellij:share" { floating true; move_to_focused_tab true; }
+            SwitchToMode "normal"
+        }
+        bind "j" {
+            Run "zsh" "-ic" "choice=$(zjsh list -i | fzf --prompt='session> ') && zjsh connect \"$choice\"" {
+                floating true
+                close_on_exit true
+                x "10%"
+                y "15%"
+                width "80%"
+                height "70%"
+            }
+            SwitchToMode "locked"
+        }
+    }
+
     renametab {
         bind "esc" { UndoRenameTab; SwitchToMode "tab"; }
-    }
-    shared_among "renametab" "renamepane" {
-        bind "Ctrl c" { SwitchToMode "locked"; }
+        bind "Ctrl c" { SwitchToMode "normal"; }
     }
     renamepane {
         bind "esc" { UndoRenamePane; SwitchToMode "pane"; }
+        bind "Ctrl c" { SwitchToMode "normal"; }
     }
 }
 
@@ -316,7 +321,7 @@ plugins {
     }
     autolock location="file:~/.config/zellij/plugins/zellij-autolock.wasm" {
         is_enabled true
-        triggers "nvim|vim|git|fzf|zoxide|atuin|opencode"
+        triggers "nvim|vim|git|fzf|zoxide|atuin|opencode|yazi"
         reaction_seconds "0.3"
         print_to_log false
     }

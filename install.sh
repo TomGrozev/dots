@@ -79,7 +79,7 @@ done
 echo ""
 echo "Creating .config symlinks..."
 
-config_dirs=(gh ghostty nvim opencode cortexkit yazi zellij)
+config_dirs=(gh ghostty nvim opencode cortexkit yazi zellij zjsh)
 
 mkdir -p "$HOME/.config"
 
@@ -103,13 +103,14 @@ echo "Downloading Zellij plugins..."
 ZELLIJ_PLUGIN_DIR="$HOME/.config/zellij/plugins"
 mkdir -p "$ZELLIJ_PLUGIN_DIR"
 
-ZELLIJ_PLUGIN_NAMES=("zjstatus.wasm" "zjframes.wasm" "zjstatus-hints.wasm" "zellij_forgot.wasm" "zellij-autolock.wasm")
+ZELLIJ_PLUGIN_NAMES=("zjstatus.wasm" "zjframes.wasm" "zjstatus-hints.wasm" "zellij_forgot.wasm" "zellij-autolock.wasm" "harpoon.wasm")
 ZELLIJ_PLUGIN_URLS=(
   "https://github.com/dj95/zjstatus/releases/latest/download/zjstatus.wasm"
   "https://github.com/dj95/zjstatus/releases/latest/download/zjframes.wasm"
   "https://github.com/b0o/zjstatus-hints/releases/latest/download/zjstatus-hints.wasm"
   "https://github.com/karimould/zellij-forgot/releases/download/0.4.2/zellij_forgot.wasm"
   "https://github.com/fresh2dev/zellij-autolock/releases/latest/download/zellij-autolock.wasm"
+  "https://github.com/Nacho114/harpoon/releases/latest/download/harpoon.wasm"
 )
 
 for i in "${!ZELLIJ_PLUGIN_NAMES[@]}"; do
@@ -126,6 +127,39 @@ for i in "${!ZELLIJ_PLUGIN_NAMES[@]}"; do
     }
   fi
 done
+
+# --- Install zjsh session launcher -----------------------------------------
+echo ""
+echo "Installing zjsh..."
+
+ZJSH_BIN_DIR="$DOTFILES_DIR/bin"
+mkdir -p "$ZJSH_BIN_DIR"
+
+ZJSH_BIN="$ZJSH_BIN_DIR/zjsh"
+LOCAL_BIN="$HOME/.local/bin"
+mkdir -p "$LOCAL_BIN"
+
+if [ -f "$ZJSH_BIN" ]; then
+  echo "  zjsh binary already downloaded, skipping"
+else
+  echo "  Downloading zjsh..."
+  ZJSH_URL="https://github.com/tassis/zjsh/releases/download/v0.4.0/zjsh-v0.4.0-darwin-arm64.tar.gz"
+  ZJSH_TMP=$(mktemp -d)
+  curl -fL --progress-bar -o "$ZJSH_TMP/zjsh.tar.gz" "$ZJSH_URL" || {
+    echo "    Warning: Failed to download zjsh"
+    rm -rf "$ZJSH_TMP"
+  }
+  if [ -f "$ZJSH_TMP/zjsh.tar.gz" ]; then
+    tar -xzf "$ZJSH_TMP/zjsh.tar.gz" -C "$ZJSH_TMP"
+    mv "$ZJSH_TMP/zjsh" "$ZJSH_BIN"
+    chmod +x "$ZJSH_BIN"
+    rm -rf "$ZJSH_TMP"
+    echo "  zjsh installed to $ZJSH_BIN"
+  fi
+fi
+
+ln -sfn "$ZJSH_BIN" "$LOCAL_BIN/zjsh"
+echo "  Linked $LOCAL_BIN/zjsh"
 
 # --- Install Oh My Zsh plugins ---
 echo ""
