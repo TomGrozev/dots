@@ -1,13 +1,6 @@
 {
   "$schema": "https://opencode.ai/config.json",
   "plugin": [
-    [
-      "@plannotator/opencode@latest",
-      {
-        "workflow": "manual",
-        "planningAgents": ["orchestrator"]
-      }
-    ],
     "cc-safety-net",
     "envsitter-guard",
     "opencode-notify",

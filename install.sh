@@ -23,15 +23,19 @@ MATT_POCOCK_SKILLS=(
   implement
   improve-codebase-architecture
   prototype
+  research
+  resolving-merge-conflicts
   setup-matt-pocock-skills
   tdd
   teach
+  to-questionnaire
   to-spec
   to-tickets
   triage
+  wait-what
   wayfinder
-  writing-great-skills
-  design-an-interface
+  wizard
+  writing-for-agents
 )
 
 # --- Install Oh My Zsh ------------------------------------------------------
@@ -132,15 +136,13 @@ done
 echo ""
 echo "Installing zjsh..."
 
-ZJSH_BIN_DIR="$DOTFILES_DIR/bin"
-mkdir -p "$ZJSH_BIN_DIR"
-
-ZJSH_BIN="$ZJSH_BIN_DIR/zjsh"
 LOCAL_BIN="$HOME/.local/bin"
 mkdir -p "$LOCAL_BIN"
 
-if [ -f "$ZJSH_BIN" ]; then
-  echo "  zjsh binary already downloaded, skipping"
+ZJSH_BIN="$LOCAL_BIN/zjsh"
+
+if [ -x "$ZJSH_BIN" ]; then
+  echo "  zjsh already installed, skipping"
 else
   echo "  Downloading zjsh..."
   ZJSH_URL="https://github.com/tassis/zjsh/releases/download/v0.4.0/zjsh-v0.4.0-darwin-arm64.tar.gz"
@@ -154,12 +156,9 @@ else
     mv "$ZJSH_TMP/zjsh" "$ZJSH_BIN"
     chmod +x "$ZJSH_BIN"
     rm -rf "$ZJSH_TMP"
-    echo "  zjsh installed to $ZJSH_BIN"
+    echo "  zjsh installed to ~/.local/bin/zjsh"
   fi
 fi
-
-ln -sfn "$ZJSH_BIN" "$LOCAL_BIN/zjsh"
-echo "  Linked $LOCAL_BIN/zjsh"
 
 # --- Install Oh My Zsh plugins ---
 echo ""
@@ -223,15 +222,23 @@ else
   echo "  npm not found. Install Node.js to get opencode plugin dependencies."
 fi
 
-# --- Install Plannotator ---
-echo ""
-echo "Installing Plannotator..."
+# --- Clean up Plannotator (replaced by r3) ---
+if [ -f "$LOCAL_BIN/plannotator" ]; then
+  echo ""
+  echo "Removing old Plannotator (replaced by r3)..."
+  rm -f "$LOCAL_BIN/plannotator"
+  echo "  plannotator removed"
+fi
 
-if command -v plannotator &>/dev/null; then
-  echo "  plannotator already installed, skipping"
+# --- Install r3 (review tool) ---
+echo ""
+echo "Installing r3..."
+
+if [ -x "$LOCAL_BIN/r3" ]; then
+  echo "  r3 already installed, skipping"
 else
-  curl -fsSL https://plannotator.ai/install.sh | bash
-  echo "  plannotator installed"
+  npm install -g --prefix "$HOME/.local" @hyperlogue/r3
+  echo "  r3 installed to ~/.local/bin/r3"
 fi
 
 echo ""
