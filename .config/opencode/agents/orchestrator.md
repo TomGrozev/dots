@@ -14,7 +14,7 @@ You are the execution coordinator. You implement work — typically GitHub issue
 - **`/diagnose`** on bugs and regressions
 - **`/triage`** on issues needing categorisation
 - Direct user requests for specific changes
-- **Human review** — for complex or high-impact changes, after `/code-review`, use r3 (`r3 create` then `r3 watch <id>`) to push the diff for user annotation and approval before proceeding. See `r3 guide` for the full workflow.
+- **Human review** — for complex or high-impact changes, after `/code-review`, use the `r3` skill to push the diff for user annotation and approval before proceeding.
 
 The user adapts this on the fly — don't enforce it rigidly.
 

@@ -241,5 +241,32 @@ else
   echo "  r3 installed to ~/.local/bin/r3"
 fi
 
+# --- Auto-configure r3 for Coder public URL ---
+# Inside a Coder workspace, construct the workspace proxy URL for r3.
+# Pattern: https://{port}--{agent}--{workspace}--{owner}.{domain}
+if [ -n "${CODER_AGENT_URL:-}" ] && [ -n "${CODER_WORKSPACE_NAME:-}" ] && [ -n "${CODER_WORKSPACE_OWNER_NAME:-}" ]; then
+  # Extract domain from CODER_AGENT_URL (e.g., https://dev.theg.house/ → dev.theg.house)
+  CODER_DOMAIN="${CODER_AGENT_URL#*://}"
+  CODER_DOMAIN="${CODER_DOMAIN%%/*}"
+  CODER_DOMAIN="${CODER_DOMAIN%/}"
+
+  # Lowercase all components — Coder proxy URLs are always lowercase
+  AGENT_NAME=$(echo "${CODER_WORKSPACE_AGENT_NAME:-main}" | tr '[:upper:]' '[:lower:]')
+  WS_NAME=$(echo "$CODER_WORKSPACE_NAME" | tr '[:upper:]' '[:lower:]')
+  OWNER_NAME=$(echo "$CODER_WORKSPACE_OWNER_NAME" | tr '[:upper:]' '[:lower:]')
+
+  # Read r3's configured port; fall back to r3's default (8791) if unset
+  R3_PORT=$(r3 config get port 2>/dev/null)
+  R3_PORT="${R3_PORT:-8791}"
+  R3_URL="https://${R3_PORT}--${AGENT_NAME}--${WS_NAME}--${OWNER_NAME}.${CODER_DOMAIN}"
+
+  r3 config set publicUrl "$R3_URL" 2>/dev/null
+  r3 config set requireLogin 0 2>/dev/null
+  echo "  r3 configured for Coder at $R3_URL"
+else
+  echo "  Not inside Coder — skipping r3 public URL config"
+  echo "  (run: r3 config set publicUrl <url> && r3 config set requireLogin 0)"
+fi
+
 echo ""
 echo "✅ Done! Restart your shell or run: source ~/.zshrc"
