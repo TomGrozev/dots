@@ -144,7 +144,7 @@ alias zjka='zellij kill-all-sessions'
 export ZELLIJ_AUTO_ATTACH="true"
 export ZELLIJ_AUTO_EXIT="true"
 
-if [[ -z "$ZELLIJ" ]] && [[ "$TERM" != "dumb" ]] && command -v zellij &>/dev/null; then
+if [[ -z "$ZELLIJ" ]] && [[ "$DEVCONTAINER" != "true" ]] && [[ "$TERM" != "dumb" ]] && command -v zellij &>/dev/null; then
   if [[ "$ZELLIJ_AUTO_ATTACH" == "true" ]]; then
     # Health-check the daemon before launching the session picker.
     # `list-sessions` connects and returns immediately; if it hangs, the
