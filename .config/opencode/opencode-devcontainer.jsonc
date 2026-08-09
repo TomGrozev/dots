@@ -1,10 +1,21 @@
 {
   "$schema": "https://opencode.ai/config.json",
 
-  // Top-level: flip the laptop's web/MCP research denials to allow. Agents
-  // that don't override webfetch (build, bash-executor, test-verifier,
-  // code-executor, frontend-designer, docs-writer) inherit this.
-  // orchestrator, plan, and explorer pin these back to deny below.
+  // DELTA LAYER. This file is loaded via OPENCODE_CONFIG *in addition to*
+  // ~/.config/opencode/opencode.json and deep-merged over it. It only names
+  // the keys it changes; plugin/mcp/model/instructions are all inherited.
+  //
+  // Threat model in a devcontainer: rootless, and only /home/dev survives a
+  // rebuild. Destructive local commands are cheap to recover from, so we trade
+  // permission prompts away. What is NOT cheap is credential theft — the
+  // tokens in /home/dev are the same real tokens as on the host. So:
+  //   - actions inside the box  -> allow
+  //   - credential material     -> deny, everywhere, no override
+  //   - leaving the box (push)  -> still ask
+
+  // Flip the laptop's web/MCP research denials to allow. Agents that don't
+  // override webfetch inherit this. orchestrator, architect, and explorer pin
+  // these back to deny below.
   "permission": {
     "webfetch": "allow",
     "context7_resolve-library-id": "allow",
@@ -13,53 +24,248 @@
     "hexdocs-mcp_search": "allow",
     "websearch": "allow",
     "gh_grep_searchGitHub": "allow",
+
+    // The container filesystem is disposable — stop asking about paths outside
+    // the worktree. Credential directories stay denied (last match wins).
+    "external_directory": {
+      "/tmp/**": "allow",
+      "/var/tmp/**": "allow",
+      "/workspace/**": "allow",
+      "/workspaces/**": "allow",
+      "/home/dev/**": "allow",
+      "/usr/**": "allow",
+      "/etc/**": "allow",
+      "/opt/**": "allow",
+      "~/.ssh/**": "deny",
+      "~/.gnupg/**": "deny",
+      "~/.aws/**": "deny",
+      "~/.azure/**": "deny",
+      "~/.kube/**": "deny",
+      "~/.docker/**": "deny",
+      "~/.config/gcloud/**": "deny",
+      "~/.config/gh/**": "deny",
+      "~/.config/op/**": "deny",
+      "~/.password-store/**": "deny",
+      "~/.local/share/opencode/auth.json": "deny",
+      "~/.config/opencode/auth.json": "deny",
+      "~/.claude/.credentials.json": "deny",
+      "/home/dev/.ssh/**": "deny",
+      "/home/dev/.gnupg/**": "deny",
+      "/home/dev/.aws/**": "deny",
+      "/home/dev/.kube/**": "deny",
+      "/home/dev/.docker/**": "deny",
+      "/home/dev/.config/gh/**": "deny",
+      "/home/dev/.config/gcloud/**": "deny",
+      "/home/dev/.local/share/opencode/auth.json": "deny",
+      "/home/dev/.config/opencode/auth.json": "deny",
+      "/home/dev/.claude/.credentials.json": "deny",
+    },
   },
 
+  // NOTE: `permission.read` is NOT overridden anywhere in this file. The global
+  // config's read deny-list (SSH keys, cloud creds, auth.json, *.pem, ...) is
+  // inherited verbatim and applies to every agent in the container.
+
   "agent": {
-    // --- Permissive agents: relax edit / bash. build is the unrestricted
-    // exception (task: allow). Workers below have task allowlists that
-    // enforce bounded-worker delegation boundaries. ---
+    // --- Workers: broad bash + edit. The credential deny tail is repeated
+    // verbatim on every block that introduces a `"*": "allow"` catch-all,
+    // because permission rules resolve last-match-wins and a bare catch-all
+    // would otherwise outrank the inherited denies. Do not "simplify" this
+    // by deleting the tails. ---
     "build": {
-      "permission": { "edit": "allow", "bash": "allow", "task": "allow" },
+      "permission": {
+        "edit": "allow",
+        "task": "allow",
+        "bash": {
+          "*": "allow",
+          "git push *": "ask",
+          "*.ssh/*": "deny",
+          "*id_rsa*": "deny",
+          "*id_ed25519*": "deny",
+          "*id_ecdsa*": "deny",
+          "*.gnupg*": "deny",
+          "*.aws/*": "deny",
+          "*gcloud/*": "deny",
+          "*.kube/config*": "deny",
+          "*.docker/config.json*": "deny",
+          "*.netrc*": "deny",
+          "*.git-credentials*": "deny",
+          "*.npmrc*": "deny",
+          "*.pypirc*": "deny",
+          "*credentials*": "deny",
+          "*auth.json*": "deny",
+          "*gh/hosts.yml*": "deny",
+          "*.pem*": "deny",
+          "*.p12*": "deny",
+          "*.pfx*": "deny",
+        },
+      },
     },
     "code-executor": {
       "permission": {
         "edit": "allow",
-        "bash": "allow",
+        "bash": {
+          "*": "allow",
+          "git push *": "ask",
+          "*.ssh/*": "deny",
+          "*id_rsa*": "deny",
+          "*id_ed25519*": "deny",
+          "*id_ecdsa*": "deny",
+          "*.gnupg*": "deny",
+          "*.aws/*": "deny",
+          "*gcloud/*": "deny",
+          "*.kube/config*": "deny",
+          "*.docker/config.json*": "deny",
+          "*.netrc*": "deny",
+          "*.git-credentials*": "deny",
+          "*.npmrc*": "deny",
+          "*.pypirc*": "deny",
+          "*credentials*": "deny",
+          "*auth.json*": "deny",
+          "*gh/hosts.yml*": "deny",
+          "*.pem*": "deny",
+          "*.p12*": "deny",
+          "*.pfx*": "deny",
+        },
         "task": {
+          "*": "deny",
           "explorer": "allow",
           "test-verifier": "allow",
           "api-docs-researcher": "allow",
-          "*": "deny",
         },
       },
     },
     "frontend-designer": {
       "permission": {
         "edit": "allow",
-        "bash": "allow",
+        "bash": {
+          "*": "allow",
+          "git push *": "ask",
+          "*.ssh/*": "deny",
+          "*id_rsa*": "deny",
+          "*id_ed25519*": "deny",
+          "*id_ecdsa*": "deny",
+          "*.gnupg*": "deny",
+          "*.aws/*": "deny",
+          "*gcloud/*": "deny",
+          "*.kube/config*": "deny",
+          "*.docker/config.json*": "deny",
+          "*.netrc*": "deny",
+          "*.git-credentials*": "deny",
+          "*.npmrc*": "deny",
+          "*.pypirc*": "deny",
+          "*credentials*": "deny",
+          "*auth.json*": "deny",
+          "*gh/hosts.yml*": "deny",
+          "*.pem*": "deny",
+          "*.p12*": "deny",
+          "*.pfx*": "deny",
+        },
         "task": {
+          "*": "deny",
           "explorer": "allow",
           "api-docs-researcher": "allow",
-          "*": "deny",
         },
       },
     },
-    "bash-executor": { "permission": { "bash": "allow" } },
-    "test-verifier": { "permission": { "bash": "allow" } },
-    "code-reviewer": { "permission": { "edit": "allow", "bash": "allow" } },
-    "security-reviewer": { "permission": { "edit": "allow", "bash": "allow" } },
-    "docs-reviewer": { "permission": { "edit": "allow", "bash": "allow" } },
-    "docs-writer": { "permission": { "edit": "allow" } },
-    "api-docs-researcher": {
-      "permission": { "edit": "allow", "bash": "allow" },
-    },
-
-    // --- Restrictive agents: top-level web/MCP flip would leak here (they
-    // don't set these in their config and would inherit allow). Pin them
-    // back to deny so architect and explorer stay locked down in containers. ---
-    "orchestrator": {
+    "bash-executor": {
       "permission": {
+        "bash": {
+          "*": "allow",
+          "git push *": "ask",
+          "*.ssh/*": "deny",
+          "*id_rsa*": "deny",
+          "*id_ed25519*": "deny",
+          "*id_ecdsa*": "deny",
+          "*.gnupg*": "deny",
+          "*.aws/*": "deny",
+          "*gcloud/*": "deny",
+          "*.kube/config*": "deny",
+          "*.docker/config.json*": "deny",
+          "*.netrc*": "deny",
+          "*.git-credentials*": "deny",
+          "*.npmrc*": "deny",
+          "*.pypirc*": "deny",
+          "*credentials*": "deny",
+          "*auth.json*": "deny",
+          "*gh/hosts.yml*": "deny",
+          "*.pem*": "deny",
+          "*.p12*": "deny",
+          "*.pfx*": "deny",
+        },
+      },
+    },
+    "test-verifier": {
+      "permission": {
+        "bash": {
+          "*": "allow",
+          "git push *": "ask",
+          "*.ssh/*": "deny",
+          "*id_rsa*": "deny",
+          "*id_ed25519*": "deny",
+          "*id_ecdsa*": "deny",
+          "*.gnupg*": "deny",
+          "*.aws/*": "deny",
+          "*gcloud/*": "deny",
+          "*.kube/config*": "deny",
+          "*.docker/config.json*": "deny",
+          "*.netrc*": "deny",
+          "*.git-credentials*": "deny",
+          "*.npmrc*": "deny",
+          "*.pypirc*": "deny",
+          "*credentials*": "deny",
+          "*auth.json*": "deny",
+          "*gh/hosts.yml*": "deny",
+          "*.pem*": "deny",
+          "*.p12*": "deny",
+          "*.pfx*": "deny",
+        },
+      },
+    },
+    "docs-writer": {
+      "permission": {
+        "edit": "allow",
+        "bash": {
+          "*": "allow",
+          "git push *": "ask",
+          "*.ssh/*": "deny",
+          "*id_rsa*": "deny",
+          "*.gnupg*": "deny",
+          "*.aws/*": "deny",
+          "*gcloud/*": "deny",
+          "*.kube/config*": "deny",
+          "*.netrc*": "deny",
+          "*.git-credentials*": "deny",
+          "*.npmrc*": "deny",
+          "*credentials*": "deny",
+          "*auth.json*": "deny",
+          "*gh/hosts.yml*": "deny",
+          "*.pem*": "deny",
+        },
+      },
+    },
+    "architect": {
+      "permission": {
+        "edit": "allow",
+        "bash": {
+          "*": "allow",
+          "git push *": "ask",
+          "*.ssh/*": "deny",
+          "*id_rsa*": "deny",
+          "*.gnupg*": "deny",
+          "*.aws/*": "deny",
+          "*gcloud/*": "deny",
+          "*.kube/config*": "deny",
+          "*.netrc*": "deny",
+          "*.git-credentials*": "deny",
+          "*.npmrc*": "deny",
+          "*credentials*": "deny",
+          "*auth.json*": "deny",
+          "*gh/hosts.yml*": "deny",
+          "*.pem*": "deny",
+        },
+        // Top-level web/MCP flip would leak here — architect stays offline and
+        // delegates research, same as on the laptop.
         "webfetch": "deny",
         "context7_resolve-library-id": "deny",
         "context7_query-docs": "deny",
@@ -69,7 +275,51 @@
         "gh_grep_searchGitHub": "deny",
       },
     },
-    "architect": {
+
+    // --- Read-only agents. They keep the global allowlists (which already
+    // cover inspection commands) and, critically, keep `edit: deny` from the
+    // global config. Reviewers and researchers report; they don't write.
+    // No `"*": "allow"` catch-all here, so the inherited credential denies
+    // are never at risk of being outranked. ---
+    // Specific verbs, not `git *` — a bare `git *` allow would append after the
+    // inherited credential denies and let `git config --file ~/.git-credentials`
+    // through.
+    "code-reviewer": {
+      "permission": {
+        "bash": {
+          "git diff *": "allow",
+          "git log *": "allow",
+          "git show *": "allow",
+          "git status *": "allow",
+          "git blame *": "allow",
+        },
+      },
+    },
+    "security-reviewer": {
+      "permission": {
+        "bash": {
+          "git diff *": "allow",
+          "git log *": "allow",
+          "git show *": "allow",
+          "git status *": "allow",
+          "git blame *": "allow",
+        },
+      },
+    },
+    "docs-reviewer": {
+      "permission": {
+        "bash": {
+          "git diff *": "allow",
+          "git log *": "allow",
+          "git show *": "allow",
+          "git status *": "allow",
+        },
+      },
+    },
+
+    // --- Restrictive agents: pin web/MCP back to deny so the top-level flip
+    // doesn't leak into the coordinator and the cheap explorer. ---
+    "orchestrator": {
       "permission": {
         "webfetch": "deny",
         "context7_resolve-library-id": "deny",

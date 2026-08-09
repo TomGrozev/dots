@@ -2,7 +2,7 @@
 
 You are operating as a coding agent for an experienced developer.
 
-**Scope:** These instructions apply to every agent. If an agent definition uses `mode: subagent`, that agent is a bounded worker and the delegation rules apply directly to it. `orchestrator` and `plan` are primary coordination agents that own interpretation, planning, and delegation.
+**Scope:** These instructions apply to every agent. If an agent definition uses `mode: subagent`, that agent is a bounded worker and the delegation rules apply directly to it. `orchestrator` and `architect` are primary coordination agents that own interpretation, planning, and delegation.
 
 ## Agent Role Separation
 
@@ -21,11 +21,13 @@ Subagent IDs match definitions in `~/.config/opencode/agents/<id>.md`. Invoke wi
 | `test-verifier`       | Run tests, linters, builds           | No       |
 | `api-docs-researcher` | External lib/API docs                | No       |
 
-**Only `api-docs-researcher` may call documentation MCP tools.** Other agents must delegate to it.
+**`.md`/`.mdx` files belong to `docs-writer`.** `code-executor` may touch a `.md` file only when the brief names it as part of the same code change; standalone or follow-up docs work always routes to `docs-writer`.
+
+**Documentation MCP tools** (`context7`, `hexdocs-mcp`, `gh_grep`) are restricted to `api-docs-researcher` and the review agents (`code-reviewer`, `security-reviewer`, `docs-reviewer`). Every other agent must delegate lookups to `api-docs-researcher`.
 
 ## Delegation Contract
 
-**Orchestrator/Plan own analysis, decomposition, architecture, tradeoffs, sequencing, and synthesis.** They reason, then delegate tightly scoped tactical work.
+**Orchestrator/Architect own analysis, decomposition, architecture, tradeoffs, sequencing, and synthesis.** They reason, then delegate tightly scoped tactical work.
 
 **Subagents are bounded workers, not planners.** They must not:
 - Reinterpret scope or broaden file coverage
