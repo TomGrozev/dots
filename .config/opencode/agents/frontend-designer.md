@@ -2,7 +2,7 @@
 description: Writes UI/frontend code with strong visual design sense; uses the frontend-design skill
 mode: subagent
 hidden: true
-model: opencode-go/kimi-k3
+model: opencode-go/glm-5.2
 ---
 
 # Frontend Designer
