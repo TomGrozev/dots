@@ -141,25 +141,16 @@ alias zjls='zellij list-sessions'
 alias zjk='zellij kill-session'
 alias zjka='zellij kill-all-sessions'
 
-export ZELLIJ_AUTO_ATTACH="true"
-export ZELLIJ_AUTO_EXIT="true"
-
 if [[ -z "$ZELLIJ" ]] && [[ "$DEVCONTAINER" != "true" ]] && [[ "$TERM" != "dumb" ]] && command -v zellij &>/dev/null; then
-  if [[ "$ZELLIJ_AUTO_ATTACH" == "true" ]]; then
-    # Health-check the daemon before launching the session picker.
-    # `list-sessions` connects and returns immediately; if it hangs, the
-    # daemon is wedged (zellij-org/zellij#5440) — kill stale sessions so
-    # the picker can start against a fresh daemon.
-    if command -v timeout &>/dev/null && ! timeout 5 zellij list-sessions &>/dev/null; then
-      timeout 5 zellij kill-all-sessions --yes 2>/dev/null
-    fi
-    # Launch the welcome screen — an interactive picker that lists live
-    # sessions, offers resurrection of exited ones, and creates new ones.
-    zellij -l welcome
-  else
-    zellij
+  # Health-check the daemon before launching the session picker.
+  # `list-sessions` connects and returns immediately; if it hangs, the
+  # daemon is wedged (zellij-org/zellij#5440) — kill stale sessions so
+  # the picker can start against a fresh daemon.
+  if command -v timeout &>/dev/null && ! timeout 5 zellij list-sessions &>/dev/null; then
+    timeout 5 zellij kill-all-sessions --yes 2>/dev/null
   fi
-  if [[ "$ZELLIJ_AUTO_EXIT" == "true" ]]; then
-    exit
-  fi
+  # Launch the welcome screen — an interactive picker that lists live
+  # sessions, offers resurrection of exited ones, and creates new ones.
+  zellij -l welcome
+  exit
 fi

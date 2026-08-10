@@ -107,12 +107,11 @@ echo "Downloading Zellij plugins..."
 ZELLIJ_PLUGIN_DIR="$HOME/.config/zellij/plugins"
 mkdir -p "$ZELLIJ_PLUGIN_DIR"
 
-ZELLIJ_PLUGIN_NAMES=("zjstatus.wasm" "zjframes.wasm" "zjstatus-hints.wasm" "zellij_forgot.wasm" "zellij-autolock.wasm" "harpoon.wasm")
+ZELLIJ_PLUGIN_NAMES=("zjstatus.wasm" "zjframes.wasm" "zjstatus-hints.wasm" "zellij-autolock.wasm" "harpoon.wasm")
 ZELLIJ_PLUGIN_URLS=(
   "https://github.com/dj95/zjstatus/releases/latest/download/zjstatus.wasm"
   "https://github.com/dj95/zjstatus/releases/latest/download/zjframes.wasm"
   "https://github.com/b0o/zjstatus-hints/releases/latest/download/zjstatus-hints.wasm"
-  "https://github.com/karimould/zellij-forgot/releases/download/0.4.2/zellij_forgot.wasm"
   "https://github.com/fresh2dev/zellij-autolock/releases/latest/download/zellij-autolock.wasm"
   "https://github.com/Nacho114/harpoon/releases/latest/download/harpoon.wasm"
 )

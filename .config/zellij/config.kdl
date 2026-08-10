@@ -68,28 +68,6 @@ keybinds clear-defaults=true {
             MessagePlugin "autolock" {payload "disable";};
             SwitchToMode "Locked";
         }
-        // Keybinding cheatsheet.
-        bind "Ctrl e" {
-            LaunchOrFocusPlugin "file:~/.config/zellij/plugins/zellij_forgot.wasm" {
-                "lock / unlock"   "ctrl + g"
-                "pane mode"       "ctrl + p"
-                "tab mode"        "ctrl + t"
-                "resize mode"     "ctrl + n"
-                "scroll mode"     "ctrl + s"
-                "session mode"    "ctrl + o"
-                "quit zellij"     "ctrl + q"
-                "harpoon"         "ctrl + y"
-                "cheatsheet"      "ctrl + e"
-                "yazi (files)"    "alt + y"
-                "sessionizer"     "ctrl + o, j"
-                "move focus"      "alt + h/j/k/l"
-                "new pane"        "alt + n"
-                "float toggle"    "alt + f"
-                "swap layout"     "alt + [ / ]"
-                floating true
-            }
-            SwitchToMode "locked"
-        }
         // Harpoon pane bookmarks.
         bind "Ctrl y" {
             LaunchOrFocusPlugin "file:~/.config/zellij/plugins/harpoon.wasm" {
