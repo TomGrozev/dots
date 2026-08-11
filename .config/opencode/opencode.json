@@ -4,7 +4,7 @@
     "cc-safety-net",
     "envsitter-guard",
     "opencode-notify",
-    "@cortexkit/opencode-magic-context@0.33.1",
+    "@cortexkit/opencode-magic-context@0.36.0",
     "opencode-costs",
     "opencode-with-claude"
   ],
@@ -18,19 +18,13 @@
   },
   "default_agent": "orchestrator",
   "model": "opencode-go/mimo-v2.5",
-  "instructions": [
-    "./AGENTS.md"
-  ],
+  "instructions": ["./AGENTS.md"],
   "lsp": true,
   "mcp": {
     "hexdocs-mcp": {
       "enabled": true,
       "type": "local",
-      "command": [
-        "npx",
-        "-y",
-        "hexdocs-mcp@0.5.0"
-      ]
+      "command": ["npx", "-y", "hexdocs-mcp@0.5.0"]
     },
     "context7": {
       "enabled": true,

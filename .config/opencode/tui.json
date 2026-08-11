@@ -3,7 +3,7 @@
   "theme": "nord",
   "plugin": [
     "@tarquinen/opencode-dcp@latest",
-    "@cortexkit/opencode-magic-context@0.33.1",
+    "@cortexkit/opencode-magic-context@0.36.0",
     "opencode-costs"
   ]
 }
