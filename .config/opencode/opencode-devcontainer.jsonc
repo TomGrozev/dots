@@ -13,17 +13,7 @@
   //   - credential material     -> deny, everywhere, no override
   //   - leaving the box (push)  -> still ask
 
-  // Flip the laptop's web/MCP research denials to allow. Agents that don't
-  // override webfetch inherit this. orchestrator, architect, and explorer pin
-  // these back to deny below.
   "permission": {
-    "webfetch": "allow",
-    "context7_resolve-library-id": "allow",
-    "context7_query-docs": "allow",
-    "hexdocs-mcp_fetch": "allow",
-    "hexdocs-mcp_search": "allow",
-    "websearch": "allow",
-    "gh_grep_searchGitHub": "allow",
 
     // The container filesystem is disposable — stop asking about paths outside
     // the worktree. Credential directories stay denied (last match wins).
@@ -264,15 +254,6 @@
           "*gh/hosts.yml*": "deny",
           "*.pem*": "deny",
         },
-        // Top-level web/MCP flip would leak here — architect stays offline and
-        // delegates research, same as on the laptop.
-        "webfetch": "deny",
-        "context7_resolve-library-id": "deny",
-        "context7_query-docs": "deny",
-        "hexdocs-mcp_fetch": "deny",
-        "hexdocs-mcp_search": "deny",
-        "websearch": "deny",
-        "gh_grep_searchGitHub": "deny",
       },
     },
 
@@ -317,29 +298,9 @@
       },
     },
 
-    // --- Restrictive agents: pin web/MCP back to deny so the top-level flip
-    // doesn't leak into the coordinator and the cheap explorer. ---
-    "orchestrator": {
-      "permission": {
-        "webfetch": "deny",
-        "context7_resolve-library-id": "deny",
-        "context7_query-docs": "deny",
-        "hexdocs-mcp_fetch": "deny",
-        "hexdocs-mcp_search": "deny",
-        "websearch": "deny",
-        "gh_grep_searchGitHub": "deny",
-      },
-    },
-    "explorer": {
-      "permission": {
-        "webfetch": "deny",
-        "context7_resolve-library-id": "deny",
-        "context7_query-docs": "deny",
-        "hexdocs-mcp_fetch": "deny",
-        "hexdocs-mcp_search": "deny",
-        "websearch": "deny",
-        "gh_grep_searchGitHub": "deny",
-      },
-    },
+    // Web/MCP permissions are intentionally inherited — the global config
+    // denies by default and grants only to code-reviewer, security-reviewer,
+    // docs-reviewer, and api-docs-researcher. Do NOT re-add a top-level flip.
+
   },
 }

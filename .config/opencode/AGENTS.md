@@ -41,6 +41,8 @@ Subagent IDs match definitions in `~/.config/opencode/agents/<id>.md`. Invoke wi
 4. **Constraints** — what is forbidden
 5. **Verification/expected output** — how success is measured
 
+- **Name the skill, don't paste it.** When a brief needs a skill's methodology, name the skill for the subagent to load — do not inline its contents. Only name skills the subagent is permitted to load. State the decisions the skill would otherwise have the worker ask about (e.g. for `/tdd`, the agreed test seams), because a bounded worker must not interview the user.
+
 If the brief is incomplete or requires assumptions, **stop and report the exact missing input.**
 
 **Exception:** `frontend-designer` retains design/implementation freedom within its brief's product goal, target files, and constraints. It owns visual and interaction design decisions and may refine design direction within the stated goal, but must not expand product scope or change unrelated architecture.

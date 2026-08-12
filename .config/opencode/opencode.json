@@ -134,6 +134,7 @@
       "mode": "primary",
       "permission": {
         "edit": "ask",
+        "skill": { "*": "deny", "tdd": "allow", "conventional-commit": "allow", "resolving-merge-conflicts": "allow", "diagnosing-bugs": "allow", "customize-opencode": "allow", "code-review": "allow", "r3": "allow", "frontend-design": "allow", "prototype": "allow", "wait-what": "allow" },
         "task": "allow",
         "websearch": "allow",
         "bash": {
@@ -245,6 +246,8 @@
     "orchestrator": {
       "permission": {
         "edit": "deny",
+        "envsitter_*": "deny",
+        "skill": { "*": "deny", "implement": "allow", "tdd": "allow", "code-review": "allow", "diagnosing-bugs": "allow", "triage": "allow", "r3": "allow", "prototype": "allow", "setup-matt-pocock-skills": "allow", "handoff": "allow", "research": "allow", "wizard": "allow", "teach": "allow", "ask-matt": "allow", "wait-what": "allow" },
         "bash": "deny",
         "task": {
           "*": "deny",
@@ -264,6 +267,8 @@
     "architect": {
       "permission": {
         "edit": "ask",
+        "envsitter_*": "deny",
+        "skill": { "*": "deny", "wayfinder": "allow", "grilling": "allow", "grill-me": "allow", "grill-with-docs": "allow", "domain-modeling": "allow", "codebase-design": "allow", "improve-codebase-architecture": "allow", "to-spec": "allow", "to-tickets": "allow", "to-questionnaire": "allow", "research": "allow", "handoff": "allow", "teach": "allow", "ask-matt": "allow", "wait-what": "allow" },
         "bash": {
           "*": "ask",
           "*gh issue*": "allow",
@@ -308,6 +313,8 @@
     "code-executor": {
       "permission": {
         "edit": "ask",
+        "ctx_*": "deny",
+        "skill": { "*": "deny", "tdd": "allow", "conventional-commit": "allow", "resolving-merge-conflicts": "allow", "customize-opencode": "allow" },
         "bash": {
           "*": "ask",
           "*mix test*": "allow",
@@ -444,6 +451,9 @@
     "bash-executor": {
       "permission": {
         "edit": "deny",
+        "ctx_*": "deny",
+        "envsitter_*": "deny",
+        "skill": { "*": "deny", "conventional-commit": "allow" },
         "bash": {
           "*": "ask",
           "*ls *": "allow",
@@ -544,6 +554,9 @@
     "test-verifier": {
       "permission": {
         "edit": "deny",
+        "ctx_*": "deny",
+        "envsitter_*": "deny",
+        "skill": "deny",
         "bash": {
           "*": "ask",
           "*mix test*": "allow",
@@ -620,6 +633,9 @@
     "explorer": {
       "permission": {
         "edit": "deny",
+        "ctx_*": "deny",
+        "envsitter_*": "deny",
+        "skill": "deny",
         "bash": {
           "*": "ask",
           "*rg*": "allow",
@@ -698,6 +714,9 @@
     "code-reviewer": {
       "permission": {
         "edit": "deny",
+        "ctx_*": "deny",
+        "envsitter_*": "deny",
+        "skill": { "*": "deny", "codebase-design": "allow" },
         "bash": {
           "*": "ask",
           "*.ssh/*": "deny",
@@ -743,6 +762,8 @@
     "security-reviewer": {
       "permission": {
         "edit": "deny",
+        "ctx_*": "deny",
+        "skill": "deny",
         "bash": {
           "*": "ask",
           "*.ssh/*": "deny",
@@ -788,6 +809,9 @@
     "docs-reviewer": {
       "permission": {
         "edit": "deny",
+        "ctx_*": "deny",
+        "envsitter_*": "deny",
+        "skill": { "*": "deny", "writing-for-agents": "allow" },
         "bash": "deny",
         "task": {
           "*": "deny",
@@ -804,6 +828,9 @@
     "docs-writer": {
       "permission": {
         "edit": "ask",
+        "ctx_*": "deny",
+        "envsitter_*": "deny",
+        "skill": { "*": "deny", "writing-for-agents": "allow" },
         "bash": {
           "*": "ask",
           "pwd *": "allow",
@@ -855,6 +882,9 @@
     "api-docs-researcher": {
       "permission": {
         "edit": "deny",
+        "ctx_*": "deny",
+        "envsitter_*": "deny",
+        "skill": "deny",
         "bash": "deny",
         "webfetch": "allow",
         "context7_resolve-library-id": "allow",
@@ -871,6 +901,9 @@
     "frontend-designer": {
       "permission": {
         "edit": "ask",
+        "ctx_*": "deny",
+        "envsitter_*": "deny",
+        "skill": { "*": "deny", "frontend-design": "allow" },
         "bash": {
           "*": "ask",
           "*ls *": "allow",
