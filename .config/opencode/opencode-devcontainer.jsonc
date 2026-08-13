@@ -234,28 +234,6 @@
         },
       },
     },
-    "architect": {
-      "permission": {
-        "edit": "allow",
-        "bash": {
-          "*": "allow",
-          "git push *": "ask",
-          "*.ssh/*": "deny",
-          "*id_rsa*": "deny",
-          "*.gnupg*": "deny",
-          "*.aws/*": "deny",
-          "*gcloud/*": "deny",
-          "*.kube/config*": "deny",
-          "*.netrc*": "deny",
-          "*.git-credentials*": "deny",
-          "*.npmrc*": "deny",
-          "*credentials*": "deny",
-          "*auth.json*": "deny",
-          "*gh/hosts.yml*": "deny",
-          "*.pem*": "deny",
-        },
-      },
-    },
 
     // --- Read-only agents. They keep the global allowlists (which already
     // cover inspection commands) and, critically, keep `edit: deny` from the

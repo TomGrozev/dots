@@ -313,6 +313,7 @@
     "code-executor": {
       "permission": {
         "edit": "ask",
+        "question": "deny",
         "ctx_*": "deny",
         "skill": { "*": "deny", "tdd": "allow", "conventional-commit": "allow", "resolving-merge-conflicts": "allow", "customize-opencode": "allow" },
         "bash": {
@@ -451,6 +452,7 @@
     "bash-executor": {
       "permission": {
         "edit": "deny",
+        "question": "deny",
         "ctx_*": "deny",
         "envsitter_*": "deny",
         "skill": { "*": "deny", "conventional-commit": "allow" },
@@ -554,6 +556,7 @@
     "test-verifier": {
       "permission": {
         "edit": "deny",
+        "question": "deny",
         "ctx_*": "deny",
         "envsitter_*": "deny",
         "skill": "deny",
@@ -633,6 +636,7 @@
     "explorer": {
       "permission": {
         "edit": "deny",
+        "question": "deny",
         "ctx_*": "deny",
         "envsitter_*": "deny",
         "skill": "deny",
@@ -714,6 +718,7 @@
     "code-reviewer": {
       "permission": {
         "edit": "deny",
+        "question": "deny",
         "ctx_*": "deny",
         "envsitter_*": "deny",
         "skill": { "*": "deny", "codebase-design": "allow" },
@@ -762,6 +767,7 @@
     "security-reviewer": {
       "permission": {
         "edit": "deny",
+        "question": "deny",
         "ctx_*": "deny",
         "skill": "deny",
         "bash": {
@@ -809,6 +815,7 @@
     "docs-reviewer": {
       "permission": {
         "edit": "deny",
+        "question": "deny",
         "ctx_*": "deny",
         "envsitter_*": "deny",
         "skill": { "*": "deny", "writing-for-agents": "allow" },
@@ -828,6 +835,7 @@
     "docs-writer": {
       "permission": {
         "edit": "ask",
+        "question": "deny",
         "ctx_*": "deny",
         "envsitter_*": "deny",
         "skill": { "*": "deny", "writing-for-agents": "allow" },
@@ -882,6 +890,7 @@
     "api-docs-researcher": {
       "permission": {
         "edit": "deny",
+        "question": "deny",
         "ctx_*": "deny",
         "envsitter_*": "deny",
         "skill": "deny",
@@ -901,6 +910,7 @@
     "frontend-designer": {
       "permission": {
         "edit": "ask",
+        "question": "deny",
         "ctx_*": "deny",
         "envsitter_*": "deny",
         "skill": { "*": "deny", "frontend-design": "allow" },
