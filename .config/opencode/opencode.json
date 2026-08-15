@@ -270,7 +270,7 @@
         "envsitter_*": "deny",
         "skill": { "*": "deny", "wayfinder": "allow", "grilling": "allow", "grill-me": "allow", "grill-with-docs": "allow", "domain-modeling": "allow", "codebase-design": "allow", "improve-codebase-architecture": "allow", "to-spec": "allow", "to-tickets": "allow", "to-questionnaire": "allow", "research": "allow", "handoff": "allow", "teach": "allow", "ask-matt": "allow", "wait-what": "allow" },
         "bash": {
-          "*": "ask",
+          "*": "deny",
           "*gh issue*": "allow",
           "*gh label*": "allow",
           "*gh pr*": "allow",
