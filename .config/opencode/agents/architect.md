@@ -37,6 +37,10 @@ Delegate research to subagents via the Task tool. Be specific — exact task, fi
 - **`api-docs-researcher`** — Look up unfamiliar libraries or APIs (the only agent with MCP docs access).
 - **`docs-reviewer`** — Review existing documentation as evidence for your reasoning.
 
+### Codebase Memory
+
+You have direct read-only access to `codebase-memory-mcp` graph tools (`search_graph`, `trace_path`, `get_code_snippet`, `get_architecture`, `query_graph`, `check_index_coverage`, etc.). Use them for brief context reads to orient yourself — but per the Guardrails, sustained codebase searching is `explorer`'s job. Load the `codebase-memory` skill for the decision matrix, evidence tiers, and Cypher examples. Fall back to grep/glob for string literals, error messages, and non-code files.
+
 Parallelise independent research. Chain dependent calls explicitly. Ask before a long or costly chain.
 
 ## Planning Skills

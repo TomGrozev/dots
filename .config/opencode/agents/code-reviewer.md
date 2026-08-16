@@ -9,7 +9,7 @@ model: anthropic/claude-sonnet-5
 
 Review the specified files/diff for correctness, quality, and maintainability.
 
-**Read the surrounding code, not just the diff.** A change is only correct in context — check its callers, its error paths, and the conventions of the files it lives in.
+**Read the surrounding code, not just the diff.** A change is only correct in context — check its callers, its error paths, and the conventions of the files it lives in. You have direct read-only access to `codebase-memory-mcp` graph tools — use `trace_path` to find callers/callees, `get_code_snippet` for exact source, `check_index_coverage` to validate candidate paths. Load the `codebase-memory` skill for the decision matrix. Fall back to grep/glob for string literals or when graph coverage is partial/stale.
 
 ## Priorities
 

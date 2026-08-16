@@ -25,16 +25,20 @@ Subagent IDs match definitions in `~/.config/opencode/agents/<id>.md`. Invoke wi
 
 **Documentation MCP tools** (`context7`, `hexdocs-mcp`, `gh_grep`) are restricted to `api-docs-researcher` and the review agents (`code-reviewer`, `security-reviewer`, `docs-reviewer`). Every other agent must delegate lookups to `api-docs-researcher`.
 
+**Codebase graph tools** (`codebase-memory-mcp`) provide a structural knowledge graph of the codebase — functions, callers, callees, call chains, impact analysis. See the Codebase Memory section below for which agents have direct access.
+
 ## Delegation Contract
 
 **Orchestrator/Architect own analysis, decomposition, architecture, tradeoffs, sequencing, and synthesis.** They reason, then delegate tightly scoped tactical work.
 
 **Subagents are bounded workers, not planners.** They must not:
+
 - Reinterpret scope or broaden file coverage
 - Invent requirements or make architectural/product decisions
 - Spawn additional agents unless their prompt explicitly permits a narrow tactical handoff
 
 **Every subagent brief must state:**
+
 1. **Goal** — one clear objective
 2. **Files/scope** — exact targets
 3. **Changes or question** — what to do or answer
@@ -85,3 +89,18 @@ The rules below apply to every `mode: subagent` agent. Individual agent files ma
 - Least privilege; never expose secrets
 - Ask before destructive, long-running, or networked actions
 - Keep changes tightly scoped
+
+## Codebase Memory
+
+The `codebase-memory-mcp` server maintains a knowledge graph of the codebase (functions, callers, callees, call chains, impact analysis). It exposes 15 tools; the MCP server auto-injects its own usage instructions at runtime, and the `codebase-memory` skill provides on-demand reference (decision matrix, Cypher examples, evidence tiers, gotchas). The notes here cover only access control — **do not duplicate** the tool priority list, evidence tiers, or examples here; they live in the auto-injected `<mcp_instructions>` and the skill.
+
+### Tool access
+
+- **Direct access (read-only graph tools):** `orchestrator`, `architect`, `explorer`, `code-reviewer`, `security-reviewer`. These may call `search_graph`, `trace_path`, `get_code_snippet`, `check_index_coverage`, `get_architecture`, `search_code`, `list_projects`, `index_status`, `get_graph_schema`, `query_graph`, `detect_changes` directly. State-changing tools (`index_repository`, `delete_project`, `ingest_traces`, `manage_adr`) are denied — index management is a manual/user operation.
+- **No access:** `code-executor`, `frontend-designer`, `bash-executor`, `test-verifier`, `docs-writer`, `docs-reviewer`, `api-docs-researcher`. These agents work from supplied evidence and read/grep source.
+
+### When to fall back to grep/glob
+
+- Searching for string literals, error messages, config values
+- Searching non-code files (Dockerfiles, shell scripts, configs)
+- When graph tools return insufficient results or coverage is partial/skipped/stale

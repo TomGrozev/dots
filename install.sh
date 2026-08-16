@@ -159,6 +159,93 @@ else
   fi
 fi
 
+# --- Install codebase-memory-mcp -------------------------------------------
+echo ""
+echo "Installing codebase-memory-mcp..."
+
+CODEBASE_MEMORY_MCP_BIN="$LOCAL_BIN/codebase-memory-mcp"
+
+if [ -x "$CODEBASE_MEMORY_MCP_BIN" ]; then
+  echo "  codebase-memory-mcp already installed, skipping"
+else
+  echo "  Downloading codebase-memory-mcp..."
+
+  # Detect OS
+  UNAME_OS="$(uname -s | tr '[:upper:]' '[:lower:]')"
+  case "$UNAME_OS" in
+    darwin) OS_PART="darwin" ;;
+    linux)  OS_PART="linux" ;;
+    *)
+      echo "    Error: unsupported OS '$UNAME_OS' (only darwin and linux are supported)" >&2
+      exit 1
+      ;;
+  esac
+
+  # Detect architecture
+  UNAME_ARCH="$(uname -m)"
+  case "$UNAME_ARCH" in
+    arm64|aarch64) ARCH_PART="arm64" ;;
+    x86_64|amd64)  ARCH_PART="amd64" ;;
+    *)
+      echo "    Error: unsupported architecture '$UNAME_ARCH'" >&2
+      exit 1
+      ;;
+  esac
+
+  # Upstream naming convention: Linux uses the -portable archive variant
+  if [ "$OS_PART" = "linux" ]; then
+    ARCHIVE_NAME="codebase-memory-mcp-${OS_PART}-${ARCH_PART}-portable.tar.gz"
+  else
+    ARCHIVE_NAME="codebase-memory-mcp-${OS_PART}-${ARCH_PART}.tar.gz"
+  fi
+
+  RELEASE_BASE="https://github.com/DeusData/codebase-memory-mcp/releases/latest/download"
+  ARCHIVE_URL="$RELEASE_BASE/$ARCHIVE_NAME"
+  CHECKSUMS_URL="$RELEASE_BASE/checksums.txt"
+
+  TMPDIR="$(mktemp -d)"
+  trap 'rm -rf "$TMPDIR"' EXIT
+  ARCHIVE_PATH="$TMPDIR/$ARCHIVE_NAME"
+  CHECKSUMS_PATH="$TMPDIR/checksums.txt"
+
+  curl -fL --progress-bar -o "$ARCHIVE_PATH" "$ARCHIVE_URL"
+  curl -fL --progress-bar -o "$CHECKSUMS_PATH" "$CHECKSUMS_URL"
+
+  # Verify SHA-256 checksum
+  if command -v sha256sum >/dev/null 2>&1; then
+    ACTUAL_SHA="$(sha256sum "$ARCHIVE_PATH" | awk '{print $1}')"
+  elif command -v shasum >/dev/null 2>&1; then
+    ACTUAL_SHA="$(shasum -a 256 "$ARCHIVE_PATH" | awk '{print $1}')"
+  else
+    echo "    Error: neither sha256sum nor shasum found; cannot verify checksum" >&2
+    exit 1
+  fi
+
+  EXPECTED_SHA="$(awk -v f="$ARCHIVE_NAME" '$2==f {print $1}' "$CHECKSUMS_PATH")"
+  if [ -z "$EXPECTED_SHA" ]; then
+    echo "    Error: no checksum entry for $ARCHIVE_NAME in checksums.txt" >&2
+    exit 1
+  fi
+
+  if [ "$ACTUAL_SHA" != "$EXPECTED_SHA" ]; then
+    echo "    Error: SHA-256 mismatch for $ARCHIVE_NAME" >&2
+    echo "      expected: $EXPECTED_SHA" >&2
+    echo "      actual:   $ACTUAL_SHA" >&2
+    exit 1
+  fi
+
+  # Extract archive and install binary
+  tar -xzf "$ARCHIVE_PATH" -C "$TMPDIR"
+  if [ ! -f "$TMPDIR/codebase-memory-mcp" ]; then
+    echo "    Error: archive did not contain a 'codebase-memory-mcp' binary" >&2
+    exit 1
+  fi
+  mv "$TMPDIR/codebase-memory-mcp" "$CODEBASE_MEMORY_MCP_BIN"
+  chmod +x "$CODEBASE_MEMORY_MCP_BIN"
+
+  echo "  codebase-memory-mcp installed to ~/.local/bin/codebase-memory-mcp"
+fi
+
 # --- Install Oh My Zsh plugins ---
 echo ""
 echo "Installing Oh My Zsh plugins..."

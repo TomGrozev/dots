@@ -60,6 +60,10 @@ For security-sensitive changes (auth, crypto, file handling, secrets, permission
 - **Sequential:** dependent tasks → chain agents, pass prior output.
 - **Unlimited bounded calls.** Use as many as the work requires. Ask before a long or costly chain. For ambiguous requests, ask ≤2 questions.
 
+### Codebase Memory
+
+You have direct read-only access to `codebase-memory-mcp` graph tools (`search_graph`, `trace_path`, `get_code_snippet`, `get_architecture`, `query_graph`, `check_index_coverage`, etc.). Use them for quick structural context before delegating — find symbols, trace callers/callees, check impact. Load the `codebase-memory` skill for the decision matrix, evidence tiers, and Cypher examples. Fall back to grep/glob for string literals, error messages, and non-code files.
+
 ### Prompt Quality
 
 Every brief must be self-contained. Be explicit per agent:

@@ -35,6 +35,11 @@
       "enabled": true,
       "type": "remote",
       "url": "https://mcp.grep.app"
+    },
+    "codebase-memory-mcp": {
+      "enabled": true,
+      "type": "local",
+      "command": ["codebase-memory-mcp"]
     }
   },
   "permission": {
@@ -100,6 +105,7 @@
     "hexdocs-mcp_fetch": "deny",
     "hexdocs-mcp_search": "deny",
     "gh_grep_searchGitHub": "deny",
+    "codebase-memory-mcp_*": "deny",
     "external_directory": {
       "/tmp/**": "allow",
       "~/.ssh/**": "deny",
@@ -134,7 +140,19 @@
       "mode": "primary",
       "permission": {
         "edit": "ask",
-        "skill": { "*": "deny", "tdd": "allow", "conventional-commit": "allow", "resolving-merge-conflicts": "allow", "diagnosing-bugs": "allow", "customize-opencode": "allow", "code-review": "allow", "r3": "allow", "frontend-design": "allow", "prototype": "allow", "wait-what": "allow" },
+        "skill": {
+          "*": "deny",
+          "tdd": "allow",
+          "conventional-commit": "allow",
+          "resolving-merge-conflicts": "allow",
+          "diagnosing-bugs": "allow",
+          "customize-opencode": "allow",
+          "code-review": "allow",
+          "r3": "allow",
+          "frontend-design": "allow",
+          "prototype": "allow",
+          "wait-what": "allow"
+        },
         "task": "allow",
         "websearch": "allow",
         "bash": {
@@ -247,7 +265,23 @@
       "permission": {
         "edit": "deny",
         "envsitter_*": "deny",
-        "skill": { "*": "deny", "implement": "allow", "tdd": "allow", "code-review": "allow", "diagnosing-bugs": "allow", "triage": "allow", "r3": "allow", "prototype": "allow", "setup-matt-pocock-skills": "allow", "handoff": "allow", "research": "allow", "wizard": "allow", "teach": "allow", "ask-matt": "allow", "wait-what": "allow" },
+        "skill": {
+          "*": "deny",
+          "implement": "allow",
+          "tdd": "allow",
+          "code-review": "allow",
+          "diagnosing-bugs": "allow",
+          "triage": "allow",
+          "r3": "allow",
+          "prototype": "allow",
+          "setup-matt-pocock-skills": "allow",
+          "handoff": "allow",
+          "research": "allow",
+          "wizard": "allow",
+          "teach": "allow",
+          "ask-matt": "allow",
+          "wait-what": "allow"
+        },
         "bash": "deny",
         "task": {
           "*": "deny",
@@ -261,14 +295,42 @@
           "test-verifier": "allow",
           "api-docs-researcher": "allow",
           "frontend-designer": "allow"
-        }
+        },
+        "codebase-memory-mcp_search_graph": "allow",
+        "codebase-memory-mcp_trace_path": "allow",
+        "codebase-memory-mcp_get_code_snippet": "allow",
+        "codebase-memory-mcp_check_index_coverage": "allow",
+        "codebase-memory-mcp_get_architecture": "allow",
+        "codebase-memory-mcp_search_code": "allow",
+        "codebase-memory-mcp_list_projects": "allow",
+        "codebase-memory-mcp_index_status": "allow",
+        "codebase-memory-mcp_get_graph_schema": "allow",
+        "codebase-memory-mcp_query_graph": "allow",
+        "codebase-memory-mcp_detect_changes": "allow"
       }
     },
     "architect": {
       "permission": {
         "edit": "ask",
         "envsitter_*": "deny",
-        "skill": { "*": "deny", "wayfinder": "allow", "grilling": "allow", "grill-me": "allow", "grill-with-docs": "allow", "domain-modeling": "allow", "codebase-design": "allow", "improve-codebase-architecture": "allow", "to-spec": "allow", "to-tickets": "allow", "to-questionnaire": "allow", "research": "allow", "handoff": "allow", "teach": "allow", "ask-matt": "allow", "wait-what": "allow" },
+        "skill": {
+          "*": "deny",
+          "wayfinder": "allow",
+          "grilling": "allow",
+          "grill-me": "allow",
+          "grill-with-docs": "allow",
+          "domain-modeling": "allow",
+          "codebase-design": "allow",
+          "improve-codebase-architecture": "allow",
+          "to-spec": "allow",
+          "to-tickets": "allow",
+          "to-questionnaire": "allow",
+          "research": "allow",
+          "handoff": "allow",
+          "teach": "allow",
+          "ask-matt": "allow",
+          "wait-what": "allow"
+        },
         "bash": {
           "*": "deny",
           "*gh issue*": "allow",
@@ -307,7 +369,18 @@
           "explorer": "allow",
           "api-docs-researcher": "allow",
           "docs-reviewer": "allow"
-        }
+        },
+        "codebase-memory-mcp_search_graph": "allow",
+        "codebase-memory-mcp_trace_path": "allow",
+        "codebase-memory-mcp_get_code_snippet": "allow",
+        "codebase-memory-mcp_check_index_coverage": "allow",
+        "codebase-memory-mcp_get_architecture": "allow",
+        "codebase-memory-mcp_search_code": "allow",
+        "codebase-memory-mcp_list_projects": "allow",
+        "codebase-memory-mcp_index_status": "allow",
+        "codebase-memory-mcp_get_graph_schema": "allow",
+        "codebase-memory-mcp_query_graph": "allow",
+        "codebase-memory-mcp_detect_changes": "allow"
       }
     },
     "code-executor": {
@@ -315,7 +388,13 @@
         "edit": "ask",
         "question": "deny",
         "ctx_*": "deny",
-        "skill": { "*": "deny", "tdd": "allow", "conventional-commit": "allow", "resolving-merge-conflicts": "allow", "customize-opencode": "allow" },
+        "skill": {
+          "*": "deny",
+          "tdd": "allow",
+          "conventional-commit": "allow",
+          "resolving-merge-conflicts": "allow",
+          "customize-opencode": "allow"
+        },
         "bash": {
           "*": "ask",
           "*mix test*": "allow",
@@ -642,6 +721,10 @@
         "skill": "deny",
         "bash": {
           "*": "ask",
+          "git blame *": "ask",
+          "stat *": "ask",
+          "file *": "ask",
+          "tree *": "ask",
           "*rg*": "allow",
           "*git grep*": "allow",
           "*find *": "allow",
@@ -712,9 +795,28 @@
         "task": {
           "*": "deny",
           "api-docs-researcher": "allow"
-        }
+        },
+        "codebase-memory-mcp_search_graph": "allow",
+        "codebase-memory-mcp_trace_path": "allow",
+        "codebase-memory-mcp_get_code_snippet": "allow",
+        "codebase-memory-mcp_check_index_coverage": "allow",
+        "codebase-memory-mcp_get_architecture": "allow",
+        "codebase-memory-mcp_search_code": "allow",
+        "codebase-memory-mcp_list_projects": "allow",
+        "codebase-memory-mcp_index_status": "allow",
+        "codebase-memory-mcp_get_graph_schema": "allow",
+        "codebase-memory-mcp_query_graph": "allow",
+        "codebase-memory-mcp_detect_changes": "allow"
       }
     },
+    // Read-only reviewers (code-reviewer, security-reviewer, docs-reviewer):
+    // any command key that the devcontainer delta wants to flip to "allow"
+    // must already be declared in this base permission object, placed BEFORE
+    // the credential-deny tail. The deep-merge preserves existing key order,
+    // and last-match-wins — so adding an allow key only in the devcontainer
+    // would append it AFTER the inherited `*.ssh/*`, `*id_rsa*`, etc. denies
+    // and let a broad pattern like `cat *` outrank them. The "ask" placeholder
+    // slots below give the delta a stable in-place value to override.
     "code-reviewer": {
       "permission": {
         "edit": "deny",
@@ -724,6 +826,27 @@
         "skill": { "*": "deny", "codebase-design": "allow" },
         "bash": {
           "*": "ask",
+          "git diff *": "ask",
+          "git log *": "ask",
+          "git show *": "ask",
+          "git status *": "ask",
+          "git blame *": "ask",
+          "rg *": "ask",
+          "grep *": "ask",
+          "find *": "ask",
+          "cat *": "ask",
+          "ls *": "ask",
+          "head *": "ask",
+          "tail *": "ask",
+          "wc *": "ask",
+          "sort *": "ask",
+          "uniq *": "ask",
+          "jq *": "ask",
+          "pwd": "ask",
+          "which *": "ask",
+          "stat *": "ask",
+          "file *": "ask",
+          "tree *": "ask",
           "*.ssh/*": "deny",
           "*id_rsa*": "deny",
           "*id_ed25519*": "deny",
@@ -761,7 +884,18 @@
         "hexdocs-mcp_fetch": "allow",
         "hexdocs-mcp_search": "allow",
         "websearch": "allow",
-        "gh_grep_searchGitHub": "allow"
+        "gh_grep_searchGitHub": "allow",
+        "codebase-memory-mcp_search_graph": "allow",
+        "codebase-memory-mcp_trace_path": "allow",
+        "codebase-memory-mcp_get_code_snippet": "allow",
+        "codebase-memory-mcp_check_index_coverage": "allow",
+        "codebase-memory-mcp_get_architecture": "allow",
+        "codebase-memory-mcp_search_code": "allow",
+        "codebase-memory-mcp_list_projects": "allow",
+        "codebase-memory-mcp_index_status": "allow",
+        "codebase-memory-mcp_get_graph_schema": "allow",
+        "codebase-memory-mcp_query_graph": "allow",
+        "codebase-memory-mcp_detect_changes": "allow"
       }
     },
     "security-reviewer": {
@@ -772,6 +906,27 @@
         "skill": "deny",
         "bash": {
           "*": "ask",
+          "git diff *": "ask",
+          "git log *": "ask",
+          "git show *": "ask",
+          "git status *": "ask",
+          "git blame *": "ask",
+          "rg *": "ask",
+          "grep *": "ask",
+          "find *": "ask",
+          "cat *": "ask",
+          "ls *": "ask",
+          "head *": "ask",
+          "tail *": "ask",
+          "wc *": "ask",
+          "sort *": "ask",
+          "uniq *": "ask",
+          "jq *": "ask",
+          "pwd": "ask",
+          "which *": "ask",
+          "stat *": "ask",
+          "file *": "ask",
+          "tree *": "ask",
           "*.ssh/*": "deny",
           "*id_rsa*": "deny",
           "*id_ed25519*": "deny",
@@ -809,7 +964,18 @@
         "hexdocs-mcp_fetch": "allow",
         "hexdocs-mcp_search": "allow",
         "websearch": "allow",
-        "gh_grep_searchGitHub": "allow"
+        "gh_grep_searchGitHub": "allow",
+        "codebase-memory-mcp_search_graph": "allow",
+        "codebase-memory-mcp_trace_path": "allow",
+        "codebase-memory-mcp_get_code_snippet": "allow",
+        "codebase-memory-mcp_check_index_coverage": "allow",
+        "codebase-memory-mcp_get_architecture": "allow",
+        "codebase-memory-mcp_search_code": "allow",
+        "codebase-memory-mcp_list_projects": "allow",
+        "codebase-memory-mcp_index_status": "allow",
+        "codebase-memory-mcp_get_graph_schema": "allow",
+        "codebase-memory-mcp_query_graph": "allow",
+        "codebase-memory-mcp_detect_changes": "allow"
       }
     },
     "docs-reviewer": {
@@ -819,7 +985,55 @@
         "ctx_*": "deny",
         "envsitter_*": "deny",
         "skill": { "*": "deny", "writing-for-agents": "allow" },
-        "bash": "deny",
+        "bash": {
+          "*": "deny",
+          "git diff *": "deny",
+          "git log *": "deny",
+          "git show *": "deny",
+          "git status *": "deny",
+          "rg *": "deny",
+          "grep *": "deny",
+          "find *": "deny",
+          "cat *": "deny",
+          "ls *": "deny",
+          "head *": "deny",
+          "tail *": "deny",
+          "wc *": "deny",
+          "sort *": "deny",
+          "uniq *": "deny",
+          "jq *": "deny",
+          "pwd": "deny",
+          "which *": "deny",
+          "stat *": "deny",
+          "file *": "deny",
+          "tree *": "deny",
+          "*.ssh/*": "deny",
+          "*id_rsa*": "deny",
+          "*id_ed25519*": "deny",
+          "*id_ecdsa*": "deny",
+          "*.gnupg*": "deny",
+          "*secring*": "deny",
+          "*.aws/*": "deny",
+          "*.azure/*": "deny",
+          "*gcloud/*": "deny",
+          "*.kube/config*": "deny",
+          "*.docker/config.json*": "deny",
+          "*.netrc*": "deny",
+          "*.pgpass*": "deny",
+          "*.git-credentials*": "deny",
+          "*.npmrc*": "deny",
+          "*.pypirc*": "deny",
+          "*credentials*": "deny",
+          "*auth.json*": "deny",
+          "*gh/hosts.yml*": "deny",
+          "*.password-store*": "deny",
+          "*Keychains*": "deny",
+          "*.pem*": "deny",
+          "*.p12*": "deny",
+          "*.pfx*": "deny",
+          "*.kdbx*": "deny",
+          "*terraform.tfstate*": "deny"
+        },
         "task": {
           "*": "deny",
           "api-docs-researcher": "allow"
