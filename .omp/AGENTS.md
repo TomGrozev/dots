@@ -7,10 +7,14 @@ Phase is expressed by which skill you invoke, not which agent you are.
 
 The main agent owns interpretation, decomposition, architecture, tradeoffs, sequencing, and
 synthesis. Delegate tightly scoped tactical work to the matching subagent below — do **not**
-edit code inline when a subagent fits, even if the work is small. Do inline only single
-trivial edits or read-only exploration that informs decomposition. Subagents start blank
-with no conversation history; each brief carries the full slice requirements and the
-decisions the worker would otherwise ask about.
+edit code inline when a subagent fits, even if the work is small. The main agent may read a
+**single file** for immediate decomposition context, but any **multi-file codebase research
+MUST go to `scout`** and any **external library/API research MUST go to `librarian`** — these
+are not preferences. Subagents start blank with no conversation history; each brief carries
+the full slice requirements and the decisions the worker would otherwise ask about.
+
+**Anti-pattern:** the main agent reading more than one file to answer a research question is
+using the wrong tool — delegate to `scout`.
 
 ## Agent roster
 
@@ -35,8 +39,8 @@ definitions (an override is a whole-definition replacement, not a field merge).
 - **Frontend / UI** → `designer`.
 - **Standalone or follow-up `.md`/`.mdx`** → `docs-writer`. (A code change that bundles a
   doc edit may keep that doc edit in the same worker brief.)
-- **Codebase orientation / "where does X live"** → `scout`.
-- **Unfamiliar library or API** → `librarian`.
+- **Codebase orientation / "where does X live" / multi-file research** → MUST go to `scout`.
+- **Unfamiliar library or API** → MUST go to `librarian`.
 - **Pre-merge review** (driven by the `/code-review` skill) → `reviewer`; add
   `security-reviewer` for auth/crypto/secret/permission surfaces.
 - **Mechanical bulk edits / data collection** → `sonic`.

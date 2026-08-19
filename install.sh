@@ -109,7 +109,7 @@ echo "Linking omp config..."
 OMP_AGENT_DIR="$HOME/.omp/agent"
 mkdir -p "$OMP_AGENT_DIR"
 
-omp_entries=(config.yml mcp.json AGENTS.md RULES.md agents extensions)
+omp_entries=(config.yml models.yml mcp.json AGENTS.md RULES.md agents extensions)
 
 for entry in "${omp_entries[@]}"; do
   source="$DOTFILES_DIR/.omp/$entry"
@@ -221,23 +221,23 @@ else
   # Detect OS
   UNAME_OS="$(uname -s | tr '[:upper:]' '[:lower:]')"
   case "$UNAME_OS" in
-    darwin) OS_PART="darwin" ;;
-    linux)  OS_PART="linux" ;;
-    *)
-      echo "    Error: unsupported OS '$UNAME_OS' (only darwin and linux are supported)" >&2
-      exit 1
-      ;;
+  darwin) OS_PART="darwin" ;;
+  linux) OS_PART="linux" ;;
+  *)
+    echo "    Error: unsupported OS '$UNAME_OS' (only darwin and linux are supported)" >&2
+    exit 1
+    ;;
   esac
 
   # Detect architecture
   UNAME_ARCH="$(uname -m)"
   case "$UNAME_ARCH" in
-    arm64|aarch64) ARCH_PART="arm64" ;;
-    x86_64|amd64)  ARCH_PART="amd64" ;;
-    *)
-      echo "    Error: unsupported architecture '$UNAME_ARCH'" >&2
-      exit 1
-      ;;
+  arm64 | aarch64) ARCH_PART="arm64" ;;
+  x86_64 | amd64) ARCH_PART="amd64" ;;
+  *)
+    echo "    Error: unsupported architecture '$UNAME_ARCH'" >&2
+    exit 1
+    ;;
   esac
 
   # Upstream naming convention: Linux uses the -portable archive variant
@@ -400,6 +400,76 @@ if [ -n "${CODER_AGENT_URL:-}" ] && [ -n "${CODER_WORKSPACE_NAME:-}" ] && [ -n "
 else
   echo "  Not inside Coder — skipping r3 public URL config"
   echo "  (run: r3 config set publicUrl <url> && r3 config set requireLogin 0)"
+fi
+
+# --- Install captain-miao (coding agent session manager) ---
+# Release assets embed the version in their filename (miao-v0.5.0-<triple>.tar.gz),
+# so the tag is resolved from the GitHub API rather than /releases/latest/download/.
+# Upstream ships no checksums file, so this block does not verify a digest.
+echo ""
+echo "Installing captain-miao..."
+
+MIAO_BIN="$LOCAL_BIN/miao"
+
+if [ -x "$MIAO_BIN" ]; then
+  echo "  miao already installed, skipping"
+else
+  echo "  Resolving latest captain-miao release..."
+  MIAO_TAG="$(curl -fsSL https://api.github.com/repos/hyperlogue/captain-miao/releases/latest |
+    grep -m1 '"tag_name"' | sed -E 's/.*"([^"]+)".*/\1/')"
+  if [ -z "$MIAO_TAG" ]; then
+    echo "    Error: could not resolve latest captain-miao release tag" >&2
+    exit 1
+  fi
+
+  # Detect OS → target-triple OS/vendor segment
+  UNAME_OS="$(uname -s | tr '[:upper:]' '[:lower:]')"
+  case "$UNAME_OS" in
+  darwin) OS_PART="apple-darwin" ;;
+  linux) OS_PART="unknown-linux-gnu" ;;
+  *)
+    echo "    Error: unsupported OS '$UNAME_OS' (only darwin and linux are supported)" >&2
+    exit 1
+    ;;
+  esac
+
+  # Detect architecture
+  UNAME_ARCH="$(uname -m)"
+  case "$UNAME_ARCH" in
+  arm64 | aarch64) ARCH_PART="aarch64" ;;
+  x86_64 | amd64) ARCH_PART="x86_64" ;;
+  *)
+    echo "    Error: unsupported architecture '$UNAME_ARCH'" >&2
+    exit 1
+    ;;
+  esac
+
+  ARCHIVE_NAME="miao-${MIAO_TAG}-${ARCH_PART}-${OS_PART}.tar.gz"
+  ARCHIVE_URL="https://github.com/hyperlogue/captain-miao/releases/download/${MIAO_TAG}/${ARCHIVE_NAME}"
+
+  # Subshell-local temp dir + EXIT trap so the outer trap (from an earlier
+  # install block) is not clobbered and nothing leaks on failure under set -e.
+  (
+    set -e
+    TMPDIR="$(mktemp -d)"
+    trap 'rm -rf "$TMPDIR"' EXIT
+    ARCHIVE_PATH="$TMPDIR/$ARCHIVE_NAME"
+
+    echo "  Downloading captain-miao ${MIAO_TAG}..."
+    curl -fL --progress-bar -o "$ARCHIVE_PATH" "$ARCHIVE_URL"
+
+    # Archive layout: miao-<tag>-<triple>/miao
+    tar -xzf "$ARCHIVE_PATH" -C "$TMPDIR"
+    EXTRACTED_BIN="$TMPDIR/miao-${MIAO_TAG}-${ARCH_PART}-${OS_PART}/miao"
+    if [ ! -f "$EXTRACTED_BIN" ]; then
+      echo "    Error: archive did not contain the miao binary at expected path" >&2
+      exit 1
+    fi
+    mv "$EXTRACTED_BIN" "$MIAO_BIN"
+    chmod +x "$MIAO_BIN"
+  )
+
+  echo "  captain-miao installed to ~/.local/bin/miao"
 fi
 
 echo ""

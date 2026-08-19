@@ -1,14 +1,14 @@
-providers: 
-  webSearchOrder: 
+providers:
+  webSearchOrder:
     - exa
     - public
-  webSearchExclude: 
+  webSearchExclude:
     - anthropic
-modelRoles: 
-  default: anthropic/claude-sonnet-5
+modelRoles:
+  default: opencode-go/glm-5.2
   slow: anthropic/claude-opus-5
   plan: anthropic/claude-opus-5
-  task: opencode-go/minimax-m3
+  task: neuralwatt/deepseek-v4-flash
   smol: opencode-go/mimo-v2.5
   tiny: opencode-go/mimo-v2.5
   writer: opencode-go/qwen3.7-plus
@@ -17,54 +17,54 @@ modelRoles:
   commit: opencode-go/mimo-v2.5
   advisor: anthropic/claude-sonnet-5
 symbolPreset: nerd
-theme: 
+theme:
   dark: dark-nord
 setupVersion: 1
 defaultThinkingLevel: auto
-statusLine: 
+statusLine:
   transparent: false
   compactThinkingLevel: false
   showHookStatus: true
-terminal: 
+terminal:
   showProgress: false
-tui: 
+tui:
   textSizing: false
   tight: false
-display: 
+display:
   shimmer: kitt
 steeringMode: one-at-a-time
-memory: 
+memory:
   backend: mnemopi
-autolearn: 
+autolearn:
   enabled: false
-mnemopi: 
+mnemopi:
   llmMode: smol
-edit: 
+edit:
   mode: hashline
-github: 
+github:
   enabled: true
-task: 
-  isolation: 
+task:
+  isolation:
     mode: auto
-  agentModelOverrides: 
+  agentModelOverrides:
     security-reviewer: "@slow"
     reviewer: "@review"
-dev: 
+dev:
   autoqa: false
-browser: 
+browser:
   enabled: true
   headless: true
-computer: 
+computer:
   enabled: false
-skills: 
-  customDirectories: 
+skills:
+  customDirectories:
     - ~/.agents/skills
-disabledProviders: 
+disabledProviders:
   - opencode
-tools: 
+tools:
   approvalMode: yolo
-bash: 
-  patterns: 
+bash:
+  patterns:
     - match: "*"
       approval: allow
     - match: git push *
@@ -103,39 +103,49 @@ bash:
       approval: deny
     - match: "*terraform.tfstate*"
       approval: deny
-retry: 
+retry:
   enabled: true
   modelFallback: true
-  fallbackChains: 
-    default: 
+  fallbackChains:
+    default:
+      - opencode-go/glm-5.2
+      - neuralwatt/glm-5.2
       - anthropic/claude-sonnet-5
-      - opencode-go/kimi-k2.7-code
-    slow: 
+    slow:
       - anthropic/claude-opus-5
-      - opencode-go/glm-5.2
-    task: 
+      - anthropic/claude-sonnet-5
+      - neuralwatt/glm-5.2
+    plan:
+      - anthropic/claude-opus-5
+      - anthropic/claude-sonnet-5
+      - neuralwatt/glm-5.2
+    task:
+      - neuralwatt/deepseek-v4-flash
       - opencode-go/minimax-m3
-      - opencode-go/minimax-m2.7
+    smol:
       - opencode-go/mimo-v2.5
-    smol: 
+      - neuralwatt/gemma-4-31b
+    tiny:
       - opencode-go/mimo-v2.5
-      - opencode-go/hy3
-    tiny: 
-      - opencode-go/mimo-v2.5
-      - opencode-go/hy3
-    writer: 
+      - neuralwatt/qwen3.6-35b-fast
+    writer:
       - opencode-go/qwen3.7-plus
-      - opencode-go/qwen3.6-plus
-    review: 
+      - opencode-go/hy3
+      - neuralwatt/qwen3.6-35b
+    review:
       - anthropic/claude-sonnet-5
       - opencode-go/kimi-k2.7-code
-    designer: 
+      - neuralwatt/kimi-k2.7-code
+    designer:
       - opencode-go/glm-5.2
-      - opencode-go/glm-5.1
-    commit: 
+      - neuralwatt/glm-5.2
+    commit:
       - opencode-go/mimo-v2.5
-      - opencode-go/hy3
-    opencode-go/*: 
+      - neuralwatt/qwen3.6-35b-fast
+    opencode-go/*:
       - opencode-go/mimo-v2.5
-secrets: 
+      - neuralwatt/qwen3.6-35b-fast
+    neuralwatt/*:
+      - opencode-go/mimo-v2.5
+secrets:
   enabled: true
