@@ -1,0 +1,141 @@
+providers: 
+  webSearchOrder: 
+    - exa
+    - public
+  webSearchExclude: 
+    - anthropic
+modelRoles: 
+  default: anthropic/claude-sonnet-5
+  slow: anthropic/claude-opus-5
+  plan: anthropic/claude-opus-5
+  task: opencode-go/minimax-m3
+  smol: opencode-go/mimo-v2.5
+  tiny: opencode-go/mimo-v2.5
+  writer: opencode-go/qwen3.7-plus
+  review: anthropic/claude-sonnet-5
+  designer: opencode-go/glm-5.2
+  commit: opencode-go/mimo-v2.5
+  advisor: anthropic/claude-sonnet-5
+symbolPreset: nerd
+theme: 
+  dark: dark-nord
+setupVersion: 1
+defaultThinkingLevel: auto
+statusLine: 
+  transparent: false
+  compactThinkingLevel: false
+  showHookStatus: true
+terminal: 
+  showProgress: false
+tui: 
+  textSizing: false
+  tight: false
+display: 
+  shimmer: kitt
+steeringMode: one-at-a-time
+memory: 
+  backend: mnemopi
+autolearn: 
+  enabled: false
+mnemopi: 
+  llmMode: smol
+edit: 
+  mode: hashline
+github: 
+  enabled: true
+task: 
+  isolation: 
+    mode: auto
+  agentModelOverrides: 
+    security-reviewer: "@slow"
+    reviewer: "@review"
+dev: 
+  autoqa: false
+browser: 
+  enabled: true
+  headless: true
+computer: 
+  enabled: false
+skills: 
+  customDirectories: 
+    - ~/.agents/skills
+disabledProviders: 
+  - opencode
+tools: 
+  approvalMode: yolo
+bash: 
+  patterns: 
+    - match: "*"
+      approval: allow
+    - match: git push *
+      approval: prompt
+    - match: "*.ssh/*"
+      approval: deny
+    - match: "*id_rsa*"
+      approval: deny
+    - match: "*id_ed25519*"
+      approval: deny
+    - match: "*.gnupg*"
+      approval: deny
+    - match: "*.aws/*"
+      approval: deny
+    - match: "*.kube/config*"
+      approval: deny
+    - match: "*.docker/config.json*"
+      approval: deny
+    - match: "*gcloud/*"
+      approval: deny
+    - match: "*credentials*"
+      approval: deny
+    - match: "*auth.json*"
+      approval: deny
+    - match: "*gh/hosts.yml*"
+      approval: deny
+    - match: "*.password-store*"
+      approval: deny
+    - match: "*Keychains*"
+      approval: deny
+    - match: "*.pem*"
+      approval: deny
+    - match: "*.p12*"
+      approval: deny
+    - match: "*.pfx*"
+      approval: deny
+    - match: "*terraform.tfstate*"
+      approval: deny
+retry: 
+  enabled: true
+  modelFallback: true
+  fallbackChains: 
+    default: 
+      - anthropic/claude-sonnet-5
+      - opencode-go/kimi-k2.7-code
+    slow: 
+      - anthropic/claude-opus-5
+      - opencode-go/glm-5.2
+    task: 
+      - opencode-go/minimax-m3
+      - opencode-go/minimax-m2.7
+      - opencode-go/mimo-v2.5
+    smol: 
+      - opencode-go/mimo-v2.5
+      - opencode-go/hy3
+    tiny: 
+      - opencode-go/mimo-v2.5
+      - opencode-go/hy3
+    writer: 
+      - opencode-go/qwen3.7-plus
+      - opencode-go/qwen3.6-plus
+    review: 
+      - anthropic/claude-sonnet-5
+      - opencode-go/kimi-k2.7-code
+    designer: 
+      - opencode-go/glm-5.2
+      - opencode-go/glm-5.1
+    commit: 
+      - opencode-go/mimo-v2.5
+      - opencode-go/hy3
+    opencode-go/*: 
+      - opencode-go/mimo-v2.5
+secrets: 
+  enabled: true

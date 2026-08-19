@@ -100,6 +100,54 @@ for dir in "${config_dirs[@]}"; do
   echo "  Linked .config/$dir"
 done
 
+# --- Link omp (Oh My Pi) config ---
+# ~/.omp/agent/ holds runtime state (agent.db, sessions/, memories/) alongside
+# authored config, so individual entries are linked rather than the directory.
+echo ""
+echo "Linking omp config..."
+
+OMP_AGENT_DIR="$HOME/.omp/agent"
+mkdir -p "$OMP_AGENT_DIR"
+
+omp_entries=(config.yml mcp.json AGENTS.md RULES.md agents extensions)
+
+for entry in "${omp_entries[@]}"; do
+  source="$DOTFILES_DIR/.omp/$entry"
+  target="$OMP_AGENT_DIR/$entry"
+
+  [ -e "$source" ] || continue
+
+  if [ -e "$target" ] && [ ! -L "$target" ]; then
+    echo "  Backing up existing $entry → ${entry}.bak"
+    mv "$target" "${target}.bak"
+  fi
+
+  ln -sfn "$source" "$target"
+  echo "  Linked ~/.omp/agent/$entry"
+done
+
+# --- Install cc-safety-net plugin for omp ---
+# cc-safety-net v2: PreToolUse hook blocking destructive commands (rm -rf, git reset
+# --hard, git push --force, etc.) and secret-file reads (~/.ssh/*, .env, ~/.aws, …).
+# Installed as an omp npm plugin into ~/.omp/plugins/. omp's plugin state is runtime-
+# managed (package.json + omp-plugins.lock.json), so we run the installer rather than
+# committing a manifest. Idempotent: re-running on an already-installed plugin is a no-op.
+# Strict preset: set CC_SAFETY_NET_LEVEL=strict in the environment (e.g. .zshenv) —
+# check the cc-safety-net docs for the canonical pinning method before adding it.
+if command -v omp &>/dev/null; then
+  echo ""
+  echo "Installing cc-safety-net plugin for omp..."
+  omp install cc-safety-net
+fi
+
+# --- Link cc-safety-net policy ---
+# Policy file is declarative and never overwritten at runtime — safe to symlink.
+# strict preset: fail-closed on unparseable commands. Other fields default per docs.
+CCSN_DIR="$HOME/.cc-safety-net"
+mkdir -p "$CCSN_DIR"
+ln -sfn "$DOTFILES_DIR/.cc-safety-net/policy.json" "$CCSN_DIR/policy.json"
+echo "  Linked ~/.cc-safety-net/policy.json"
+
 # --- Download Zellij WASM plugins ------------------------------------------
 echo ""
 echo "Downloading Zellij plugins..."

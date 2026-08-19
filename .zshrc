@@ -157,6 +157,6 @@ if [[ -z "$ZELLIJ" ]] && [[ "$DEVCONTAINER" != "true" ]] && [[ "$TERM" != "dumb"
   fi
   # Launch the welcome screen — an interactive picker that lists live
   # sessions, offers resurrection of exited ones, and creates new ones.
-  zellij -l welcome
+  zellij attach -c main
   exit
 fi
