@@ -5,3 +5,5 @@
 .config/zellij/plugins/
 
 .cortexkit/
+
+.zprofile
