@@ -147,7 +147,7 @@ echo "  Linked ~/.cc-safety-net/policy.json"
 # git push --force, etc.) and secret-file reads (~/.ssh/*, .env, ~/.aws, …). Strict
 # preset: set CC_SAFETY_NET_LEVEL=strict in the environment (e.g. .zshenv) — check the
 # cc-safety-net docs for the canonical pinning method before adding it.
-OMP_PLUGINS=(cc-safety-net npm:tau-mirror)
+OMP_PLUGINS=(cc-safety-net)
 
 if command -v omp &>/dev/null; then
   for plugin in "${OMP_PLUGINS[@]}"; do
@@ -224,18 +224,20 @@ else
   # Map host platform → upstream archive naming.
   case "$UNAME_OS" in
   darwin) OS_PART="darwin" ;;
-  linux)  OS_PART="linux"  ;;
+  linux) OS_PART="linux" ;;
   *)
     echo "    Error: unsupported OS '$UNAME_OS' (only darwin and linux are supported)" >&2
-    exit 1 ;;
+    exit 1
+    ;;
   esac
 
   case "$UNAME_ARCH" in
   arm64 | aarch64) ARCH_PART="arm64" ;;
-  x86_64 | amd64)  ARCH_PART="amd64" ;;
+  x86_64 | amd64) ARCH_PART="amd64" ;;
   *)
     echo "    Error: unsupported architecture '$UNAME_ARCH'" >&2
-    exit 1 ;;
+    exit 1
+    ;;
   esac
 
   # Upstream naming convention: Linux uses the -portable archive variant.
@@ -319,18 +321,20 @@ else
   # Detect OS → target-triple OS/vendor segment
   case "$UNAME_OS" in
   darwin) OS_PART="apple-darwin" ;;
-  linux)  OS_PART="unknown-linux-gnu" ;;
+  linux) OS_PART="unknown-linux-gnu" ;;
   *)
     echo "    Error: unsupported OS '$UNAME_OS' (only darwin and linux are supported)" >&2
-    exit 1 ;;
+    exit 1
+    ;;
   esac
 
   case "$UNAME_ARCH" in
   arm64 | aarch64) ARCH_PART="aarch64" ;;
-  x86_64 | amd64)  ARCH_PART="x86_64" ;;
+  x86_64 | amd64) ARCH_PART="x86_64" ;;
   *)
     echo "    Error: unsupported architecture '$UNAME_ARCH'" >&2
-    exit 1 ;;
+    exit 1
+    ;;
   esac
 
   ARCHIVE_NAME="miao-${MIAO_TAG}-${ARCH_PART}-${OS_PART}.tar.gz"

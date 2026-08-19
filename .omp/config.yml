@@ -5,7 +5,7 @@ providers:
   webSearchExclude:
     - anthropic
 modelRoles:
-  default: opencode-go/glm-5.2
+  default: neuralwatt/glm-5.2
   slow: anthropic/claude-opus-5
   plan: anthropic/claude-opus-5
   task: neuralwatt/deepseek-v4-flash
@@ -13,7 +13,7 @@ modelRoles:
   tiny: opencode-go/mimo-v2.5
   writer: opencode-go/qwen3.7-plus
   review: anthropic/claude-sonnet-5
-  designer: opencode-go/glm-5.2
+  designer: neuralwatt/glm-5.2
   commit: opencode-go/mimo-v2.5
   advisor: anthropic/claude-sonnet-5
 symbolPreset: nerd

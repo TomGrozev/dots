@@ -3,18 +3,33 @@
 One main agent; specialised work is pushed down into bounded subagents delegated via `task`.
 Phase is expressed by which skill you invoke, not which agent you are.
 
-## Delegate by default
+## Delegate by default — the main agent does not investigate
 
 The main agent owns interpretation, decomposition, architecture, tradeoffs, sequencing, and
-synthesis. Delegate tightly scoped tactical work to the matching subagent below — do **not**
-edit code inline when a subagent fits, even if the work is small. The main agent may read a
-**single file** for immediate decomposition context, but any **multi-file codebase research
-MUST go to `scout`** and any **external library/API research MUST go to `librarian`** — these
-are not preferences. Subagents start blank with no conversation history; each brief carries
-the full slice requirements and the decisions the worker would otherwise ask about.
+synthesis. It does **not** gather its own evidence from the codebase or external sources.
+That work goes to a subagent — always, even when it feels small or "just one quick read."
 
-**Anti-pattern:** the main agent reading more than one file to answer a research question is
-using the wrong tool — delegate to `scout`.
+**Bright line:** you may read **one** file for immediate decomposition context. The moment a
+second read or search would help answer the same question, stop — that is a delegation
+trigger, not a shortcut. Sequential exploration (read → read → grep → read) by the main
+agent is a process bug, not an optimization. If you catch yourself opening a second file or
+running a second search to investigate the same question, you have already gone too far —
+spin up a scout.
+
+**Delegate to `scout` the moment you would otherwise:** read a second file; grep/glob for a
+pattern, symbol, or error string; trace a call chain, data flow, or import graph; find
+"where does X live" or "how does X work"; map conventions across a module; compare
+implementations across files; orient in an unfamiliar area of the repo.
+
+**Delegate to `librarian` the moment you would otherwise:** read external docs, source, or
+API reference for an unfamiliar library, framework, or service — even one you partly know.
+
+**Delegate to `designer` when the work touches UI/frontend** — do not prototype or tweak
+frontend inline; hand it off with the surface and the constraint.
+
+Subagents start blank with no conversation history; each brief carries the full slice
+requirements and the decisions the worker would otherwise ask about. Synthesis, taste, and
+the final call stay with the main agent; gathering and implementation get pushed out.
 
 ## Agent roster
 
@@ -34,13 +49,13 @@ Seven bundled agents (used unmodified) plus one custom agent:
 Steer models via `task.agentModelOverrides` in `config.yml`; never override bundled agent
 definitions (an override is a whole-definition replacement, not a field merge).
 
-## Routing policy
+## Routing policy (remaining agents)
 
-- **Frontend / UI** → `designer`.
+The research and frontend routes are covered by the bright-line triggers above. For the
+rest of the roster:
+
 - **Standalone or follow-up `.md`/`.mdx`** → `docs-writer`. (A code change that bundles a
   doc edit may keep that doc edit in the same worker brief.)
-- **Codebase orientation / "where does X live" / multi-file research** → MUST go to `scout`.
-- **Unfamiliar library or API** → MUST go to `librarian`.
 - **Pre-merge review** (driven by the `/code-review` skill) → `reviewer`; add
   `security-reviewer` for auth/crypto/secret/permission surfaces.
 - **Mechanical bulk edits / data collection** → `sonic`.
