@@ -14,6 +14,22 @@
         "baseURL": "http://127.0.0.1:3456",
         "apiKey": "dummy"
       }
+    },
+    "neuralwatt": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "neuralwatt",
+      "options": {
+        "baseURL": "https://api.neuralwatt.com/v1"
+      },
+      "models": {
+        "deepseek-v4-flash": { "name": "DeepSeek V4 Flash" },
+        "glm-5.2": { "name": "GLM-5.2" },
+        "gemma-4-31b": { "name": "Gemma 4 31B" },
+        "kimi-k2.7-code": { "name": "Kimi K2.7 Code" },
+        "kimi-k3": { "name": "Kimi K3" },
+        "qwen3.6-35b": { "name": "Qwen3.6 35B" },
+        "qwen3.6-35b-fast": { "name": "Qwen3.6 35B Fast" }
+      }
     }
   },
   "default_agent": "orchestrator",
