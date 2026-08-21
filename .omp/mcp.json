@@ -3,7 +3,10 @@
   "mcpServers": {
     "hexdocs-mcp": {
       "command": "npx",
-      "args": ["-y", "hexdocs-mcp@0.5.0"]
+      "args": [
+        "-y",
+        "hexdocs-mcp@0.5.0"
+      ]
     },
     "context7": {
       "type": "http",
@@ -14,7 +17,8 @@
       "url": "https://mcp.grep.app"
     },
     "codebase-memory-mcp": {
-      "command": "codebase-memory-mcp"
+      "command": "codebase-memory-mcp",
+      "enabled": true
     }
   }
 }

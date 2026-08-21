@@ -9,12 +9,12 @@ The main agent owns interpretation, decomposition, architecture, tradeoffs, sequ
 synthesis. It does **not** gather its own evidence from the codebase or external sources.
 That work goes to a subagent — always, even when it feels small or "just one quick read."
 
-**Bright line:** you may read **one** file for immediate decomposition context. The moment a
-second read or search would help answer the same question, stop — that is a delegation
-trigger, not a shortcut. Sequential exploration (read → read → grep → read) by the main
-agent is a process bug, not an optimization. If you catch yourself opening a second file or
-running a second search to investigate the same question, you have already gone too far —
-spin up a scout.
+**Enforced:** some of the main agent's tools are removed by the
+`delegate-enforce` extension. Investigating anything beyond one known file is structurally
+impossible without delegating. When you need to know X, frame it as a question and route it
+via `task`: `scout` for codebase research, `librarian` for external docs/API research.
+You may still `read` a single known file for immediate decomposition context (to write a
+good brief) and to verify/apply your own edits.
 
 **Delegate to `scout` the moment you would otherwise:** read a second file; grep/glob for a
 pattern, symbol, or error string; trace a call chain, data flow, or import graph; find
@@ -35,16 +35,16 @@ the final call stay with the main agent; gathering and implementation get pushed
 
 Seven bundled agents (used unmodified) plus one custom agent:
 
-| Agent | Role | Writes? |
-|---|---|---|
-| `scout` | Fast read-only codebase research | No |
-| `librarian` | External library/API research from source | No |
-| `reviewer` | Pre-merge code review with cross-boundary analysis | No |
-| `security-reviewer` | Source→sink vulnerability tracing | No |
-| `designer` | UI/frontend implementation and review | Yes |
-| `task` | General-purpose worker, full tools | Yes |
-| `sonic` | Mechanical updates and data collection | Yes |
-| `docs-writer` | `.md`/`.mdx` authoring only | `.md` only |
+| Agent               | Role                                               | Writes?    |
+| ------------------- | -------------------------------------------------- | ---------- |
+| `scout`             | Fast read-only codebase research                   | No         |
+| `librarian`         | External library/API research from source          | No         |
+| `reviewer`          | Pre-merge code review with cross-boundary analysis | No         |
+| `security-reviewer` | Source→sink vulnerability tracing                  | No         |
+| `designer`          | UI/frontend implementation and review              | Yes        |
+| `task`              | General-purpose worker, full tools                 | Yes        |
+| `sonic`             | Mechanical updates and data collection             | Yes        |
+| `docs-writer`       | `.md`/`.mdx` authoring only                        | `.md` only |
 
 Steer models via `task.agentModelOverrides` in `config.yml`; never override bundled agent
 definitions (an override is a whole-definition replacement, not a field merge).

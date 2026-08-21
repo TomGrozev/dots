@@ -18,6 +18,15 @@ providers:
           cost: { input: 0.14, output: 0.28, cacheRead: 0.03, cacheWrite: 0 },
         }
       - {
+          id: deepseek-v4-flash-flex,
+          name: DeepSeek V4 Flash Flex,
+          reasoning: true,
+          input: [text],
+          contextWindow: 1048576,
+          maxTokens: 32768,
+          cost: { input: 0.09, output: 0.18, cacheRead: 0.02, cacheWrite: 0 },
+        }
+      - {
           id: glm-5.2,
           name: GLM-5.2,
           reasoning: true,
@@ -34,6 +43,15 @@ providers:
           contextWindow: 1048576,
           maxTokens: 16384,
           cost: { input: 1.45, output: 4.50, cacheRead: 0.14, cacheWrite: 0 },
+        }
+      - {
+          id: glm-5.2-fast-flex,
+          name: "GLM-5.2 (fast, flex)",
+          reasoning: true,
+          input: [text],
+          contextWindow: 1048576,
+          maxTokens: 16384,
+          cost: { input: 0.94, output: 2.93, cacheRead: 0.09, cacheWrite: 0 },
         }
       - {
           id: glm-5.2-short,
