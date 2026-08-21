@@ -42,7 +42,7 @@ mnemopi:
 edit:
   mode: hashline
 github:
-  enabled: true
+  enabled: false
 task:
   isolation:
     mode: auto
@@ -52,8 +52,7 @@ task:
 dev:
   autoqa: false
 browser:
-  enabled: true
-  headless: true
+  enabled: false
 computer:
   enabled: false
 skills:
