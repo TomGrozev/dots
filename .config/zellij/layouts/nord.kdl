@@ -116,8 +116,45 @@ layout {
     }
     
     default_tab_template {
+        // ── Top bar: tabs centered ──────────────────────────
+        pane size=1 borderless=true {
+            plugin location="file:$HOME/.config/zellij/plugins/zjstatus.wasm" {
+                // ── Nord Color Palette ────────────────────────────
+                color_nord0  "#2e3440"
+                color_nord1  "#3b4252"
+                color_nord3  "#4c566a"
+                color_nord4  "#d8dee9"
+                color_nord5  "#e5e9f0"
+                color_nord7  "#8fbcbb"
+                color_nord8  "#88c0d0"
+                color_nord9  "#81a1c1"
+                color_nord10 "#5e81ac"
+                color_nord11 "#bf616a"
+                color_nord12 "#d08770"
+                color_nord13 "#ebcb8b"
+                color_nord14 "#a3be8c"
+                color_nord15 "#b48ead"
+
+                // ── Format zones: tabs only, centered ───────────
+                format_left   ""
+                format_center "{tabs}"
+                format_right  ""
+                format_space  "#[bg=$nord0]"
+
+                // ── Tabs ──────────────────────────────────────────
+                tab_normal  "#[fg=$nord3] {index} {name} {fullscreen_indicator}{sync_indicator}{floating_indicator}"
+                tab_active  "#[fg=$nord4,bg=$nord1,bold,italic] {index} {name} {fullscreen_indicator}{sync_indicator}{floating_indicator}"
+                tab_separator "#[fg=$nord3] │ "
+                tab_rename  "#[fg=$nord13] {index} {name} "
+                tab_fullscreen_indicator "□ "
+                tab_sync_indicator       "⎈ "
+                tab_floating_indicator   "ESC "
+            }
+        }
+
         children
 
+        // ── Bottom bar: mode, session, hints, datetime ──────
         pane size=1 borderless=true {
             plugin location="file:$HOME/.config/zellij/plugins/zjstatus.wasm" {
                 // ── Nord Color Palette ────────────────────────────
@@ -137,8 +174,7 @@ layout {
                 color_nord15 "#b48ead"
 
                 // ── Format zones ──────────────────────────────────
-                format_left   "{mode} #[fg=$nord8,bold]{session} {tabs}"
-                // format_center "{tabs}"
+                format_left   "{mode} #[fg=$nord8,bold]{session}"
                 format_right  "{pipe_zjstatus_hints} #[fg=$nord3]{datetime}"
                 format_space  "#[bg=$nord0]"
 
@@ -158,15 +194,6 @@ layout {
                 mode_prompt        "#[fg=$nord0,bg=$nord11,bold] PROMPT "
                 mode_tmux          "#[fg=$nord0,bg=$nord12,bold] TMUX "
                 mode_default_to_mode "locked"
-
-                // ── Tabs ──────────────────────────────────────────
-                tab_normal  "#[fg=$nord3] {index} {name} {fullscreen_indicator}{sync_indicator}{floating_indicator}"
-                tab_active  "#[fg=$nord4,bg=$nord1,bold,italic] {index} {name} {fullscreen_indicator}{sync_indicator}{floating_indicator}"
-                tab_separator "#[fg=$nord3] │ "
-                tab_rename  "#[fg=$nord13] {index} {name} "
-                tab_fullscreen_indicator "□ "
-                tab_sync_indicator       "⎈ "
-                tab_floating_indicator   "ESC "
 
                 // ── zjstatus-hints pipe ───────────────────────────
                 pipe_zjstatus_hints_format "#[fg=$nord5,italic] {output} "
