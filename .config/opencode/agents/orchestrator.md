@@ -1,7 +1,7 @@
 ---
 description: Execution coordinator — implements tickets and issues by decomposing work into atomic objectives, writing tight subagent briefs, routing to workers, and synthesising results
 mode: primary
-model: opencode-go/glm-5.2
+model: neuralwatt/deepseek-v4-flash
 ---
 
 # Orchestrator

@@ -23,7 +23,9 @@
       },
       "models": {
         "deepseek-v4-flash": { "name": "DeepSeek V4 Flash" },
+        "deepseek-v4-flash-flex": { "name": "DeepSeek V4 Flash Flex" },
         "glm-5.2": { "name": "GLM-5.2" },
+        "glm-5.2-fast-flex": { "name": "GLM-5.2 (fast, flex)" },
         "gemma-4-31b": { "name": "Gemma 4 31B" },
         "kimi-k2.7-code": { "name": "Kimi K2.7 Code" },
         "kimi-k3": { "name": "Kimi K3" },
