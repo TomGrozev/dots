@@ -1,10 +1,10 @@
-providers: 
-  webSearchOrder: 
+providers:
+  webSearchOrder:
     - exa
     - public
-  webSearchExclude: 
+  webSearchExclude:
     - anthropic
-modelRoles: 
+modelRoles:
   default: neuralwatt/glm-5.2-short
   slow: anthropic/claude-opus-5
   plan: anthropic/claude-opus-5
@@ -17,54 +17,54 @@ modelRoles:
   commit: opencode-go/mimo-v2.5
   advisor: anthropic/claude-sonnet-5
 symbolPreset: nerd
-theme: 
+theme:
   dark: dark-nord
 setupVersion: 2
 defaultThinkingLevel: auto
-statusLine: 
+statusLine:
   transparent: false
   compactThinkingLevel: false
   showHookStatus: true
-terminal: 
+terminal:
   showProgress: false
-tui: 
+tui:
   textSizing: false
   tight: false
-display: 
+display:
   shimmer: kitt
 steeringMode: one-at-a-time
-memory: 
+memory:
   backend: mnemopi
-autolearn: 
+autolearn:
   enabled: false
-mnemopi: 
+mnemopi:
   llmMode: smol
-edit: 
+edit:
   mode: hashline
-github: 
+github:
   enabled: true
-task: 
-  isolation: 
+task:
+  isolation:
     mode: auto
-  agentModelOverrides: 
+  agentModelOverrides:
     security-reviewer: "@slow"
     reviewer: "@review"
-dev: 
+dev:
   autoqa: false
-browser: 
+browser:
   enabled: true
   headless: true
-computer: 
+computer:
   enabled: false
-skills: 
-  customDirectories: 
+skills:
+  customDirectories:
     - ~/.agents/skills
-disabledProviders: 
+disabledProviders:
   - opencode
-tools: 
+tools:
   approvalMode: yolo
-bash: 
-  patterns: 
+bash:
+  patterns:
     - match: "*"
       approval: allow
     - match: git push *
@@ -103,7 +103,7 @@ bash:
       approval: deny
     - match: "*terraform.tfstate*"
       approval: deny
-retry: 
+retry:
   enabled: true
   modelFallback: true
   fallbackChains:
@@ -158,7 +158,6 @@ retry:
     opencode-go/*:
       - opencode-go/mimo-v2.5
       - neuralwatt/qwen3.6-35b-fast
-      - neuralwatt/minimax-m3
     neuralwatt/*:
       - opencode-go/mimo-v2.5
       - neuralwatt/qwen3.6-35b-fast
@@ -166,9 +165,9 @@ retry:
       - anthropic/claude-sonnet-5
       - opencode-go/kimi-k2.7-code
       - neuralwatt/glm-5.2
-secrets: 
+secrets:
   enabled: true
-composer: 
+composer:
   shape: box
-disabledExtensions: 
+disabledExtensions:
   - extension-module:cbmem
