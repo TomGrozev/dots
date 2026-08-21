@@ -19,3 +19,6 @@ opencode-perm() {
   echo "opencode tier: $opencode_permission${OPENCODE_CONFIG:+ ($OPENCODE_CONFIG)}"
 }
 
+if [[ "$(uname)" == "Darwin" ]]; then
+  export NEURALWATT_API_KEY="$(security find-generic-password -s "neuralwatt-api-key" -w)"
+fi
