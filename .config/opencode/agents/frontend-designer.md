@@ -2,7 +2,7 @@
 description: Writes UI/frontend code with strong visual design sense; uses the frontend-design skill
 mode: subagent
 hidden: true
-model: neuralwatt/glm-5.2-short-flex
+model: neuralwatt/glm-5.2-fast-flex
 ---
 
 # Frontend Designer
