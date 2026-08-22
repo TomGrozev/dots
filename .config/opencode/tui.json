@@ -2,8 +2,8 @@
   "$schema": "https://opencode.ai/tui.json",
   "theme": "nord",
   "plugin": [
-    "@tarquinen/opencode-dcp@latest",
     "@cortexkit/opencode-magic-context@0.36.0",
-    "opencode-costs"
+    "opencode-costs",
+    "jgabor/opencode-neuralwatt"
   ]
 }

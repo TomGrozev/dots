@@ -5,7 +5,7 @@ providers:
   webSearchExclude:
     - anthropic
 modelRoles:
-  default: anthropic/claude-sonnet-5
+  default: neuralwatt/qwen-3.8-27b
   slow: anthropic/claude-opus-5
   plan: anthropic/claude-opus-5
   task: neuralwatt/deepseek-v4-flash:max
