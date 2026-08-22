@@ -307,62 +307,58 @@ echo "Installing captain-miao..."
 
 MIAO_BIN="$LOCAL_BIN/miao"
 
-if [ -x "$MIAO_BIN" ]; then
-  echo "  miao already installed, skipping"
-else
-  echo "  Resolving latest captain-miao release..."
-  MIAO_TAG="$(curl -fsSL https://api.github.com/repos/hyperlogue/captain-miao/releases/latest |
-    grep -m1 '"tag_name"' | sed -E 's/.*"([^"]+)".*/\1/')"
-  if [ -z "$MIAO_TAG" ]; then
-    echo "    Error: could not resolve latest captain-miao release tag" >&2
+echo "  Resolving latest captain-miao release..."
+MIAO_TAG="$(curl -fsSL https://api.github.com/repos/hyperlogue/captain-miao/releases/latest |
+  grep -m1 '"tag_name"' | sed -E 's/.*"([^"]+)".*/\1/')"
+if [ -z "$MIAO_TAG" ]; then
+  echo "    Error: could not resolve latest captain-miao release tag" >&2
+  exit 1
+fi
+
+# Detect OS → target-triple OS/vendor segment
+case "$UNAME_OS" in
+darwin) OS_PART="apple-darwin" ;;
+linux) OS_PART="unknown-linux-gnu" ;;
+*)
+  echo "    Error: unsupported OS '$UNAME_OS' (only darwin and linux are supported)" >&2
+  exit 1
+  ;;
+esac
+
+case "$UNAME_ARCH" in
+arm64 | aarch64) ARCH_PART="aarch64" ;;
+x86_64 | amd64) ARCH_PART="x86_64" ;;
+*)
+  echo "    Error: unsupported architecture '$UNAME_ARCH'" >&2
+  exit 1
+  ;;
+esac
+
+ARCHIVE_NAME="miao-${MIAO_TAG}-${ARCH_PART}-${OS_PART}.tar.gz"
+ARCHIVE_URL="https://github.com/hyperlogue/captain-miao/releases/download/${MIAO_TAG}/${ARCHIVE_NAME}"
+
+# Subshell-local temp dir + EXIT trap: nothing leaks on failure under set -e.
+(
+  set -e
+  TMPDIR="$(mktemp -d)"
+  trap 'rm -rf "$TMPDIR"' EXIT
+  ARCHIVE_PATH="$TMPDIR/$ARCHIVE_NAME"
+
+  echo "  Downloading captain-miao ${MIAO_TAG}..."
+  curl -fL --progress-bar -o "$ARCHIVE_PATH" "$ARCHIVE_URL"
+
+  # Archive layout: miao-<tag>-<triple>/miao
+  tar -xzf "$ARCHIVE_PATH" -C "$TMPDIR"
+  EXTRACTED_BIN="$TMPDIR/miao-${MIAO_TAG}-${ARCH_PART}-${OS_PART}/miao"
+  if [ ! -f "$EXTRACTED_BIN" ]; then
+    echo "    Error: archive did not contain the miao binary at expected path" >&2
     exit 1
   fi
+  mv "$EXTRACTED_BIN" "$MIAO_BIN"
+  chmod +x "$MIAO_BIN"
+)
 
-  # Detect OS → target-triple OS/vendor segment
-  case "$UNAME_OS" in
-  darwin) OS_PART="apple-darwin" ;;
-  linux) OS_PART="unknown-linux-gnu" ;;
-  *)
-    echo "    Error: unsupported OS '$UNAME_OS' (only darwin and linux are supported)" >&2
-    exit 1
-    ;;
-  esac
-
-  case "$UNAME_ARCH" in
-  arm64 | aarch64) ARCH_PART="aarch64" ;;
-  x86_64 | amd64) ARCH_PART="x86_64" ;;
-  *)
-    echo "    Error: unsupported architecture '$UNAME_ARCH'" >&2
-    exit 1
-    ;;
-  esac
-
-  ARCHIVE_NAME="miao-${MIAO_TAG}-${ARCH_PART}-${OS_PART}.tar.gz"
-  ARCHIVE_URL="https://github.com/hyperlogue/captain-miao/releases/download/${MIAO_TAG}/${ARCHIVE_NAME}"
-
-  # Subshell-local temp dir + EXIT trap: nothing leaks on failure under set -e.
-  (
-    set -e
-    TMPDIR="$(mktemp -d)"
-    trap 'rm -rf "$TMPDIR"' EXIT
-    ARCHIVE_PATH="$TMPDIR/$ARCHIVE_NAME"
-
-    echo "  Downloading captain-miao ${MIAO_TAG}..."
-    curl -fL --progress-bar -o "$ARCHIVE_PATH" "$ARCHIVE_URL"
-
-    # Archive layout: miao-<tag>-<triple>/miao
-    tar -xzf "$ARCHIVE_PATH" -C "$TMPDIR"
-    EXTRACTED_BIN="$TMPDIR/miao-${MIAO_TAG}-${ARCH_PART}-${OS_PART}/miao"
-    if [ ! -f "$EXTRACTED_BIN" ]; then
-      echo "    Error: archive did not contain the miao binary at expected path" >&2
-      exit 1
-    fi
-    mv "$EXTRACTED_BIN" "$MIAO_BIN"
-    chmod +x "$MIAO_BIN"
-  )
-
-  echo "  captain-miao installed to ~/.local/bin/miao"
-fi
+echo "  captain-miao installed to ~/.local/bin/miao"
 
 # --- Clean up Plannotator (replaced by r3) ---
 if [ -f "$LOCAL_BIN/plannotator" ]; then
