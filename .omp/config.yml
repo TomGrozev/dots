@@ -5,7 +5,7 @@ providers:
   webSearchExclude:
     - anthropic
 modelRoles:
-  default: neuralwatt/glm-5.2-short
+  default: anthropic/claude-sonnet-5
   slow: anthropic/claude-opus-5
   plan: anthropic/claude-opus-5
   task: neuralwatt/deepseek-v4-flash:max
@@ -107,9 +107,9 @@ retry:
   modelFallback: true
   fallbackChains:
     default:
-      - neuralwatt/deepseek-v4-flash
-      - opencode-go/minimax-m3
       - anthropic/claude-sonnet-5
+      - neuralwatt/glm-5.2-short
+      - opencode-go/minimax-m3
       - opencode-go/glm-5.2
     slow:
       - anthropic/claude-opus-5
