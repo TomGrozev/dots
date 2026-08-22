@@ -147,7 +147,7 @@ echo "  Linked ~/.cc-safety-net/policy.json"
 # git push --force, etc.) and secret-file reads (~/.ssh/*, .env, ~/.aws, …). Strict
 # preset: set CC_SAFETY_NET_LEVEL=strict in the environment (e.g. .zshenv) — check the
 # cc-safety-net docs for the canonical pinning method before adding it.
-OMP_PLUGINS=(cc-safety-net)
+OMP_PLUGINS=(cc-safety-net @mikefreno/omp-neuralwatt)
 
 if command -v omp &>/dev/null; then
   for plugin in "${OMP_PLUGINS[@]}"; do
