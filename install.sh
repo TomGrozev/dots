@@ -110,7 +110,7 @@ done
 echo ""
 echo "Creating .config symlinks..."
 
-config_dirs=(gh ghostty nvim opencode cortexkit yaji zellij zjsh)
+config_dirs=(gh ghostty nvim opencode cortexkit yaji zellij captain-miao)
 
 for dir in "${config_dirs[@]}"; do
   link_entry "$DOTFILES_DIR/.config/$dir" "$HOME/.config/$dir" ".config/$dir"
@@ -186,31 +186,6 @@ for i in "${!ZELLIJ_PLUGIN_NAMES[@]}"; do
     }
   fi
 done
-
-# --- Install zjsh session launcher ---
-echo ""
-echo "Installing zjsh..."
-
-ZJSH_BIN="$LOCAL_BIN/zjsh"
-
-if [ -x "$ZJSH_BIN" ]; then
-  echo "  zjsh already installed, skipping"
-else
-  echo "  Downloading zjsh..."
-  ZJSH_URL="https://github.com/tassis/zjsh/releases/download/v0.4.0/zjsh-v0.4.0-darwin-arm64.tar.gz"
-  ZJSH_TMP=$(mktemp -d)
-  curl -fL --progress-bar -o "$ZJSH_TMP/zjsh.tar.gz" "$ZJSH_URL" || {
-    echo "    Warning: Failed to download zjsh"
-    rm -rf "$ZJSH_TMP"
-  }
-  if [ -f "$ZJSH_TMP/zjsh.tar.gz" ]; then
-    tar -xzf "$ZJSH_TMP/zjsh.tar.gz" -C "$ZJSH_TMP"
-    mv "$ZJSH_TMP/zjsh" "$ZJSH_BIN"
-    chmod +x "$ZJSH_BIN"
-    rm -rf "$ZJSH_TMP"
-    echo "  zjsh installed to ~/.local/bin/zjsh"
-  fi
-fi
 
 # --- Install codebase-memory-mcp ---
 echo ""
@@ -299,66 +274,89 @@ else
 fi
 
 # --- Install captain-miao (coding agent session manager) ---
-# Release assets embed the version in their filename (miao-v0.5.0-<triple>.tar.gz),
-# so the tag is resolved from the GitHub API rather than /releases/latest/download/.
+# Installs the `miao` dashboard binary. The `miao-server` daemon is a separate
+# release asset and ships in the devcontainer image, so this block is skipped
+# when miao is already on PATH (the image provides it). Release assets embed
+# the version in their filename (miao-bundled-all-server-v0.6.0-<triple>.tar.gz),
+# so the tag is resolved from the GitHub API rather than /latest/download/.
 # Upstream ships no checksums file, so this block does not verify a digest.
 echo ""
 echo "Installing captain-miao..."
 
 MIAO_BIN="$LOCAL_BIN/miao"
 
-echo "  Resolving latest captain-miao release..."
-MIAO_TAG="$(curl -fsSL https://api.github.com/repos/hyperlogue/captain-miao/releases/latest |
-  grep -m1 '"tag_name"' | sed -E 's/.*"([^"]+)".*/\1/')"
-if [ -z "$MIAO_TAG" ]; then
-  echo "    Error: could not resolve latest captain-miao release tag" >&2
-  exit 1
-fi
-
-# Detect OS → target-triple OS/vendor segment
-case "$UNAME_OS" in
-darwin) OS_PART="apple-darwin" ;;
-linux) OS_PART="unknown-linux-gnu" ;;
-*)
-  echo "    Error: unsupported OS '$UNAME_OS' (only darwin and linux are supported)" >&2
-  exit 1
-  ;;
-esac
-
-case "$UNAME_ARCH" in
-arm64 | aarch64) ARCH_PART="aarch64" ;;
-x86_64 | amd64) ARCH_PART="x86_64" ;;
-*)
-  echo "    Error: unsupported architecture '$UNAME_ARCH'" >&2
-  exit 1
-  ;;
-esac
-
-ARCHIVE_NAME="miao-${MIAO_TAG}-${ARCH_PART}-${OS_PART}.tar.gz"
-ARCHIVE_URL="https://github.com/hyperlogue/captain-miao/releases/download/${MIAO_TAG}/${ARCHIVE_NAME}"
-
-# Subshell-local temp dir + EXIT trap: nothing leaks on failure under set -e.
-(
-  set -e
-  TMPDIR="$(mktemp -d)"
-  trap 'rm -rf "$TMPDIR"' EXIT
-  ARCHIVE_PATH="$TMPDIR/$ARCHIVE_NAME"
-
-  echo "  Downloading captain-miao ${MIAO_TAG}..."
-  curl -fL --progress-bar -o "$ARCHIVE_PATH" "$ARCHIVE_URL"
-
-  # Archive layout: miao-<tag>-<triple>/miao
-  tar -xzf "$ARCHIVE_PATH" -C "$TMPDIR"
-  EXTRACTED_BIN="$TMPDIR/miao-${MIAO_TAG}-${ARCH_PART}-${OS_PART}/miao"
-  if [ ! -f "$EXTRACTED_BIN" ]; then
-    echo "    Error: archive did not contain the miao binary at expected path" >&2
+if [ -x "$MIAO_BIN" ]; then
+  echo "  captain-miao already installed, skipping"
+else
+  echo "  Resolving latest captain-miao release..."
+  MIAO_TAG="$(curl -fsSL https://api.github.com/repos/hyperlogue/captain-miao/releases/latest |
+    grep -m1 '"tag_name"' | sed -E 's/.*"([^"]+)".*/\1/')"
+  if [ -z "$MIAO_TAG" ]; then
+    echo "    Error: could not resolve latest captain-miao release tag" >&2
     exit 1
   fi
-  mv "$EXTRACTED_BIN" "$MIAO_BIN"
-  chmod +x "$MIAO_BIN"
-)
 
-echo "  captain-miao installed to ~/.local/bin/miao"
+  # Detect OS → target-triple OS/vendor segment
+  case "$UNAME_OS" in
+  darwin) OS_PART="apple-darwin" ;;
+  linux) OS_PART="unknown-linux-gnu" ;;
+  *)
+    echo "    Error: unsupported OS '$UNAME_OS' (only darwin and linux are supported)" >&2
+    exit 1
+    ;;
+  esac
+
+  case "$UNAME_ARCH" in
+  arm64 | aarch64) ARCH_PART="aarch64" ;;
+  x86_64 | amd64) ARCH_PART="x86_64" ;;
+  *)
+    echo "    Error: unsupported architecture '$UNAME_ARCH'" >&2
+    exit 1
+    ;;
+  esac
+
+  ARCHIVE_NAME="miao-bundled-all-server-${MIAO_TAG}-${ARCH_PART}-${OS_PART}.tar.gz"
+  ARCHIVE_URL="https://github.com/hyperlogue/captain-miao/releases/download/${MIAO_TAG}/${ARCHIVE_NAME}"
+
+  # Subshell-local temp dir + EXIT trap: nothing leaks on failure under set -e.
+  (
+    set -e
+    TMPDIR="$(mktemp -d)"
+    trap 'rm -rf "$TMPDIR"' EXIT
+    ARCHIVE_PATH="$TMPDIR/$ARCHIVE_NAME"
+
+    echo "  Downloading captain-miao ${MIAO_TAG}..."
+    curl -fL --progress-bar -o "$ARCHIVE_PATH" "$ARCHIVE_URL"
+
+    # Archive layout: miao-bundled-all-server-<tag>-<triple>/miao
+    tar -xzf "$ARCHIVE_PATH" -C "$TMPDIR"
+    EXTRACTED_BIN="$TMPDIR/miao-bundled-all-server-${MIAO_TAG}-${ARCH_PART}-${OS_PART}/miao"
+    if [ ! -f "$EXTRACTED_BIN" ]; then
+      echo "    Error: archive did not contain the miao binary at expected path" >&2
+      exit 1
+    fi
+    mv "$EXTRACTED_BIN" "$MIAO_BIN"
+    chmod +x "$MIAO_BIN"
+  )
+
+  echo "  captain-miao installed to ~/.local/bin/miao"
+fi
+
+# --- Enable captain-miao pooled mode in dev containers ---
+# Pooling is a per-host role: dev servers pool (sessions survive disconnects and
+# are steal-able from a remote dashboard); laptops stay direct-local. The shared
+# config.toml leaves pooled unset (default false); this container-only overlay
+# flips it on. dashboard-overrides.json is read only by the dashboard and
+# overlays the config without touching the symlinked config.toml.
+if [ "${DEVCONTAINER:-}" = "true" ]; then
+  MIAO_STATE_DIR="$HOME/.local/state/captain-miao"
+  mkdir -p "$MIAO_STATE_DIR"
+  if [ ! -f "$MIAO_STATE_DIR/dashboard-overrides.json" ]; then
+    printf '%s\n' '{"prefs":{"pooled":true}}' > "$MIAO_STATE_DIR/dashboard-overrides.json"
+    echo "  captain-miao pooled mode enabled (dev container)"
+  fi
+fi
+
 
 # --- Clean up Plannotator (replaced by r3) ---
 if [ -f "$LOCAL_BIN/plannotator" ]; then

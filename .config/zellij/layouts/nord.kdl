@@ -58,7 +58,7 @@ layout {
 
     // Main + side: 65% main pane, 35% secondary, side-by-side (vim-style)
     swap_tiled_layout name="main-side" {
-        tab exact_panes=3 {
+        tab exact_panes=4 {
             pane split_direction="vertical" {
                 pane size="65%"
                 pane
@@ -204,4 +204,6 @@ layout {
             }
         }
     }
+
+    tab
 }

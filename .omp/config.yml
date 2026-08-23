@@ -107,20 +107,21 @@ retry:
   modelFallback: true
   fallbackChains:
     default:
-      - anthropic/claude-sonnet-5
-      - neuralwatt/glm-5.2-short
+      - neuralwatt/qwen-3.8-27b:high
+      - anthropic/claude-sonnet-5:high
+      - neuralwatt/glm-5.2-short-flex:high
       - opencode-go/minimax-m3
       - opencode-go/glm-5.2
     slow:
-      - anthropic/claude-opus-5
-      - anthropic/claude-sonnet-5
+      - anthropic/claude-opus-5:high
+      - anthropic/claude-sonnet-5:high
+      - neuralwatt/glm-5.2-short-flex:high
       - opencode-go/kimi-k2.7-code
-      - neuralwatt/glm-5.2
     plan:
-      - anthropic/claude-opus-5
-      - anthropic/claude-sonnet-5
+      - anthropic/claude-opus-5:high
+      - anthropic/claude-sonnet-5:high
+      - neuralwatt/glm-5.2-short-flex:high
       - opencode-go/kimi-k2.7-code
-      - neuralwatt/glm-5.2
     task:
       - neuralwatt/deepseek-v4-flash
       - opencode-go/minimax-m3

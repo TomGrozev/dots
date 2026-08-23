@@ -11,7 +11,6 @@ show_release_notes false
 session_serialization true
 pane_viewport_serialization true
 serialization_interval 1
-copy_command "pbcopy"
 focus_follows_mouse false
 mouse_click_through false
 

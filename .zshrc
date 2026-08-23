@@ -147,16 +147,10 @@ alias zjls='zellij list-sessions'
 alias zjk='zellij kill-session'
 alias zjka='zellij kill-all-sessions'
 
-if [[ -z "$ZELLIJ" ]] && [[ "$DEVCONTAINER" != "true" ]] && [[ "$TERM" != "dumb" ]] && command -v zellij &>/dev/null; then
-  # Health-check the daemon before launching the session picker.
-  # `list-sessions` connects and returns immediately; if it hangs, the
-  # daemon is wedged (zellij-org/zellij#5440) — kill stale sessions so
-  # the picker can start against a fresh daemon.
-  if command -v timeout &>/dev/null && ! timeout 5 zellij list-sessions &>/dev/null; then
-    timeout 5 zellij kill-all-sessions --yes 2>/dev/null
-  fi
-  # Launch the welcome screen — an interactive picker that lists live
-  # sessions, offers resurrection of exited ones, and creates new ones.
+if [[ -z "$ZELLIJ" ]] && [[ "${ZELLIJ_AUTOATTACH:-1}" != "0" ]] && [[ "$TERM" != "dumb" ]] && command -v zellij &>/dev/null; then
+  # Auto-attach to (or create) the main session. No kill-on-wedge heuristic:
+  # a slow `list-sessions` on a loaded host must never destroy a session holding
+  # live work. ZELLIJ_AUTOATTACH=0 opts out (scripts, non-interactive shells).
   zellij attach -c main
   exit
 fi

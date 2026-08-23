@@ -1,0 +1,20 @@
+# captain-miao config (dotfiles-managed).
+# Symlinked to ~/.config/captain-miao/config.toml by install.sh.
+# A parse error anywhere in this file reverts ALL sections to defaults, so
+# every value here is deliberate.
+
+[launcher]
+# Pooled mode is host-specific, not a dotfiles concern: dev containers enable
+# it via ~/.local/state/captain-miao/dashboard-overrides.json (written
+# conditionally by install.sh); the laptop stays direct-local (the default).
+# Backend used for new sessions (`o` / `O`) until toggled with `Space a`.
+default_agent = "omp"
+
+[terminal]
+backend = "zellij"
+# One session per tab rather than stacked into a single shared tab.
+sessions_layout = "per-tab"
+
+[remote]
+# Closing a pooled session's window detaches; never kills the session.
+on_window_close = "detach"
