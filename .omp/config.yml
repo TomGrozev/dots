@@ -5,10 +5,9 @@ providers:
   webSearchExclude:
     - anthropic
 modelRoles:
-  default: neuralwatt/qwen-3.8-27b:high
   slow: anthropic/claude-opus-5
   plan: anthropic/claude-opus-5
-  task: neuralwatt/deepseek-v4-flash:max
+  task: neuralwatt/deepseek-v4-flash
   smol: opencode-go/mimo-v2.5
   tiny: opencode-go/mimo-v2.5
   writer: opencode-go/qwen3.7-plus
@@ -107,20 +106,20 @@ retry:
   modelFallback: true
   fallbackChains:
     default:
-      - neuralwatt/qwen-3.8-27b:high
-      - anthropic/claude-sonnet-5:high
-      - neuralwatt/glm-5.2-short-flex:high
+      - neuralwatt/qwen-3.8-27b
+      - anthropic/claude-sonnet-5
+      - neuralwatt/glm-5.2-short-flex
       - opencode-go/minimax-m3
       - opencode-go/glm-5.2
     slow:
-      - anthropic/claude-opus-5:high
-      - anthropic/claude-sonnet-5:high
-      - neuralwatt/glm-5.2-short-flex:high
+      - anthropic/claude-opus-5
+      - anthropic/claude-sonnet-5
+      - neuralwatt/glm-5.2-short-flex
       - opencode-go/kimi-k2.7-code
     plan:
-      - anthropic/claude-opus-5:high
-      - anthropic/claude-sonnet-5:high
-      - neuralwatt/glm-5.2-short-flex:high
+      - anthropic/claude-opus-5
+      - anthropic/claude-sonnet-5
+      - neuralwatt/glm-5.2-short-flex
       - opencode-go/kimi-k2.7-code
     task:
       - neuralwatt/deepseek-v4-flash
@@ -169,5 +168,3 @@ secrets:
   enabled: true
 composer:
   shape: box
-disabledExtensions:
-  - extension-module:cbmem
