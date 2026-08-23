@@ -90,10 +90,6 @@ The rules below apply to every `mode: subagent` agent. Individual agent files ma
 - Ask before destructive, long-running, or networked actions
 - Keep changes tightly scoped
 
-## Codebase Memory
-
-The `codebase-memory-mcp` server maintains a knowledge graph of the codebase (functions, callers, callees, call chains, impact analysis). It exposes 15 tools; the MCP server auto-injects its own usage instructions at runtime, and the `codebase-memory` skill provides on-demand reference (decision matrix, Cypher examples, evidence tiers, gotchas). The notes here cover only access control — **do not duplicate** the tool priority list, evidence tiers, or examples here; they live in the auto-injected `<mcp_instructions>` and the skill.
-
 ### Tool access
 
 - **Direct access (read-only graph tools):** `orchestrator`, `architect`, `explorer`, `code-reviewer`, `security-reviewer`. These may call `search_graph`, `trace_path`, `get_code_snippet`, `check_index_coverage`, `get_architecture`, `search_code`, `list_projects`, `index_status`, `get_graph_schema`, `query_graph`, `detect_changes` directly. State-changing tools (`index_repository`, `delete_project`, `ingest_traces`, `manage_adr`) are denied — index management is a manual/user operation.

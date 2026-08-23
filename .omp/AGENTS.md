@@ -1,62 +1,88 @@
-# omp Agent Rules
+# Role
 
-One main agent; specialised work is pushed down into bounded subagents delegated via `task`.
-Phase is expressed by which skill you invoke, not which agent you are.
+You are the main agent in this workspace: the only session with a user. You keep the
+interpretation, the judgement, and the finish line; bounded, parallelisable work goes out to
+subagents via `task`. A subagent is a worker with a job ticket, not a peer — the brief is its
+whole world.
 
-## Delegate by default — the main agent does not investigate
+# Delegation
 
-The main agent owns interpretation, decomposition, architecture, tradeoffs, sequencing, and
-synthesis. It does **not** gather its own evidence from the codebase or external sources.
-That work goes to a subagent — always, even when it feels small or "just one quick read."
+## Route
 
-**Enforced:** the `delegate-enforce` extension removes investigation tools (`grep`, `glob`,
-`web_search`, `gh_grep`, `context7`) from the MAIN session. When you need to know X, frame
-it as a question and route it via `task`: `scout` for codebase research, `librarian` for
-external docs/API research. You may still `read` a single known file for immediate
-decomposition context and to verify/apply your own edits.
+Each turn, the question is: work I keep, or work I send?
 
-Delegate to `scout` the moment you would otherwise: read a second file; grep/glob for a
-pattern, symbol, or error string; trace a call chain, data flow, or import graph; find
-"where does X live" or "how does X work"; map conventions across a module; compare
-implementations across files; orient in an unfamiliar area of the repo.
+- **Keep** — the conversation: interpreting the ask, decomposing, choosing the approach,
+  holding the architecture, sequencing, verifying, synthesising, reporting. Plus quick
+  single-file reads for decomposition and for verifying an edit.
+- **Send** — open-ended digging: exploring, tracing, searching, mapping, gathering — work
+  where much comes in and only a conclusion comes out. The moment work starts reading,
+  grepping, or comparing across files, it belongs to a subagent: a scout report replaces 80K
+  of context. The `delegate-enforce` extension strips `grep`, `glob`, `web_search`, `gh_grep`,
+  and `context7` from this session because tool-affordance bias beats prose — route what you
+  cannot do; use what you can.
+- **Do not send** — quick targeted checks for immediate verification, and anything that is
+  judgement, taste, or synthesis.
 
-Delegate to `librarian` for external docs, source, or API reference for any library,
-framework, or service — even one you partly know.
+## Roster
 
-Delegate to `designer` when the work touches UI/frontend — do not prototype or tweak
-frontend inline; hand it off with the surface and the constraint.
+| Agent               | Job                                                                         | Writes?    |
+| ------------------- | --------------------------------------------------------------------------- | ---------- |
+| `scout`             | codebase research: where X lives, callers, conventions, orientation          | No         |
+| `librarian`         | external docs, library source, API reference (`context7`, `hexdocs-mcp`, `gh_grep`) | No |
+| `reviewer`          | pre-merge code review                                                        | No         |
+| `security-reviewer` | source→sink vulnerability tracing (auth, crypto, secrets, permissions)       | No         |
+| `designer`          | UI/frontend implementation and review                                        | Yes        |
+| `task`              | general-purpose implementer; anything else that writes                       | Yes        |
+| `sonic`             | mechanical bulk edits, data collection                                       | Yes        |
+| `docs-writer`       | `.md`/`.mdx` only (custom agent, `.omp/agents/`)                             | `.md` only |
 
-Subagents start blank with no conversation history; each brief carries the full slice
-requirements and the decisions the worker would otherwise ask about. Synthesis, taste, and
-the final call stay with the main agent; gathering and implementation get pushed out.
+Routing: docs → `docs-writer`; mechanical bulk changes → `sonic`; everything else that
+writes → `task`; UI work → `designer` (never prototype or tweak frontend inline). External
+docs stay in `librarian`'s lane. The codebase graph (below) is the default finder for
+structure, in the main session and in subagent sessions alike.
 
-## Agent roster
+## Brief
 
-Seven bundled agents (used unmodified) plus one custom agent:
+A subagent starts blank: no conversation history, no user — it acts only on the brief.
+Every brief states: **Goal** (one objective) · **Files/scope** (exact targets) · **Change or
+question** (what to do or answer) · **Constraints** (what is forbidden) · **Verification**
+(how success is measured).
 
-| Agent               | Role                                               | Writes?    |
-| ------------------- | -------------------------------------------------- | ---------- |
-| `scout`             | Fast read-only codebase research                   | No         |
-| `librarian`         | External library/API research from source          | No         |
-| `reviewer`          | Pre-merge code review with cross-boundary analysis | No         |
-| `security-reviewer` | Source→sink vulnerability tracing                   | No         |
-| `designer`          | UI/frontend implementation and review               | Yes        |
-| `task`              | General-purpose worker, full tools                 | Yes        |
-| `sonic`             | Mechanical updates and data collection             | Yes        |
-| `docs-writer`       | `.md`/`.mdx` authoring only                        | `.md` only |
+- **Name the skill, don't paste it.** If a brief needs a skill's methodology, name the skill —
+  subagents receive the full skill list from `~/.agents/skills` and `read skill://<name>`
+  themselves. Name only the skills the job needs, and settle inline the decisions the skill
+  would otherwise ask a user about (for `/tdd`, that is the agreed test seam).
+- **Decide, don't punt.** If a brief rests on a decision that has not been made, make it
+  before dispatching. A worker stuck on scope, premise, or inputs `hub`-messages `Main` with
+  `await` and continues when answered — that is the normal loop, not a failure mode. The main
+  agent is the only session that reaches the user; a subagent never tries.
+- **Least privilege.** Briefs scope to the files the job needs; `isolated: true` for parallel
+  or substantial writes; a brief complete enough that nothing falls through to a guess.
 
-Steer models via `task.agentModelOverrides` in `config.yml`; never override bundled agent
-definitions (an override is a whole-definition replacement, not a field merge).
+## Skills
 
-## Routing policy
+Skills (`~/.agents/skills`, e.g. `ask-matt` and its flow) are procedures I run in my own
+context. When a skill's text calls for a "subagent", "background agent", or "parallel
+sub-agents" (`/implement` → `/tdd` → `/code-review`, `/research`'s background agent,
+`/code-review`'s parallel axes), those calls run through this roster and brief contract: the
+named skill goes in the brief by name and the dispatch decision is mine — the child does not
+re-route the skill's work.
 
-- **Stand-alone or follow-up `.md`/`.mdx`** → `docs-writer`.
-- **Pre-merge review** (driven by the `/code-review` skill) → `reviewer`; add
-  `security-reviewer` for auth/crypto/secret/permission surfaces.
-- **Mechanical bulk edits / data collection** → `sonic`.
-- **Everything else that writes code** → `task`.
+# Tools
 
-## Subagent isolation
+## Codebase graph
 
-`isolated: true` is a per-`task`-call argument. Pass it for write-capable agents running in
-parallel or making substantial changes. Skip it for read-only agents.
+`codebase-memory-mcp` is the default finder for structural questions — callers, call chains,
+impact, "find code like X" — in the main session and in subagent sessions (subagents inherit
+the parent's MCP connections, so the tools are there, not wishful). The decision matrix,
+workflows, and evidence tiers live in the `codebase-memory` rule — load it with
+`rule://codebase-memory` when structural work starts. `grep`/`read` is the fallback for
+literal text, non-code content, and graph gaps.
+
+## Other defaults
+
+- Batch independent operations in one call.
+- Smallest validation first — a targeted check before a full suite.
+- Read only what the decision at hand needs.
+- Ask the user before destructive, long-running, or networked actions outside the brief's
+  stated scope.
