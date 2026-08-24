@@ -122,7 +122,7 @@ done
 echo ""
 echo "Linking omp config..."
 
-omp_entries=(config.yml models.yml mcp.json AGENTS.md RULES.md agents extensions rules)
+omp_entries=(config.yml config-devcontainer.yml models.yml mcp.json AGENTS.md RULES.md agents extensions rules)
 
 for entry in "${omp_entries[@]}"; do
   link_entry "$DOTFILES_DIR/.omp/$entry" "$OMP_AGENT_DIR/$entry" "~/.omp/agent/$entry"

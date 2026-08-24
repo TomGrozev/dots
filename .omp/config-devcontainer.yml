@@ -1,0 +1,112 @@
+# DELTA LAYER — loaded via PI_CONFIG_FILES in addition to ~/.omp/agent/config.yml
+# and deep-merged over it. It only names the keys it changes; everything else is
+# inherited from the base config.
+#
+# Arrays REPLACE wholesale (they do not merge): the bash.patterns list below must
+# restate every rule this layer wants, so it carries the full canonical deny list
+# followed by a blanket allow.
+#
+# Threat model in a devcontainer: rootless, disposable filesystem, and — critically —
+# unattended (no human to answer a prompt). So we flip approvalMode to yolo and allow
+# the ordinary tools outright. What is NOT cheap is credential theft: containers
+# routinely see forwarded SSH agents, mounted ~/.aws, and injected tokens — so the
+# credential denies are kept, everywhere, no override.
+#
+# Under approvalMode: yolo omp's built-in critical-command guard is bypassed (rm -rf /,
+# fork bombs, host shutdown, ...), which is why those catastrophic-command denies are
+# restated explicitly here (with leading * to defeat wrapper-prefix rewrites like
+# `rtk`, `sudo`, or `time`) rather than being inherited from the base config.
+
+tools:
+  approvalMode: yolo
+  approval:
+    bash: allow
+    eval: allow
+    task: allow
+    hub: allow
+    fetch: allow
+    web_search: allow
+    security_scan: allow
+bash:
+  patterns:
+    # --- Credential material: deny, everywhere, no override ---
+    - match: "*.ssh/*"
+      approval: deny
+    - match: "*id_rsa*"
+      approval: deny
+    - match: "*id_ed25519*"
+      approval: deny
+    - match: "*.gnupg*"
+      approval: deny
+    - match: "*.aws/*"
+      approval: deny
+    - match: "*.kube/config*"
+      approval: deny
+    - match: "*.docker/config.json*"
+      approval: deny
+    - match: "*gcloud/*"
+      approval: deny
+    - match: "*credentials*"
+      approval: deny
+    - match: "*auth.json*"
+      approval: deny
+    - match: "*gh/hosts.yml*"
+      approval: deny
+    - match: "*.password-store*"
+      approval: deny
+    - match: "*Keychains*"
+      approval: deny
+    - match: "*.netrc*"
+      approval: deny
+    - match: "*.git-credentials*"
+      approval: deny
+    - match: "*.npmrc*"
+      approval: deny
+    - match: "*.pypirc*"
+      approval: deny
+    - match: "*.pem*"
+      approval: deny
+    - match: "*.p12*"
+      approval: deny
+    - match: "*.pfx*"
+      approval: deny
+    - match: "*terraform.tfstate*"
+      approval: deny
+    - match: "security find-generic-password*"
+      approval: deny
+    - match: "security dump-keychain*"
+      approval: deny
+    # --- Catastrophic commands: yolo bypasses omp's critical guard, restated here ---
+    - match: "*rm -rf /"
+      approval: deny
+    - match: "*rm -fr /"
+      approval: deny
+    - match: "*rm -rf /*"
+      approval: deny
+    - match: "*rm -fr /*"
+      approval: deny
+    - match: "*rm -rf --no-preserve-root*"
+      approval: deny
+    - match: "*rm -rf ~"
+      approval: deny
+    - match: "*rm -rf $HOME"
+      approval: deny
+    - match: "mkfs*"
+      approval: deny
+    - match: "*dd if=* of=/dev/*"
+      approval: deny
+    - match: "diskutil erase*"
+      approval: deny
+    - match: "diskutil partitionDisk*"
+      approval: deny
+    - match: "shutdown*"
+      approval: deny
+    - match: "reboot*"
+      approval: deny
+    - match: "halt*"
+      approval: deny
+    - match: ":(){*"
+      approval: deny
+    # --- Fallback: everything else in the box just runs ---
+    - match: "*"
+      approval: allow

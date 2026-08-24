@@ -1,9 +1,17 @@
+if [[ -z "$ZELLIJ" ]] && [[ "${ZELLIJ_AUTOATTACH:-1}" != "0" ]] && [[ "$TERM" != "dumb" ]] && command -v zellij &>/dev/null; then
+  # Auto-attach to (or create) the main session. No kill-on-wedge heuristic:
+  # a slow `list-sessions` on a loaded host must never destroy a session holding
+  # live work. ZELLIJ_AUTOATTACH=0 opts out (scripts, non-interactive shells).
+  zellij attach -c main
+  exit
+fi
+
 # Enable Powerlevel10k instant prompt. Should stay close to the top of ~/.zshrc.
 # Initialization code that may require console input (password prompts, [y/n]
 # confirmations, etc.) must go above this block; everything else may go below.
-if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]; then
-  source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
-fi
+# if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]; then
+#   source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
+# fi
 
 # If you come from bash you might have to change your $PATH.
 # export PATH=$HOME/bin:$HOME/.local/bin:/usr/local/bin:$PATH
@@ -146,11 +154,3 @@ alias zja='zellij attach'
 alias zjls='zellij list-sessions'
 alias zjk='zellij kill-session'
 alias zjka='zellij kill-all-sessions'
-
-if [[ -z "$ZELLIJ" ]] && [[ "${ZELLIJ_AUTOATTACH:-1}" != "0" ]] && [[ "$TERM" != "dumb" ]] && command -v zellij &>/dev/null; then
-  # Auto-attach to (or create) the main session. No kill-on-wedge heuristic:
-  # a slow `list-sessions` on a loaded host must never destroy a session holding
-  # live work. ZELLIJ_AUTOATTACH=0 opts out (scripts, non-interactive shells).
-  zellij attach -c main
-  exit
-fi

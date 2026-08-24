@@ -4,6 +4,8 @@ providers:
     - public
   webSearchExclude: 
     - anthropic
+  tts: auto
+  autoThinkingMaxEffort: xhigh
 modelRoles: 
   slow: anthropic/claude-opus-5
   plan: anthropic/claude-opus-5
@@ -22,16 +24,23 @@ theme:
 setupVersion: 2
 defaultThinkingLevel: auto
 statusLine: 
-  transparent: false
-  compactThinkingLevel: false
-  showHookStatus: true
+  transparent: true
+  compactThinkingLevel: true
+  showHookStatus: false
+  sessionAccent: true
 terminal: 
-  showProgress: false
+  showProgress: true
 tui: 
-  textSizing: false
-  tight: false
+  textSizing: true
+  tight: true
+  renderMermaid: true
+  titleState: true
+  hyperlinks: auto
 display: 
   shimmer: kitt
+  showTokenUsage: true
+  cacheMissMarker: true
+  collapseCompacted: true
 steeringMode: one-at-a-time
 memory: 
   backend: mnemopi
@@ -40,15 +49,22 @@ autolearn:
 mnemopi: 
   llmMode: smol
 edit: 
-  mode: hashline
+  mode: patch
+  fuzzyMatch: true
 github: 
   enabled: false
 task: 
   isolation: 
     mode: auto
+    commits: ai
   agentModelOverrides: 
     security-reviewer: "@slow"
     reviewer: "@review"
+  eager: always
+  batch: true
+  enableEffort: true
+  maxEffort: medium
+  showResolvedModelBadge: true
 dev: 
   autoqa: false
 browser: 
@@ -58,16 +74,24 @@ computer:
 skills: 
   customDirectories: 
     - ~/.agents/skills
+  enableSkillCommands: true
 disabledProviders: 
   - opencode
 tools: 
-  approvalMode: yolo
+  approvalMode: write
+  approval: 
+    bash: allow
+    eval: prompt
+    task: allow
+    hub: allow
+    fetch: allow
+    web_search: allow
+    security_scan: allow
+    mcp__codebase_memory_mcp_delete_project: deny
+    mcp__codebase_memory_mcp_index_repository: prompt
+    mcp__codebase_memory_mcp_ingest_traces: prompt
 bash: 
   patterns: 
-    - match: "*"
-      approval: allow
-    - match: git push *
-      approval: prompt
     - match: "*.ssh/*"
       approval: deny
     - match: "*id_rsa*"
@@ -94,6 +118,14 @@ bash:
       approval: deny
     - match: "*Keychains*"
       approval: deny
+    - match: "*.netrc*"
+      approval: deny
+    - match: "*.git-credentials*"
+      approval: deny
+    - match: "*.npmrc*"
+      approval: deny
+    - match: "*.pypirc*"
+      approval: deny
     - match: "*.pem*"
       approval: deny
     - match: "*.p12*"
@@ -102,6 +134,246 @@ bash:
       approval: deny
     - match: "*terraform.tfstate*"
       approval: deny
+    - match: security find-generic-password*
+      approval: deny
+    - match: security dump-keychain*
+      approval: deny
+    - match: "*rm -rf /"
+      approval: deny
+    - match: "*rm -fr /"
+      approval: deny
+    - match: "*rm -rf /*"
+      approval: deny
+    - match: "*rm -fr /*"
+      approval: deny
+    - match: "*rm -rf --no-preserve-root*"
+      approval: deny
+    - match: "*rm -rf ~"
+      approval: deny
+    - match: "*rm -rf $HOME"
+      approval: deny
+    - match: mkfs*
+      approval: deny
+    - match: "*dd if=* of=/dev/*"
+      approval: deny
+    - match: diskutil erase*
+      approval: deny
+    - match: diskutil partitionDisk*
+      approval: deny
+    - match: shutdown*
+      approval: deny
+    - match: reboot*
+      approval: deny
+    - match: halt*
+      approval: deny
+    - match: ":(){*"
+      approval: deny
+    - match: "*sudo *"
+      approval: prompt
+    - match: "*doas *"
+      approval: prompt
+    - match: "*rm -r *"
+      approval: prompt
+    - match: "*rm -rf*"
+      approval: prompt
+    - match: "*rm -fr*"
+      approval: prompt
+    - match: "*rm -f *"
+      approval: prompt
+    - match: "*rmdir *"
+      approval: prompt
+    - match: "*shred *"
+      approval: prompt
+    - match: "*truncate *"
+      approval: prompt
+    - match: "*find * -delete*"
+      approval: prompt
+    - match: "*find * -exec rm*"
+      approval: prompt
+    - match: "*xargs rm*"
+      approval: prompt
+    - match: "*| sh*"
+      approval: prompt
+    - match: "*|sh*"
+      approval: prompt
+    - match: "*| bash*"
+      approval: prompt
+    - match: "*|bash*"
+      approval: prompt
+    - match: "*| zsh*"
+      approval: prompt
+    - match: "*|zsh*"
+      approval: prompt
+    - match: "* > /etc/*"
+      approval: prompt
+    - match: "*>/etc/*"
+      approval: prompt
+    - match: "* >> /etc/*"
+      approval: prompt
+    - match: "*git push*"
+      approval: prompt
+    - match: "*git reset --hard*"
+      approval: prompt
+    - match: "*git clean *"
+      approval: prompt
+    - match: "*git checkout -- *"
+      approval: prompt
+    - match: "*git restore *"
+      approval: prompt
+    - match: "*git branch -D*"
+      approval: prompt
+    - match: "*git tag -d*"
+      approval: prompt
+    - match: "*git filter-branch*"
+      approval: prompt
+    - match: "*git reflog expire*"
+      approval: prompt
+    - match: "*git gc --prune*"
+      approval: prompt
+    - match: "*git stash drop*"
+      approval: prompt
+    - match: "*git stash clear*"
+      approval: prompt
+    - match: "*git worktree remove*"
+      approval: prompt
+    - match: "*git config --global*"
+      approval: prompt
+    - match: "*chmod -R *"
+      approval: prompt
+    - match: "*chmod 777*"
+      approval: prompt
+    - match: "*chown *"
+      approval: prompt
+    - match: "*launchctl *"
+      approval: prompt
+    - match: "*systemctl *"
+      approval: prompt
+    - match: "*killall *"
+      approval: prompt
+    - match: "*pkill *"
+      approval: prompt
+    - match: "*kill -9 *"
+      approval: prompt
+    - match: "*crontab *"
+      approval: prompt
+    - match: "*defaults write*"
+      approval: prompt
+    - match: "*csrutil*"
+      approval: prompt
+    - match: "*spctl*"
+      approval: prompt
+    - match: "*nvram*"
+      approval: prompt
+    - match: "*scutil*"
+      approval: prompt
+    - match: "*brew uninstall*"
+      approval: prompt
+    - match: "*brew remove*"
+      approval: prompt
+    - match: "*brew cleanup*"
+      approval: prompt
+    - match: "*apt-get remove*"
+      approval: prompt
+    - match: "*apt-get purge*"
+      approval: prompt
+    - match: "*apt remove*"
+      approval: prompt
+    - match: "*apt purge*"
+      approval: prompt
+    - match: "*pip uninstall*"
+      approval: prompt
+    - match: "*npm publish*"
+      approval: prompt
+    - match: "*pnpm publish*"
+      approval: prompt
+    - match: "*yarn publish*"
+      approval: prompt
+    - match: "*bun publish*"
+      approval: prompt
+    - match: "*cargo publish*"
+      approval: prompt
+    - match: "*gem push*"
+      approval: prompt
+    - match: "*twine upload*"
+      approval: prompt
+    - match: "*docker rm*"
+      approval: prompt
+    - match: "*docker rmi*"
+      approval: prompt
+    - match: "*docker volume rm*"
+      approval: prompt
+    - match: "*docker system prune*"
+      approval: prompt
+    - match: "*docker image prune*"
+      approval: prompt
+    - match: "*docker compose down*"
+      approval: prompt
+    - match: "*kubectl delete*"
+      approval: prompt
+    - match: "*kubectl apply*"
+      approval: prompt
+    - match: "*helm uninstall*"
+      approval: prompt
+    - match: "*helm upgrade*"
+      approval: prompt
+    - match: "*terraform apply*"
+      approval: prompt
+    - match: "*terraform destroy*"
+      approval: prompt
+    - match: "*terraform state rm*"
+      approval: prompt
+    - match: "*aws *"
+      approval: prompt
+    - match: "*gcloud *"
+      approval: prompt
+    - match: "*az *"
+      approval: prompt
+    - match: "*flyctl *"
+      approval: prompt
+    - match: "*vercel *"
+      approval: prompt
+    - match: "*wrangler *"
+      approval: prompt
+    - match: "*heroku *"
+      approval: prompt
+    - match: "*gh repo delete*"
+      approval: prompt
+    - match: "*gh release *"
+      approval: prompt
+    - match: "*gh pr merge*"
+      approval: prompt
+    - match: "*gh secret *"
+      approval: prompt
+    - match: "*gh workflow run*"
+      approval: prompt
+    - match: "*gh api -X*"
+      approval: prompt
+    - match: "*gh api --method*"
+      approval: prompt
+    - match: "*dropdb*"
+      approval: prompt
+    - match: "*DROP DATABASE*"
+      approval: prompt
+    - match: "*DROP TABLE*"
+      approval: prompt
+    - match: "*TRUNCATE TABLE*"
+      approval: prompt
+    - match: "*ssh *"
+      approval: prompt
+    - match: "*scp *"
+      approval: prompt
+    - match: "*rsync *--delete*"
+      approval: prompt
+    - match: "*curl *-X DELETE*"
+      approval: prompt
+    - match: "*curl *--request DELETE*"
+      approval: prompt
+    - match: "*omp config set*"
+      approval: prompt
+    - match: "*omp config reset*"
+      approval: prompt
+    - match: "*"
+      approval: allow
 retry: 
   enabled: true
   modelFallback: true
@@ -165,7 +437,54 @@ retry:
       - anthropic/claude-sonnet-5
       - opencode-go/kimi-k2.7-code
       - neuralwatt/glm-5.2
+  usageAwareFallback: false
 secrets: 
   enabled: true
 composer: 
   shape: box
+plan: 
+  enabled: false
+goal: 
+  enabled: false
+commands: 
+  enableClaudeUser: false
+  enableClaudeProject: false
+  enableOpencodeUser: false
+  enableOpencodeProject: false
+debug: 
+  enabled: false
+fetch: 
+  enabled: true
+security: 
+  enabled: true
+shellMinimizer: 
+  sourceOutlineLevel: default
+lsp: 
+  formatOnWrite: true
+  diagnosticsOnWrite: false
+extendedContext: false
+compaction: 
+  thresholdTokens: 160000
+  idleEnabled: true
+  idleThresholdTokens: 100000
+ttsr: 
+  contextMode: discard
+snapcompact: 
+  toolResults: true
+followUpMode: one-at-a-time
+interruptMode: immediate
+doubleEscapeAction: tree
+treeFilterMode: default
+error: 
+  notify: "on"
+stt: 
+  enabled: true
+  modelName: parakeet
+startup: 
+  showSplash: true
+power: 
+  sleepPrevention: idle
+hideThinkingBlock: true
+personality: pragmatic
+thinkingBudgets: 
+  xhigh: 16384

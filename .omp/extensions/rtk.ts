@@ -9,6 +9,11 @@
 //   0 + stdout  Rewrite found → mutate command
 //   1           No RTK equivalent → pass through unchanged
 //   3 + stdout  Rewrite (advisory) → mutate command
+//
+// SAFETY NOTE: this `tool_call` handler mutates event.input.command BEFORE the approval
+// decision is made, so the approval layer sees the rewritten `rtk …` command. Every
+// deny/prompt rule in bash.patterns must therefore start with `*` (e.g. `*git push*`,
+// not `git push*`) or the rewrite silently slips the command past its own rule.
 
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent"
 import { isToolCallEventType } from "@earendil-works/pi-coding-agent"
