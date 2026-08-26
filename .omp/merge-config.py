@@ -16,6 +16,7 @@ by default.
 
 Usage: merge-config.py <base.yml> <overlay.yml> <output.yml>
 """
+import os
 import sys
 
 import yaml
@@ -41,6 +42,14 @@ def main():
         overlay = yaml.safe_load(f) or {}
 
     merged = deep_merge(base, overlay)
+
+    # out_path is expected to be a symlink into the dotfiles repo (install.sh
+    # normally points ~/.omp/agent/config.yml straight at the repo's copy) -
+    # open(..., "w") follows a symlink and writes through it, which would
+    # silently overwrite the checked-in source file with generated content.
+    # Unlink first so this always materializes a real, standalone file.
+    if os.path.islink(out_path):
+        os.unlink(out_path)
 
     with open(out_path, "w") as f:
         f.write(
