@@ -127,8 +127,43 @@ echo "Linking omp config..."
 omp_entries=(config.yml config-devcontainer.yml models.yml mcp.json AGENTS.md RULES.md agents extensions rules)
 
 for entry in "${omp_entries[@]}"; do
+  # config.yml is handled below in devcontainers: baked with the overlay
+  # merged in, not symlinked (see the block after this loop).
+  if [ "$entry" = "config.yml" ] && [ "${DEVCONTAINER:-}" = "true" ] && [ -f "$DOTFILES_DIR/.omp/config-devcontainer.yml" ]; then
+    continue
+  fi
   link_entry "$DOTFILES_DIR/.omp/$entry" "$OMP_AGENT_DIR/$entry" "~/.omp/agent/$entry"
 done
+
+# --- Devcontainer: bake config-devcontainer.yml into config.yml ---
+# PI_CONFIG_FILES (set in .zshenv/.profile) selects this overlay dynamically for
+# shells that source those files - but captain-miao's remote/pooled session spawn
+# never runs a shell at all (miao-server launches the agent binary directly with a
+# hardcoded minimal env), so that env var never reaches it. Deep-merge the overlay
+# into config.yml itself at install time instead, so the file omp loads by default
+# already has it - no env var required. Arrays replace wholesale (documented in
+# config-devcontainer.yml's own header), matching PI_CONFIG_FILES's merge semantics
+# exactly (verified: both routes resolve tools.approvalMode to "yolo" identically).
+# Falls back to a plain symlink of the base config.yml if python3/pip/pyyaml is
+# unavailable - that fails safe (restrictive approvalMode) rather than silently
+# leaving no config.yml at all.
+if [ "${DEVCONTAINER:-}" = "true" ] && [ -f "$DOTFILES_DIR/.omp/config-devcontainer.yml" ]; then
+  echo ""
+  echo "Baking devcontainer overlay into config.yml..."
+  if command -v python3 >/dev/null 2>&1 \
+    && python3 -m pip install --quiet --user --break-system-packages pyyaml >/dev/null 2>&1 \
+    && python3 "$DOTFILES_DIR/.omp/merge-config.py" \
+      "$DOTFILES_DIR/.omp/config.yml" \
+      "$DOTFILES_DIR/.omp/config-devcontainer.yml" \
+      "$OMP_AGENT_DIR/config.yml"; then
+    echo "  Wrote merged config.yml"
+  else
+    echo "  WARNING: merge failed (python3/pyyaml unavailable?) - falling back to plain config.yml symlink"
+    echo "  (devcontainer overlay will only apply via PI_CONFIG_FILES, which captain-miao's pooled"
+    echo "  sessions can't pick up - approvalMode stays restrictive there until this is fixed)"
+    link_entry "$DOTFILES_DIR/.omp/config.yml" "$OMP_AGENT_DIR/config.yml" "~/.omp/agent/config.yml"
+  fi
+fi
 
 # --- Link cc-safety-net policy ---
 # Policy file is declarative and never overwritten at runtime — safe to symlink.
