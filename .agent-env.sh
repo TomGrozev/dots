@@ -39,9 +39,6 @@ fi
 if [ "$opencode_permission" = "permissive" ] && [ -z "$OPENCODE_CONFIG" ]; then
   export OPENCODE_CONFIG="$HOME/.config/opencode/opencode-devcontainer.jsonc"
 fi
-opencode-perm() {
-  echo "opencode tier: $opencode_permission${OPENCODE_CONFIG:+ ($OPENCODE_CONFIG)}"
-}
 
 # omp yolo overlay inside containers: the overlay sets approvalMode=yolo plus explicit
 # credential denies. PI_CONFIG_FILES is strict — a missing path is a hard omp startup
