@@ -95,6 +95,8 @@ files=(
   .zshrc
   .zshenv
   .zprofile
+  .profile
+  .agent-env.sh
   .p10k.zsh
   .bashrc
   .fzf.zsh
