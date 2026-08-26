@@ -1,4 +1,4 @@
-# Shared POSIX-sh logic for agent config env vars (PI_CONFIG_FILES, OPENCODE_CONFIG).
+# Shared POSIX-sh logic for the OPENCODE_CONFIG env var.
 #
 # Sourced from both `.zshenv` (interactive/login zsh shells: terminals, plain
 # `ssh host cmd`) and `.profile` (POSIX login shells). The second path matters
@@ -7,7 +7,17 @@
 # server_pool.rs) — a login `sh`, which per its own docs "sources /etc/profile
 # (and the user profile)" and nothing else. `.zshenv`/`.zshrc`/`.bashrc` are
 # never read on that path, so a devcontainer session launched by captain-miao
-# got neither PI_CONFIG_FILES nor OPENCODE_CONFIG until this file existed.
+# got no OPENCODE_CONFIG until this file existed.
+#
+# omp used to get its devcontainer overlay the same way (PI_CONFIG_FILES),
+# but that never actually reached captain-miao's *direct* (non-pooled) spawn
+# path either — it launches the agent binary via a bare fork+exec with a
+# hardcoded minimal env, no shell involved at all, so no env var set here
+# could reach it. omp's devcontainer config is now baked into config.yml at
+# install time instead (see install.sh + .omp/merge-config.py) — no env var
+# needed for it on any spawn path. OPENCODE_CONFIG is kept here for now;
+# verify it actually reaches a captain-miao-spawned opencode session before
+# assuming it doesn't have the same gap.
 #
 # Written for POSIX `sh` on purpose — no `[[ ]]`, `(( ))`, or bash/zsh-only
 # syntax — so dash (the usual `/bin/sh` on Linux devcontainers) and zsh parse
@@ -40,24 +50,4 @@ if [ "$opencode_permission" = "permissive" ] && [ -z "$OPENCODE_CONFIG" ]; then
   export OPENCODE_CONFIG="$HOME/.config/opencode/opencode-devcontainer.jsonc"
 fi
 
-# omp yolo overlay inside containers: the overlay sets approvalMode=yolo plus explicit
-# credential denies. PI_CONFIG_FILES is strict — a missing path is a hard omp startup
-# error — so we only append when the overlay actually exists, and we append with ':'
-# rather than clobbering any pre-existing value. This file is sourced on every shell
-# invocation that reaches it (including nested subshells that already inherited the
-# var), so skip when already present. Opt out without editing dotfiles:
-# `OMP_DEVCONTAINER_YOLO=0`.
-omp_overlay="$HOME/.omp/agent/config-devcontainer.yml"
-if [ "$dotfiles_in_container" = 1 ] && [ "$OMP_DEVCONTAINER_YOLO" != "0" ] && [ -f "$omp_overlay" ]; then
-  case ":${PI_CONFIG_FILES}:" in
-    *":${omp_overlay}:"*) ;; # already present, no-op
-    *)
-      if [ -n "$PI_CONFIG_FILES" ]; then
-        export PI_CONFIG_FILES="$PI_CONFIG_FILES:$omp_overlay"
-      else
-        export PI_CONFIG_FILES="$omp_overlay"
-      fi
-      ;;
-  esac
-fi
-unset omp_overlay dotfiles_in_container
+unset dotfiles_in_container

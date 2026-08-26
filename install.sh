@@ -136,11 +136,11 @@ for entry in "${omp_entries[@]}"; do
 done
 
 # --- Devcontainer: bake config-devcontainer.yml into config.yml ---
-# PI_CONFIG_FILES (set in .zshenv/.profile) selects this overlay dynamically for
-# shells that source those files - but captain-miao's remote/pooled session spawn
-# never runs a shell at all (miao-server launches the agent binary directly with a
-# hardcoded minimal env), so that env var never reaches it. Deep-merge the overlay
-# into config.yml itself at install time instead, so the file omp loads by default
+# A PI_CONFIG_FILES env var could select this overlay dynamically for shells that
+# source it - but captain-miao's remote/pooled session spawn never runs a shell at
+# all (miao-server launches the agent binary directly with a hardcoded minimal
+# env), so that env var would never reach it. Deep-merge the overlay into
+# config.yml itself at install time instead, so the file omp loads by default
 # already has it - no env var required. Arrays replace wholesale (documented in
 # config-devcontainer.yml's own header), matching PI_CONFIG_FILES's merge semantics
 # exactly (verified: both routes resolve tools.approvalMode to "yolo" identically).
@@ -159,8 +159,8 @@ if [ "${DEVCONTAINER:-}" = "true" ] && [ -f "$DOTFILES_DIR/.omp/config-devcontai
     echo "  Wrote merged config.yml"
   else
     echo "  WARNING: merge failed (python3/pyyaml unavailable?) - falling back to plain config.yml symlink"
-    echo "  (devcontainer overlay will only apply via PI_CONFIG_FILES, which captain-miao's pooled"
-    echo "  sessions can't pick up - approvalMode stays restrictive there until this is fixed)"
+    echo "  (devcontainer overlay will NOT apply - approvalMode stays restrictive until python3/pyyaml"
+    echo "  is available and install.sh is re-run)"
     link_entry "$DOTFILES_DIR/.omp/config.yml" "$OMP_AGENT_DIR/config.yml" "~/.omp/agent/config.yml"
   fi
 fi
