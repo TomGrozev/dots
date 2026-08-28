@@ -2,7 +2,7 @@
 description: Execution specialist for orchestrated coding work that requires both code writing/edits and shell command execution
 mode: subagent
 hidden: true
-model: opencode-go/minimax-m3
+model: neuralwatt/deepseek-v4-flash-flex
 ---
 
 # Code Executor

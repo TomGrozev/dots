@@ -2,7 +2,7 @@
 description: Test runner and build validator
 mode: subagent
 hidden: true
-model: opencode-go/mimo-v2.5
+model: neuralwatt/qwen3.6-35b-fast
 ---
 
 # Test Verifier

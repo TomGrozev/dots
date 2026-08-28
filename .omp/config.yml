@@ -9,15 +9,16 @@ providers:
 modelRoles: 
   slow: anthropic/claude-opus-5
   plan: anthropic/claude-opus-5
-  task: neuralwatt/deepseek-v4-flash
-  smol: opencode-go/mimo-v2.5
-  tiny: opencode-go/mimo-v2.5
-  writer: opencode-go/qwen3.7-plus
+  task: neuralwatt/deepseek-v4-flash-flex
+  smol: neuralwatt/qwen3.6-35b-fast
+  tiny: neuralwatt/qwen3.6-35b-fast
+  writer: neuralwatt/gemma-4-31b
   review: anthropic/claude-sonnet-5
   designer: neuralwatt/glm-5.2-short-fast-flex
-  commit: opencode-go/mimo-v2.5
+  commit: neuralwatt/qwen3.6-35b-fast
   advisor: anthropic/claude-sonnet-5
-  default: neuralwatt/qwen-3.8-27b
+  vision: neuralwatt/gemma-4-31b
+  default: neuralwatt/deepseek-v4-flash:low
 symbolPreset: nerd
 theme: 
   dark: dark-nord
@@ -77,6 +78,7 @@ skills:
   enableSkillCommands: true
 disabledProviders: 
   - opencode
+  - opencode-go
 tools: 
   approvalMode: write
   approval: 
@@ -379,63 +381,53 @@ retry:
   modelFallback: true
   fallbackChains: 
     default: 
+      - neuralwatt/deepseek-v4-flash
       - neuralwatt/qwen-3.8-27b
       - anthropic/claude-sonnet-5
-      - neuralwatt/glm-5.2-short-flex
-      - opencode-go/minimax-m3
-      - opencode-go/glm-5.2
     slow: 
       - anthropic/claude-opus-5
       - anthropic/claude-sonnet-5
-      - neuralwatt/glm-5.2-short-flex
-      - opencode-go/kimi-k2.7-code
+      - neuralwatt/glm-5.2
     plan: 
       - anthropic/claude-opus-5
       - anthropic/claude-sonnet-5
-      - neuralwatt/glm-5.2-short-flex
-      - opencode-go/kimi-k2.7-code
+      - neuralwatt/glm-5.2
     task: 
+      - neuralwatt/deepseek-v4-flash-flex
       - neuralwatt/deepseek-v4-flash
-      - opencode-go/minimax-m3
       - neuralwatt/glm-5.2-short-fast-flex
-      - opencode-go/qwen3.7-plus
+      - neuralwatt/glm-5.2
     smol: 
-      - opencode-go/mimo-v2.5
       - neuralwatt/qwen3.6-35b-fast
       - neuralwatt/gemma-4-31b
-      - opencode-go/minimax-m3
     tiny: 
-      - opencode-go/mimo-v2.5
       - neuralwatt/qwen3.6-35b-fast
       - neuralwatt/gemma-4-31b
     writer: 
-      - opencode-go/qwen3.7-plus
-      - neuralwatt/deepseek-v4-flash
+      - neuralwatt/gemma-4-31b
       - neuralwatt/glm-5.2
-      - opencode-go/minimax-m3
     review: 
       - anthropic/claude-sonnet-5
-      - opencode-go/kimi-k2.7-code
       - neuralwatt/kimi-k2.7-code
       - neuralwatt/glm-5.2
     designer: 
       - neuralwatt/glm-5.2-short-fast-flex
-      - opencode-go/glm-5.2
       - neuralwatt/glm-5.2
-      - anthropic/claude-sonnet-5
+      - neuralwatt/deepseek-v4-flash
     commit: 
-      - opencode-go/mimo-v2.5
       - neuralwatt/qwen3.6-35b-fast
       - neuralwatt/gemma-4-31b
-    opencode-go/*: 
-      - opencode-go/mimo-v2.5
-      - neuralwatt/qwen3.6-35b-fast
+    advisor: 
+      - anthropic/claude-sonnet-5
+      - neuralwatt/glm-5.2
+    vision: 
+      - neuralwatt/gemma-4-31b
+      - anthropic/claude-sonnet-5
     neuralwatt/*: 
-      - opencode-go/mimo-v2.5
       - neuralwatt/qwen3.6-35b-fast
+      - anthropic/claude-sonnet-5
     anthropic/*: 
       - anthropic/claude-sonnet-5
-      - opencode-go/kimi-k2.7-code
       - neuralwatt/glm-5.2
   usageAwareFallback: false
 secrets: 
@@ -479,7 +471,7 @@ error:
   notify: "on"
 stt: 
   enabled: true
-  modelName: parakeet
+  modelName: balanced
 startup: 
   showSplash: true
 power: 

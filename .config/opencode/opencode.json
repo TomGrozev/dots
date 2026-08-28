@@ -36,7 +36,8 @@
     }
   },
   "default_agent": "orchestrator",
-  "model": "opencode-go/mimo-v2.5",
+  "model": "neuralwatt/deepseek-v4-flash",
+  "small_model": "neuralwatt/qwen3.6-35b-fast",
   "instructions": ["./AGENTS.md"],
   "lsp": true,
   "mcp": {
@@ -155,7 +156,9 @@
     },
     "build": {
       "description": "Direct coding agent for implementation tasks",
-      "model": "opencode-go/mimo-v2.5",
+      "model": "neuralwatt/deepseek-v4-flash",
+      "reasoningEffort": "low",
+      "textVerbosity": "low",
       "mode": "primary",
       "permission": {
         "edit": "ask",

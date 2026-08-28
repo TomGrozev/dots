@@ -2,7 +2,7 @@
 description: Documentation writer - writes .md files only
 mode: subagent
 hidden: true
-model: opencode-go/qwen3.7-plus
+model: neuralwatt/gemma-4-31b
 ---
 
 # Docs Writer

@@ -2,7 +2,7 @@
 description: Fast read-only codebase exploration - locate files, patterns, architecture
 mode: subagent
 hidden: true
-model: opencode-go/mimo-v2.5
+model: neuralwatt/qwen3.6-35b-fast
 ---
 
 # Explorer

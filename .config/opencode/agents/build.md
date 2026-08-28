@@ -1,7 +1,9 @@
 ---
 description: Direct coding agent for quick, basic implementation tasks invoked standalone
 mode: primary
-model: opencode-go/mimo-v2.5
+model: neuralwatt/deepseek-v4-flash
+reasoningEffort: low
+textVerbosity: low
 ---
 
 # Build

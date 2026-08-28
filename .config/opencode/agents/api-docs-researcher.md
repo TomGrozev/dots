@@ -2,7 +2,7 @@
 description: External library/API documentation researcher - ONLY agent with MCP docs access
 mode: subagent
 hidden: true
-model: opencode-go/qwen3.7-plus
+model: neuralwatt/qwen3.6-35b-fast
 ---
 
 # API Docs Researcher

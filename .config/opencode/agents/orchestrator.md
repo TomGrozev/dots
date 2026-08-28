@@ -1,7 +1,9 @@
 ---
 description: Execution coordinator — implements tickets and issues by decomposing work into atomic objectives, writing tight subagent briefs, routing to workers, and synthesising results
 mode: primary
-model: neuralwatt/qwen-3.8-27b
+model: neuralwatt/deepseek-v4-flash
+reasoningEffort: low
+textVerbosity: low
 ---
 
 # Orchestrator
