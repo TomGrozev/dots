@@ -112,11 +112,54 @@ done
 echo ""
 echo "Creating .config symlinks..."
 
-config_dirs=(gh ghostty nvim opencode cortexkit yaji zellij captain-miao)
+config_dirs=(gh ghostty nvim opencode cortexkit yaji zellij)
 
 for dir in "${config_dirs[@]}"; do
   link_entry "$DOTFILES_DIR/.config/$dir" "$HOME/.config/$dir" ".config/$dir"
 done
+
+# --- Link captain-miao config ---
+# config.toml is symlinked on the laptop so `pooled` stays unset (direct-local,
+# the default). Dev containers bake a *copy* with `pooled = true` instead,
+# mirroring the omp config.yml bake: pooling is a per-host role, and it has to
+# live in config.toml itself. dashboard-overrides.json is the dashboard's own
+# runtime store (pin/follow-up/default_agent/…) and gets rewritten by the
+# dashboard on every save — it has no `pooled` key, so a setting written there
+# is both never read and promptly clobbered.
+captain_miao_src="$DOTFILES_DIR/.config/captain-miao"
+captain_miao_dst="$HOME/.config/captain-miao"
+if [ ! -d "$captain_miao_src" ]; then
+  echo "  Skipping .config/captain-miao (source not found: $captain_miao_src)"
+elif [ "${DEVCONTAINER:-}" = "true" ]; then
+  echo ""
+  echo "Baking captain-miao config with pooled mode..."
+  # The destination may be a directory symlink left by an earlier install
+  # (or the laptop path); it must become a real directory, not a link through
+  # which the baked file would land back in ~/dotfiles.
+  if [ -L "$captain_miao_dst" ]; then
+    rm -f "$captain_miao_dst"
+  fi
+  mkdir -p "$captain_miao_dst"
+  # Back up a real (non-symlink) existing file, matching link_entry.
+  if [ -e "$captain_miao_dst/config.toml" ] && [ ! -L "$captain_miao_dst/config.toml" ]; then
+    mv "$captain_miao_dst/config.toml" "$captain_miao_dst/config.toml.bak"
+  fi
+  if awk -f - "$captain_miao_src/config.toml" > "$captain_miao_dst/config.toml" <<'AWK'
+/^[[:space:]]*\[/ && $0 !~ /^[[:space:]]*\[launcher\]/ { in_launcher = 0 }
+/^[[:space:]]*\[launcher\]/ { print; print "pooled = true"; in_launcher = 1; next }
+in_launcher && /^[[:space:]]*pooled[[:space:]]*=/ { next }
+{ print }
+AWK
+  then
+    echo "  Wrote $captain_miao_dst/config.toml with pooled = true"
+  else
+    echo "  WARNING: bake failed, falling back to a plain symlink (pooled stays off)"
+    rm -f "$captain_miao_dst/config.toml"
+    link_entry "$captain_miao_src" "$captain_miao_dst" ".config/captain-miao"
+  fi
+else
+  link_entry "$captain_miao_src" "$captain_miao_dst" ".config/captain-miao"
+fi
 
 # --- Link omp (Oh My Pi) config ---
 # ~/.omp/agent/ holds runtime state (agent.db, sessions/, memories/) alongside
@@ -313,16 +356,17 @@ fi
 # --- Install captain-miao (coding agent session manager) ---
 # Installs the `miao` dashboard binary. The `miao-server` daemon is a separate
 # release asset and ships in the devcontainer image, so this block is skipped
-# when miao is already on PATH (the image provides it). Release assets embed
-# the version in their filename (miao-bundled-all-server-v0.6.0-<triple>.tar.gz),
-# so the tag is resolved from the GitHub API rather than /latest/download/.
+# when miao is already on PATH (the image provides it, or an earlier install
+# already placed it in ~/.local/bin). Release assets embed the version in
+# their filename (miao-bundled-all-server-v0.6.0-<triple>.tar.gz), so the tag
+# is resolved from the GitHub API rather than /latest/download/.
 # Upstream ships no checksums file, so this block does not verify a digest.
 echo ""
 echo "Installing captain-miao..."
 
 MIAO_BIN="$LOCAL_BIN/miao"
 
-if [ -x "$MIAO_BIN" ]; then
+if [ -x "$MIAO_BIN" ] || command -v miao >/dev/null 2>&1; then
   echo "  captain-miao already installed, skipping"
 else
   echo "  Resolving latest captain-miao release..."
@@ -378,22 +422,6 @@ else
 
   echo "  captain-miao installed to ~/.local/bin/miao"
 fi
-
-# --- Enable captain-miao pooled mode in dev containers ---
-# Pooling is a per-host role: dev servers pool (sessions survive disconnects and
-# are steal-able from a remote dashboard); laptops stay direct-local. The shared
-# config.toml leaves pooled unset (default false); this container-only overlay
-# flips it on. dashboard-overrides.json is read only by the dashboard and
-# overlays the config without touching the symlinked config.toml.
-if [ "${DEVCONTAINER:-}" = "true" ]; then
-  MIAO_STATE_DIR="$HOME/.local/state/captain-miao"
-  mkdir -p "$MIAO_STATE_DIR"
-  if [ ! -f "$MIAO_STATE_DIR/dashboard-overrides.json" ]; then
-    printf '%s\n' '{"prefs":{"pooled":true}}' > "$MIAO_STATE_DIR/dashboard-overrides.json"
-    echo "  captain-miao pooled mode enabled (dev container)"
-  fi
-fi
-
 
 # --- Clean up Plannotator (replaced by r3) ---
 if [ -f "$LOCAL_BIN/plannotator" ]; then

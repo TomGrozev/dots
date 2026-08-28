@@ -1,12 +1,13 @@
 # captain-miao config (dotfiles-managed).
-# Symlinked to ~/.config/captain-miao/config.toml by install.sh.
+# Symlinked to ~/.config/captain-miao/config.toml by install.sh, or in dev
+# containers copied with `pooled = true` baked in (see install.sh).
 # A parse error anywhere in this file reverts ALL sections to defaults, so
 # every value here is deliberate.
 
 [launcher]
-# Pooled mode is host-specific, not a dotfiles concern: dev containers enable
-# it via ~/.local/state/captain-miao/dashboard-overrides.json (written
-# conditionally by install.sh); the laptop stays direct-local (the default).
+# Pooled mode is host-specific, not a dotfiles concern: dev containers bake a
+# copy with pooled = true (see install.sh); the laptop stays direct-local,
+# which is what leaving pooled unset here means.
 # Backend used for new sessions (`o` / `O`) until toggled with `Space a`.
 default_agent = "omp"
 
