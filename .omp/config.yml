@@ -1,14 +1,14 @@
-providers: 
-  webSearchOrder: 
+providers:
+  webSearchOrder:
     - exa
     - public
-  webSearchExclude: 
+  webSearchExclude:
     - anthropic
   tts: auto
   autoThinkingMaxEffort: xhigh
-modelRoles: 
-  slow: anthropic/claude-opus-5
-  plan: anthropic/claude-opus-5
+modelRoles:
+  slow: anthropic/claude-opus-4.8
+  plan: anthropic/claude-opus-4.8
   task: neuralwatt/deepseek-v4-flash-flex
   smol: neuralwatt/qwen3.6-35b-fast
   tiny: neuralwatt/qwen3.6-35b-fast
@@ -20,45 +20,45 @@ modelRoles:
   vision: neuralwatt/gemma-4-31b
   default: neuralwatt/deepseek-v4-flash:low
 symbolPreset: nerd
-theme: 
+theme:
   dark: dark-nord
 setupVersion: 2
 defaultThinkingLevel: auto
-statusLine: 
+statusLine:
   transparent: true
   compactThinkingLevel: true
   showHookStatus: false
   sessionAccent: true
-terminal: 
+terminal:
   showProgress: true
-tui: 
+tui:
   textSizing: true
   tight: true
   renderMermaid: true
   titleState: true
   hyperlinks: auto
-display: 
+display:
   shimmer: kitt
   showTokenUsage: true
   cacheMissMarker: true
   collapseCompacted: true
 steeringMode: one-at-a-time
-memory: 
+memory:
   backend: mnemopi
-autolearn: 
+autolearn:
   enabled: false
-mnemopi: 
+mnemopi:
   llmMode: smol
-edit: 
+edit:
   mode: patch
   fuzzyMatch: true
-github: 
+github:
   enabled: false
-task: 
-  isolation: 
+task:
+  isolation:
     mode: auto
     commits: ai
-  agentModelOverrides: 
+  agentModelOverrides:
     security-reviewer: "@slow"
     reviewer: "@review"
   eager: always
@@ -66,22 +66,22 @@ task:
   enableEffort: true
   maxEffort: medium
   showResolvedModelBadge: true
-dev: 
+dev:
   autoqa: false
-browser: 
+browser:
   enabled: false
-computer: 
+computer:
   enabled: false
-skills: 
-  customDirectories: 
+skills:
+  customDirectories:
     - ~/.agents/skills
   enableSkillCommands: true
-disabledProviders: 
+disabledProviders:
   - opencode
   - opencode-go
-tools: 
+tools:
   approvalMode: write
-  approval: 
+  approval:
     bash: allow
     eval: prompt
     task: allow
@@ -92,8 +92,8 @@ tools:
     mcp__codebase_memory_mcp_delete_project: deny
     mcp__codebase_memory_mcp_index_repository: prompt
     mcp__codebase_memory_mcp_ingest_traces: prompt
-bash: 
-  patterns: 
+bash:
+  patterns:
     - match: "*.ssh/*"
       approval: deny
     - match: "*id_rsa*"
@@ -376,107 +376,105 @@ bash:
       approval: prompt
     - match: "*"
       approval: allow
-retry: 
+retry:
   enabled: true
   modelFallback: true
-  fallbackChains: 
-    default: 
+  fallbackChains:
+    default:
       - neuralwatt/deepseek-v4-flash
       - neuralwatt/qwen-3.8-27b
       - anthropic/claude-sonnet-5
-    slow: 
-      - anthropic/claude-opus-5
+    slow:
+      - anthropic/claude-opus-.48
+      - neuralwatt/glm-5.3
       - anthropic/claude-sonnet-5
-      - neuralwatt/glm-5.2
-    plan: 
-      - anthropic/claude-opus-5
+    plan:
+      - anthropic/claude-opus-4.8
+      - neuralwatt/glm-5.3
       - anthropic/claude-sonnet-5
-      - neuralwatt/glm-5.2
-    task: 
+    task:
       - neuralwatt/deepseek-v4-flash-flex
-      - neuralwatt/deepseek-v4-flash
-      - neuralwatt/glm-5.2-short-fast-flex
-      - neuralwatt/glm-5.2
-    smol: 
+      - neuralwatt/kimi-k2.7-code-fast-flex
+    smol:
       - neuralwatt/qwen3.6-35b-fast
       - neuralwatt/gemma-4-31b
-    tiny: 
+    tiny:
       - neuralwatt/qwen3.6-35b-fast
       - neuralwatt/gemma-4-31b
-    writer: 
+    writer:
       - neuralwatt/gemma-4-31b
       - neuralwatt/glm-5.2
-    review: 
+    review:
       - anthropic/claude-sonnet-5
       - neuralwatt/kimi-k2.7-code
-      - neuralwatt/glm-5.2
-    designer: 
+      - neuralwatt/glm-5.3
+    designer:
       - neuralwatt/glm-5.2-short-fast-flex
-      - neuralwatt/glm-5.2
+      - neuralwatt/glm-5.3
       - neuralwatt/deepseek-v4-flash
-    commit: 
+    commit:
       - neuralwatt/qwen3.6-35b-fast
       - neuralwatt/gemma-4-31b
-    advisor: 
+    advisor:
       - anthropic/claude-sonnet-5
-      - neuralwatt/glm-5.2
-    vision: 
+      - neuralwatt/glm-5.3
+    vision:
       - neuralwatt/gemma-4-31b
       - anthropic/claude-sonnet-5
-    neuralwatt/*: 
+    neuralwatt/*:
       - neuralwatt/qwen3.6-35b-fast
       - anthropic/claude-sonnet-5
-    anthropic/*: 
+    anthropic/*:
       - anthropic/claude-sonnet-5
-      - neuralwatt/glm-5.2
+      - neuralwatt/glm-5.3
   usageAwareFallback: false
-secrets: 
+secrets:
   enabled: true
-composer: 
+composer:
   shape: box
-plan: 
+plan:
   enabled: false
-goal: 
+goal:
   enabled: false
-commands: 
+commands:
   enableClaudeUser: false
   enableClaudeProject: false
   enableOpencodeUser: false
   enableOpencodeProject: false
-debug: 
+debug:
   enabled: false
-fetch: 
+fetch:
   enabled: true
-security: 
+security:
   enabled: true
-shellMinimizer: 
+shellMinimizer:
   sourceOutlineLevel: default
-lsp: 
+lsp:
   formatOnWrite: true
   diagnosticsOnWrite: false
 extendedContext: false
-compaction: 
+compaction:
   thresholdTokens: 160000
   idleEnabled: true
   idleThresholdTokens: 100000
-ttsr: 
+ttsr:
   contextMode: discard
-snapcompact: 
+snapcompact:
   toolResults: true
 followUpMode: one-at-a-time
 interruptMode: immediate
 doubleEscapeAction: tree
 treeFilterMode: default
-error: 
+error:
   notify: "on"
-stt: 
+stt:
   enabled: true
-  modelName: balanced
-startup: 
+  modelName: parakeet
+startup:
   showSplash: true
-power: 
+power:
   sleepPrevention: idle
 hideThinkingBlock: true
 personality: pragmatic
-thinkingBudgets: 
+thinkingBudgets:
   xhigh: 16384
