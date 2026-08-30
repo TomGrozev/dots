@@ -7,8 +7,8 @@ providers:
   tts: auto
   autoThinkingMaxEffort: xhigh
 modelRoles:
-  slow: anthropic/claude-opus-4.8
-  plan: anthropic/claude-opus-4.8
+  slow: anthropic/claude-opus-4-8
+  plan: anthropic/claude-opus-4-8
   task: neuralwatt/deepseek-v4-flash-flex
   smol: neuralwatt/qwen3.6-35b-fast
   tiny: neuralwatt/qwen3.6-35b-fast
@@ -385,16 +385,16 @@ retry:
       - neuralwatt/qwen-3.8-27b
       - anthropic/claude-sonnet-5
     slow:
-      - anthropic/claude-opus-.48
+      - anthropic/claude-opus-4-8
       - neuralwatt/glm-5.3
       - anthropic/claude-sonnet-5
     plan:
-      - anthropic/claude-opus-4.8
+      - anthropic/claude-opus-4-8
       - neuralwatt/glm-5.3
       - anthropic/claude-sonnet-5
     task:
       - neuralwatt/deepseek-v4-flash-flex
-      - neuralwatt/kimi-k2.7-code-fast-flex
+      - neuralwatt/kimi-k2.7-code-flex
     smol:
       - neuralwatt/qwen3.6-35b-fast
       - neuralwatt/gemma-4-31b
@@ -406,7 +406,7 @@ retry:
       - neuralwatt/glm-5.2
     review:
       - anthropic/claude-sonnet-5
-      - neuralwatt/kimi-k2.7-code
+      - neuralwatt/kimi-k2.7-code-flex
       - neuralwatt/glm-5.3
     designer:
       - neuralwatt/glm-5.2-short-fast-flex
