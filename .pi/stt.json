@@ -1,5 +1,11 @@
 {
   "keybind": "ctrl+r",
+  "capture": {
+    "type": "ffmpeg",
+    "ffmpegPath": "ffmpeg",
+    "inputFormat": "avfoundation",
+    "input": ":0"
+  },
   "provider": {
     "type": "soniox",
     "model": "stt-async-v5",
