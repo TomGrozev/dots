@@ -19,3 +19,4 @@ sessions_layout = "per-tab"
 [remote]
 # Closing a pooled session's window detaches; never kills the session.
 on_window_close = "detach"
+inherit_env = ["ANTHROPIC_OAUTH_TOKEN"]

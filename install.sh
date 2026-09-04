@@ -237,6 +237,39 @@ if command -v omp &>/dev/null; then
   done
 fi
 
+# --- Install pi-voice-stt (Soniox STT fork) ---
+# omp's plugin installer has no git-remote mode (npm specs, local paths, or
+# marketplace refs only), so the fork is cloned to a stable path outside the
+# dotfiles tree and linked from there. Linking the dotfiles checkout itself
+# would break if the clone is cleaned up mid-session; ~/.local/share is the
+# permanent home (plugins are referenced from ~/.omp/plugins/node_modules as
+# a symlink). Fork: TomGrozev/pi-voice-stt, branch feat/soniox-provider —
+# upstream PR cgarrot/pi-voice-stt#20 (Soniox cloud STT). When the PR merges
+# and ships in a release, drop this block and add `pi-voice-stt` to OMP_PLUGINS
+# above instead. No npm install needed: the extension has no runtime deps,
+# only peerDependencies resolved from omp's bundled @earendil-works packages.
+PI_VOICE_STT_DIR="$HOME/.local/share/pi-voice-stt"
+PI_VOICE_STT_BRANCH="feat/soniox-provider"
+
+echo ""
+echo "Installing pi-voice-stt (Soniox STT fork)..."
+
+if [ -d "$PI_VOICE_STT_DIR/.git" ]; then
+  echo "  Updating existing pi-voice-stt clone..."
+  git -C "$PI_VOICE_STT_DIR" fetch --quiet origin "$PI_VOICE_STT_BRANCH" && \
+    git -C "$PI_VOICE_STT_DIR" checkout --quiet "$PI_VOICE_STT_BRANCH" && \
+    git -C "$PI_VOICE_STT_DIR" merge --quiet --ff-only "origin/$PI_VOICE_STT_BRANCH"
+else
+  git clone --quiet --branch "$PI_VOICE_STT_BRANCH" \
+    https://github.com/TomGrozev/pi-voice-stt.git "$PI_VOICE_STT_DIR"
+fi
+
+if command -v omp &>/dev/null; then
+  omp plugin link "$PI_VOICE_STT_DIR"
+else
+  echo "  omp not found — cloned to $PI_VOICE_STT_DIR; run 'omp plugin link $PI_VOICE_STT_DIR' once omp is installed"
+fi
+
 # --- Download Zellij WASM plugins ---
 echo ""
 echo "Downloading Zellij plugins..."
@@ -355,28 +388,62 @@ fi
 
 # --- Install captain-miao (coding agent session manager) ---
 # Installs the `miao` dashboard binary. The `miao-server` daemon is a separate
-# release asset and ships in the devcontainer image, so this block is skipped
-# when miao is already on PATH (the image provides it, or an earlier install
-# already placed it in ~/.local/bin). Release assets embed the version in
-# their filename (miao-bundled-all-server-v0.6.0-<triple>.tar.gz), so the tag
-# is resolved from the GitHub API rather than /latest/download/.
+# release asset and ships in the devcontainer image. Release assets embed the
+# version in their filename (miao-bundled-all-server-v0.6.0-<triple>.tar.gz),
+# so the tag is resolved from the GitHub API rather than /latest/download/.
 # Upstream ships no checksums file, so this block does not verify a digest.
 echo ""
 echo "Installing captain-miao..."
 
 MIAO_BIN="$LOCAL_BIN/miao"
 
-if [ -x "$MIAO_BIN" ] || command -v miao >/dev/null 2>&1; then
-  echo "  captain-miao already installed, skipping"
-else
-  echo "  Resolving latest captain-miao release..."
-  MIAO_TAG="$(curl -fsSL https://api.github.com/repos/hyperlogue/captain-miao/releases/latest |
-    grep -m1 '"tag_name"' | sed -E 's/.*"([^"]+)".*/\1/')"
-  if [ -z "$MIAO_TAG" ]; then
-    echo "    Error: could not resolve latest captain-miao release tag" >&2
-    exit 1
-  fi
+# Resolve the latest release tag first — it drives both the up-to-date check
+# below and the download URL.
+echo "  Resolving latest captain-miao release..."
+MIAO_TAG="$(curl -fsSL https://api.github.com/repos/hyperlogue/captain-miao/releases/latest |
+  grep -m1 '"tag_name"' | sed -E 's/.*"([^"]+)".*/\1/')"
+if [ -z "$MIAO_TAG" ]; then
+  echo "    Error: could not resolve latest captain-miao release tag" >&2
+  exit 1
+fi
 
+# --- Up-to-date check ---
+# `miao -V` prints the bare SemVer (no leading "v", e.g. "0.8.0"), while the
+# GitHub tag carries a "v" prefix (e.g. "v0.8.0") — strip it before comparing.
+# The -V output format varies with the clap version miao was built with: newer
+# builds print just "0.8.0", older ones print "miao 0.8.0", so we extract the
+# trailing SemVer rather than doing exact-string equality.
+# Query the binary we own in ~/.local/bin, else whatever is on PATH (e.g. the
+# devcontainer image's miao). Reinstall only when the installed version differs
+# from the latest release.
+if [ -x "$MIAO_BIN" ]; then
+  MIAO_VERSION_CMD="$MIAO_BIN"
+elif command -v miao >/dev/null 2>&1; then
+  MIAO_VERSION_CMD="$(command -v miao)"
+else
+  MIAO_VERSION_CMD=""
+fi
+
+INSTALL_MIAO=0
+if [ -n "$MIAO_VERSION_CMD" ]; then
+  INSTALLED_VERSION="$("$MIAO_VERSION_CMD" -V 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -n1)"
+  LATEST_VERSION="${MIAO_TAG#v}"
+  if [ -n "$INSTALLED_VERSION" ] && [ "$INSTALLED_VERSION" = "$LATEST_VERSION" ]; then
+    echo "  captain-miao already up to date ($INSTALLED_VERSION), skipping"
+  else
+    if [ -n "$INSTALLED_VERSION" ]; then
+      echo "  captain-miao $INSTALLED_VERSION installed, latest is $LATEST_VERSION — updating..."
+    else
+      echo "  No installed captain-miao version detected, installing $LATEST_VERSION..."
+    fi
+    INSTALL_MIAO=1
+  fi
+else
+  INSTALL_MIAO=1
+fi
+
+# --- Install / update ---
+if [ "$INSTALL_MIAO" = "1" ]; then
   # Detect OS → target-triple OS/vendor segment
   case "$UNAME_OS" in
   darwin) OS_PART="apple-darwin" ;;
@@ -432,14 +499,29 @@ if [ -f "$LOCAL_BIN/plannotator" ]; then
 fi
 
 # --- Install r3 (review tool) ---
+# r3 ships no CLI version flag, so the installed version is read from its npm
+# package.json and compared against the latest published version; reinstall
+# only when they differ.
 echo ""
 echo "Installing r3..."
 
-if [ -x "$LOCAL_BIN/r3" ]; then
-  echo "  r3 already installed, skipping"
+R3_INSTALLED_VERSION="$(grep -oE '"version"[[:space:]]*:[[:space:]]*"[^"]+"' \
+  "$HOME/.local/lib/node_modules/@hyperlogue/r3/package.json" 2>/dev/null |
+  head -n1 | sed -E 's/.*"([^"]+)".*/\1/')"
+R3_LATEST_VERSION="$(npm view @hyperlogue/r3 version 2>/dev/null)"
+
+if [ -z "$R3_LATEST_VERSION" ]; then
+  echo "  Could not resolve latest r3 version; leaving installed version as-is"
+elif [ -n "$R3_INSTALLED_VERSION" ] && [ "$R3_INSTALLED_VERSION" = "$R3_LATEST_VERSION" ]; then
+  echo "  r3 already up to date ($R3_INSTALLED_VERSION), skipping"
 else
+  if [ -n "$R3_INSTALLED_VERSION" ]; then
+    echo "  r3 $R3_INSTALLED_VERSION installed, latest is $R3_LATEST_VERSION — updating..."
+  else
+    echo "  No installed r3 version detected, installing $R3_LATEST_VERSION..."
+  fi
   npm install -g --prefix "$HOME/.local" @hyperlogue/r3
-  echo "  r3 installed to ~/.local/bin/r3"
+  echo "  r3 installed (${R3_LATEST_VERSION}) to ~/.local/bin/r3"
 fi
 
 # --- Auto-configure r3 for Coder public URL ---
@@ -473,7 +555,9 @@ fi
 echo ""
 echo "Installing opencode npm dependencies..."
 
-if command -v npm &>/dev/null; then
+if [ ! -f "$DOTFILES_DIR/.config/opencode/package.json" ]; then
+  echo "  No package.json in .config/opencode, skipping"
+elif command -v npm &>/dev/null; then
   (cd "$DOTFILES_DIR/.config/opencode" && npm install --production)
   echo "  opencode dependencies installed"
 else

@@ -18,7 +18,7 @@ modelRoles:
   commit: neuralwatt/qwen3.6-35b-fast
   advisor: anthropic/claude-sonnet-5
   vision: neuralwatt/gemma-4-31b
-  default: neuralwatt/deepseek-v4-flash:low
+  default: neuralwatt/glm-5.3-flash
 symbolPreset: nerd
 theme:
   dark: dark-nord
@@ -381,6 +381,7 @@ retry:
   modelFallback: true
   fallbackChains:
     default:
+      - neuralwatt/glm-5.3-flash
       - neuralwatt/deepseek-v4-flash
       - neuralwatt/qwen-3.8-27b
       - anthropic/claude-sonnet-5
@@ -470,8 +471,6 @@ error:
 stt:
   enabled: true
   modelName: parakeet
-startup:
-  showSplash: true
 power:
   sleepPrevention: idle
 hideThinkingBlock: true
