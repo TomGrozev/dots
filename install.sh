@@ -144,13 +144,12 @@ elif [ "${DEVCONTAINER:-}" = "true" ]; then
   if [ -e "$captain_miao_dst/config.toml" ] && [ ! -L "$captain_miao_dst/config.toml" ]; then
     mv "$captain_miao_dst/config.toml" "$captain_miao_dst/config.toml.bak"
   fi
-  if awk -f - "$captain_miao_src/config.toml" > "$captain_miao_dst/config.toml" <<'AWK'
+  if awk -f - "$captain_miao_src/config.toml" >"$captain_miao_dst/config.toml" <<'AWK'; then
 /^[[:space:]]*\[/ && $0 !~ /^[[:space:]]*\[launcher\]/ { in_launcher = 0 }
 /^[[:space:]]*\[launcher\]/ { print; print "pooled = true"; in_launcher = 1; next }
 in_launcher && /^[[:space:]]*pooled[[:space:]]*=/ { next }
 { print }
 AWK
-  then
     echo "  Wrote $captain_miao_dst/config.toml with pooled = true"
   else
     echo "  WARNING: bake failed, falling back to a plain symlink (pooled stays off)"
@@ -178,6 +177,10 @@ for entry in "${omp_entries[@]}"; do
   link_entry "$DOTFILES_DIR/.omp/$entry" "$OMP_AGENT_DIR/$entry" "~/.omp/agent/$entry"
 done
 
+# --- Link pi voice STT config ---
+# Authored copy of the pi-voice-stt (Soniox) settings read from ~/.pi/agent/stt.json.
+link_entry "$DOTFILES_DIR/.pi/stt.json" "$HOME/.pi/agent/stt.json" ".pi/agent/stt.json"
+
 # --- Devcontainer: bake config-devcontainer.yml into config.yml ---
 # A PI_CONFIG_FILES env var could select this overlay dynamically for shells that
 # source it - but captain-miao's remote/pooled session spawn never runs a shell at
@@ -193,9 +196,9 @@ done
 if [ "${DEVCONTAINER:-}" = "true" ] && [ -f "$DOTFILES_DIR/.omp/config-devcontainer.yml" ]; then
   echo ""
   echo "Baking devcontainer overlay into config.yml..."
-  if command -v python3 >/dev/null 2>&1 \
-    && python3 -m pip install --quiet --user --break-system-packages pyyaml >/dev/null 2>&1 \
-    && python3 "$DOTFILES_DIR/.omp/merge-config.py" \
+  if command -v python3 >/dev/null 2>&1 &&
+    python3 -m pip install --quiet --user --break-system-packages pyyaml >/dev/null 2>&1 &&
+    python3 "$DOTFILES_DIR/.omp/merge-config.py" \
       "$DOTFILES_DIR/.omp/config.yml" \
       "$DOTFILES_DIR/.omp/config-devcontainer.yml" \
       "$OMP_AGENT_DIR/config.yml"; then
@@ -256,8 +259,8 @@ echo "Installing pi-voice-stt (Soniox STT fork)..."
 
 if [ -d "$PI_VOICE_STT_DIR/.git" ]; then
   echo "  Updating existing pi-voice-stt clone..."
-  git -C "$PI_VOICE_STT_DIR" fetch --quiet origin "$PI_VOICE_STT_BRANCH" && \
-    git -C "$PI_VOICE_STT_DIR" checkout --quiet "$PI_VOICE_STT_BRANCH" && \
+  git -C "$PI_VOICE_STT_DIR" fetch --quiet origin "$PI_VOICE_STT_BRANCH" &&
+    git -C "$PI_VOICE_STT_DIR" checkout --quiet "$PI_VOICE_STT_BRANCH" &&
     git -C "$PI_VOICE_STT_DIR" merge --quiet --ff-only "origin/$PI_VOICE_STT_BRANCH"
 else
   git clone --quiet --branch "$PI_VOICE_STT_BRANCH" \

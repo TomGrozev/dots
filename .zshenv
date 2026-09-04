@@ -18,4 +18,5 @@ opencode-perm() {
 
 if [[ "$(uname)" == "Darwin" ]]; then
   export NEURALWATT_API_KEY="$(security find-generic-password -s "neuralwatt-api-key" -w)"
+  export SONIOX_API_KEY="$(security find-generic-password -s "soniox-api-key" -w)"
 fi
