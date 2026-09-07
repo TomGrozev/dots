@@ -27,6 +27,7 @@ link_entry() {
     echo "  Skipping $label (source not found: $source)"
     return 0
   fi
+  mkdir -p "$(dirname "$target")"
   if [ -e "$target" ] && [ ! -L "$target" ]; then
     echo "  Backing up existing $label → ${label}.bak"
     mv "$target" "${target}.bak"
