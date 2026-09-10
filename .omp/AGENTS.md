@@ -28,7 +28,7 @@ Each turn, the question is: work I keep, or work I send?
 | Agent               | Job                                                                                 | Writes?    |
 | ------------------- | ----------------------------------------------------------------------------------- | ---------- |
 | `scout`             | codebase research: where X lives, callers, conventions, orientation                 | No         |
-| `librarian`         | external docs, library source, API reference (`context7`, `hexdocs-mcp`, `gh_grep`) | No         |
+| `librarian`         | external docs, library source, API reference (`context7`, `gh_grep`) | No         |
 | `reviewer`          | pre-merge code review                                                               | No         |
 | `security-reviewer` | source→sink vulnerability tracing (auth, crypto, secrets, permissions)              | No         |
 | `designer`          | UI/frontend implementation and review                                               | Yes        |
