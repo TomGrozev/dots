@@ -281,6 +281,10 @@ echo "Downloading Zellij plugins..."
 ZELLIJ_PLUGIN_DIR="$HOME/.config/zellij/plugins"
 mkdir -p "$ZELLIJ_PLUGIN_DIR"
 
+# Plugin WASM assets keep the same filename across releases, so the installed
+# copy carries no version — stamp the resolved release tag next to each file
+# at download time (.<name>.tag) and compare against the latest release on
+# later runs, mirroring the miao/r3 update checks above.
 ZELLIJ_PLUGIN_NAMES=("zjstatus.wasm" "zjframes.wasm" "zjstatus-hints.wasm" "zellij-autolock.wasm" "harpoon.wasm")
 ZELLIJ_PLUGIN_URLS=(
   "https://github.com/dj95/zjstatus/releases/latest/download/zjstatus.wasm"
@@ -293,14 +297,42 @@ ZELLIJ_PLUGIN_URLS=(
 for i in "${!ZELLIJ_PLUGIN_NAMES[@]}"; do
   plugin_name="${ZELLIJ_PLUGIN_NAMES[$i]}"
   plugin_path="$ZELLIJ_PLUGIN_DIR/$plugin_name"
+  plugin_stamp="$ZELLIJ_PLUGIN_DIR/.$plugin_name.tag"
+  # ${url%/releases/*} → https://github.com/<owner>/<repo>
+  plugin_repo="${ZELLIJ_PLUGIN_URLS[$i]%/releases/*}"
 
-  if [ -f "$plugin_path" ]; then
-    echo "  $plugin_name already downloaded, skipping"
+  # The latest-download URL 302s to releases/download/<tag>/... — the resolved
+  # tag drives the up-to-date check. Fall back to the GitHub API if the
+  # redirect probe fails.
+  plugin_tag="$(curl -fsSI -o /dev/null -w '%{redirect_url}' "${ZELLIJ_PLUGIN_URLS[$i]}" 2>/dev/null |
+    sed -nE 's#.*/releases/download/([^/]+)/.*#\1#p')"
+  if [ -z "$plugin_tag" ] && command -v jq >/dev/null 2>&1; then
+    plugin_tag="$(curl -fsSL "https://api.github.com/repos/${plugin_repo#https://github.com/}/releases/latest" |
+      jq -r '.tag_name // empty' 2>/dev/null)"
+  fi
+
+  if [ -f "$plugin_path" ] && [ -f "$plugin_stamp" ] && [ -n "$plugin_tag" ] &&
+    [ "$(cat "$plugin_stamp" 2>/dev/null)" = "$plugin_tag" ]; then
+    echo "  $plugin_name already up to date ($plugin_tag), skipping"
+    continue
+  fi
+
+  if [ -f "$plugin_path" ] && [ -n "$plugin_tag" ]; then
+    echo "  $plugin_name installed, latest is $plugin_tag — updating..."
   else
     echo "  Downloading $plugin_name..."
-    curl -fL --progress-bar -o "$plugin_path" "${ZELLIJ_PLUGIN_URLS[$i]}" || {
-      echo "    Warning: Failed to download $plugin_name"
-    }
+  fi
+
+  # Download to a temp file and only replace on success, so a failed update
+  # never leaves a truncated/trashed plugin behind.
+  tmp_plugin="$(mktemp "${plugin_path}.XXXXXX")"
+  if curl -fsSL --progress-bar -o "$tmp_plugin" "${ZELLIJ_PLUGIN_URLS[$i]}"; then
+    mv "$tmp_plugin" "$plugin_path"
+    chmod 644 "$plugin_path"
+    printf '%s\n' "$plugin_tag" >"$plugin_stamp"
+  else
+    echo "    Warning: Failed to download $plugin_name"
+    rm -f "$tmp_plugin"
   fi
 done
 
