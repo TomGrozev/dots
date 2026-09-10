@@ -6,4 +6,8 @@
 
 .cortexkit/
 
+# dev-harness local deps (dotfiles-dev package.json)
+node_modules/
+package-lock.json
+
 .zprofile
