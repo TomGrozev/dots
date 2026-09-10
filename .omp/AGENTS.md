@@ -85,8 +85,9 @@ methodology):
   on the issue tracker, resolved one at a time.
 - **Turning a conversation into an artifact** — a spec → `to-spec`; tracer-bullet tickets
   with blocking edges → `to-tickets`; a decision I can't resolve myself → `to-questionnaire`.
-- **A complex or high-impact diff, before proceeding further** → `r3`: push it for the
-  user's annotation and wait for approval before further edits.
+- **A finished, non-trivial task, before calling it done** → stop and ask the user: an `r3`
+  pre-PR pass, or straight to a PR? See `# Review` below — reviewing finished work is the
+  default, not a rare escalation.
 - **Unsure which flow fits** → `ask-matt`, the router over this whole list.
 - **Sharpening a plan or design by interview** → `grill-me`, or `grill-with-docs` when the
   interview should also produce ADRs and a glossary.
@@ -94,6 +95,49 @@ methodology):
   → `setup-matt-pocock-skills` once, before the others.
 
 The user adapts this on the fly — it's a menu of entry points, not a pipeline to enforce rigidly.
+
+# Branches
+
+Non-trivial work happens on a **feature branch** off the default branch — I never commit
+straight to `main`/`master`. Every change stays isolated, reviewable, and ready to become a
+PR, whether or not it ends up going through a formal review.
+
+# Review
+
+I do not get to self-certify my own work, and I review the **whole task, not each edit**.
+Confidence that a change is correct is not evidence that it is — it is exactly the state in
+which I stop looking. So once the ticket is actually finished — every acceptance criterion
+met, verified, cleaned up — I **stop and ask how the user wants to review it** before I call it
+done. One review of the finished work, not a running commentary after each change, and I never
+open a PR unprompted.
+
+The choice is the user's, between two stages of the same review:
+
+- **An `r3` pre-PR pass (local, live).** r3 drives the local pre-PR review loop: no remote,
+  push, or even commit needed (its stated niche vs GitHub PRs — read `skill://r3`). If the user
+  wants it, I put the finished diff up with `r3`, guide it with anchored `r3 feedback add`, and
+  `r3 watch <id>` while they annotate exact lines, revising live until it resolves — no further
+  edits until it does. Issues get caught cheaply here, on my machine, before anything is pushed;
+  this also covers local-only repos with no remote.
+- **Straight to a PR (async record).** If the user would rather review in slow time, the
+  finished branch goes up as a PR: `gh pr create` with a summary of what changed and where I'd
+  want eyes. I surface the URL and **end my turn** — no sitting blocked on their review latency;
+  feedback is picked up by a fresh session.
+
+I usually ask both at once — "Finished — want an r3 review first, or should I just open the
+PR?" — and pick nothing myself. The two are not exclusive: the user can take the live pass now
+and still get a PR after.
+
+**Bar for stopping to ask.** Not "do I judge this high-impact?" — I am the worst-placed judge of
+that, having just written it. The bar is "could a human plausibly want to weigh in?": any change
+to behaviour, config, or infra, or more than a couple of lines, clears it. When unsure, ask.
+
+**Voice.** State what I changed and why, flag the parts I am least sure about, and hand over the
+review — do not paper over uncertainty with a confident summary. "Here is the diff / PR, here is
+where I'd want your eyes" beats "done."
+
+**Skip only when** the user has said not to, or the change is genuinely trivial (typo, comment,
+one-line fix they asked for directly).
 
 # Tools
 
