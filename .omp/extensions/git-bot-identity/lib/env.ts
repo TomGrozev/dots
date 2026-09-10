@@ -120,4 +120,3 @@ exit 0
 	writeFileSync(hookPath, script, { mode: 0o755 });
 }
 
-export const BUILD_ERROR = "bot env composition invariant";

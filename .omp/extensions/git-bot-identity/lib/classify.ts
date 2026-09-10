@@ -260,16 +260,22 @@ function classifyGh(argv: string[]): SegmentClass | undefined {
 	if (!sub) return "write";
 	if (GH_READONLY.has(sub)) {
 		if (sub === "api") {
-			// Only GET (explicit or default) is a read.
+			// Only GET is a read — and gh flips its DEFAULT method to POST when
+			// -f/-F/--raw-field/--input are present, even with no -X flag. Any
+			// field-feeding or body-feeding flag therefore implies a write.
+			let feedsBody = false;
 			let method: string | undefined;
 			for (let i = 0; i < argv.length; i++) {
 				const arg = argv[i] ?? "";
-				if (arg === "-X" || arg === "--method" || arg === "--request") {
+				if (arg === "-f" || arg === "--raw-field" || arg === "-F" || arg === "--field" || arg === "--input") {
+					feedsBody = true;
+				} else if (arg === "-X" || arg === "--method" || arg === "--request") {
 					method = argv[i + 1];
 				} else if (arg.startsWith("--method=") || arg.startsWith("--request=")) {
 					method = arg.split("=")[1];
 				}
 			}
+			if (feedsBody) return "write";
 			return method === undefined || /^get$/i.test(method ?? "") ? "read-only" : "write";
 		}
 		if (sub === "auth" || sub === "config") {

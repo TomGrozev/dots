@@ -58,6 +58,13 @@ describe("classifyCommand", () => {
 		expect(classifyCommand("gh pr close 12")).toBe("write");
 		expect(classifyCommand("gh issue create --title x")).toBe("write");
 		expect(classifyCommand("gh api -X POST repos/o/r/issues")).toBe("write");
+		// gh flips its default method to POST with field/input flags — no -X needed.
+		expect(classifyCommand("gh api repos/o/r/issues -f title=hi")).toBe("write");
+		expect(classifyCommand("gh api repos/o/r/issues -F count=1")).toBe("write");
+		expect(classifyCommand("gh api --input body.json repos/o/r/issues")).toBe("write");
+		expect(classifyCommand("gh api --raw-field x=y repos/o/r/issues")).toBe("write");
+		// -X GET + field flags is still a write-class command (fail closed).
+		expect(classifyCommand("gh api -X GET repos/o/r/x -f q=y")).toBe("write");
 		expect(classifyCommand("gh api --request=PUT repos/o/r/x")).toBe("write");
 		expect(classifyCommand("gh release upload v1 out.zip")).toBe("write");
 		expect(classifyCommand("gh label create x")).toBe("write");

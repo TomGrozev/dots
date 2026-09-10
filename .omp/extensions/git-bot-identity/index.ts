@@ -32,7 +32,7 @@ import type { ToolCallEvent, BashToolCallEvent, ToolCallEventResult } from "@oh-
 import { classifyCommand } from "./lib/classify";
 import { loadBotConfig, type BotConfig, CONFIG_DIR } from "./lib/config";
 import { signAppJwt, mintInstallationToken, TokenCache } from "./lib/auth";
-import { buildBotEnv, installCoauthorHook } from "./lib/env";
+import { buildBotEnv, installCoauthorHook, type BotEnvConfig } from "./lib/env";
 
 /**
  * Local equivalent of the SDK's `isToolCallEventType("bash", event)` guard.
@@ -48,8 +48,6 @@ function isBashToolCallEvent(event: ToolCallEvent): event is BashToolCallEvent {
 export interface CreateOptions {
 	/** Credentials directory override (tests); defaults to ~/.config/git-bot-identity. */
 	credsDir?: string;
-	/** Skip zmq noop. Placeholder for future flags. */
-	allowDebug?: boolean;
 }
 
 /** The human-facing block reason when credentials are absent or unmintable. */
@@ -122,18 +120,15 @@ export async function createDefault(pi: BotIdentityHookApi, options: CreateOptio
 
 		// Env overlay for this call only. installCoauthorHook rewrites the
 		// prepare-commit-msg hook each time (cheap, keeps trailer text live).
-		const botEnv = buildBotEnv({
+		// BotEnvConfig is a subshape of BotConfig plus the fresh token.
+		const envConfig: BotEnvConfig = {
 			botSlug: config.botSlug,
 			humanName: config.humanName,
 			humanNoreply: config.humanNoreply,
 			token,
-		});
-		installCoauthorHook({
-			botSlug: config.botSlug,
-			humanName: config.humanName,
-			humanNoreply: config.humanNoreply,
-			token,
-		});
+		};
+		const botEnv = buildBotEnv(envConfig);
+		installCoauthorHook(envConfig);
 		event.input.env = { ...(event.input.env ?? {}), ...botEnv };
 		return undefined;
 	});

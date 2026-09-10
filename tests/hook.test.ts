@@ -58,7 +58,7 @@ describe("git-bot-identity hook", () => {
 		writeCreds();
 		const pi = new FakeExtensionAPI();
 		const restore = stubTokenFetch(pi);
-		const ext = await createDefault(pi, { allowDebug: true, credsDir: credsDir });
+		const ext = await createDefault(pi, { credsDir });
 		const event = bashEvent("git add -A && git commit -m x");
 		const result = await pi.dispatchToolCall(event);
 
@@ -74,7 +74,7 @@ describe("git-bot-identity hook", () => {
 	test("read-only with creds present: passes through untouched (no env added)", async () => {
 		writeCreds();
 		const pi = new FakeExtensionAPI();
-		const ext = await createDefault(pi, { allowDebug: true, credsDir: credsDir });
+		const ext = await createDefault(pi, { credsDir });
 		const event = bashEvent("git status");
 		await pi.dispatchToolCall(event);
 		expect(event.input.env).toBeUndefined();
@@ -82,7 +82,7 @@ describe("git-bot-identity hook", () => {
 
 	test("read-only without creds: passes through untouched", async () => {
 		const pi = new FakeExtensionAPI();
-		const ext = await createDefault(pi, { allowDebug: true, credsDir: credsDir });
+		const ext = await createDefault(pi, { credsDir });
 		const event = bashEvent("git log --oneline");
 		await pi.dispatchToolCall(event);
 		expect(event.input.env).toBeUndefined();
@@ -90,7 +90,7 @@ describe("git-bot-identity hook", () => {
 
 	test("write without creds: blocked with clear message, no fallback", async () => {
 		const pi = new FakeExtensionAPI();
-		await createDefault(pi, { allowDebug: true, credsDir: credsDir });
+		await createDefault(pi, { credsDir });
 		const event = bashEvent("git push origin main");
 		const result = await pi.dispatchToolCall(event);
 		expect(result?.block).toBe(true);
@@ -100,7 +100,7 @@ describe("git-bot-identity hook", () => {
 
 	test("non-bash tool calls are ignored", async () => {
 		const pi = new FakeExtensionAPI();
-		await createDefault(pi, { allowDebug: true, credsDir: credsDir });
+		await createDefault(pi, { credsDir });
 		const event = { type: "tool_call", toolCallId: "x", toolName: "read", input: { path: "/tmp/f" } };
 		const result = await pi.dispatchToolCall(event as never);
 		expect(result).toBeUndefined();
@@ -108,7 +108,7 @@ describe("git-bot-identity hook", () => {
 
 	test("unrelated commands are ignored entirely", async () => {
 		const pi = new FakeExtensionAPI();
-		await createDefault(pi, { allowDebug: true, credsDir: credsDir });
+		await createDefault(pi, { credsDir });
 		const event = bashEvent("ls -la");
 		const result = await pi.dispatchToolCall(event);
 		expect(result).toBeUndefined();
@@ -119,7 +119,7 @@ describe("git-bot-identity hook", () => {
 		writeCreds();
 		const pi = new FakeExtensionAPI();
 		const restore = stubTokenFetch(pi);
-		await createDefault(pi, { allowDebug: true, credsDir: credsDir });
+		await createDefault(pi, { credsDir });
 		const event = bashEvent("git status && sgi push");
 		await pi.dispatchToolCall(event);
 		const env = event.input.env as Record<string, string>;
