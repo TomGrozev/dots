@@ -86,8 +86,8 @@ methodology):
 - **Turning a conversation into an artifact** — a spec → `to-spec`; tracer-bullet tickets
   with blocking edges → `to-tickets`; a decision I can't resolve myself → `to-questionnaire`.
 - **A finished, non-trivial task, before calling it done** → stop and ask the user: an `r3`
-  pre-PR pass, or straight to a PR? See `# Review` below — reviewing finished work is the
-  default, not a rare escalation.
+  pass first, then a plain commit or a PR, scaled to the diff's size? See `# Review` below —
+  reviewing finished work is the default, not a rare escalation.
 - **Unsure which flow fits** → `ask-matt`, the router over this whole list.
 - **Sharpening a plan or design by interview** → `grill-me`, or `grill-with-docs` when the
   interview should also produce ADRs and a glossary.
@@ -98,9 +98,13 @@ The user adapts this on the fly — it's a menu of entry points, not a pipeline 
 
 # Branches
 
-Non-trivial work happens on a **feature branch** off the default branch — I never commit
-straight to `main`/`master`. Every change stays isolated, reviewable, and ready to become a
-PR, whether or not it ends up going through a formal review.
+A **work branch** — feature, fix, chore, whatever the change is — is not a default; it exists
+only when the finished work warrants a PR. At the end of a task I make one call, together with
+the review choice in `# Review`: small and contained work lands as a single conventional commit
+straight on the default branch — no branch, no PR. Larger or cross-cutting work gets a work
+branch off the default, named for what it is — `feat/…`, `fix/…`, `chore/…` — created at that
+point (uncommitted work comes along) and goes up as a PR. Either way, the default branch only
+ever receives complete, verified work.
 
 # Review
 
@@ -111,22 +115,29 @@ met, verified, cleaned up — I **stop and ask how the user wants to review it**
 done. One review of the finished work, not a running commentary after each change, and I never
 open a PR unprompted.
 
-The choice is the user's, between two stages of the same review:
+The pick is the user's, and the menu scales with the size of the diff — a PR is the
+async-record end of the scale, not the default landing spot for every change:
 
-- **An `r3` pre-PR pass (local, live).** r3 drives the local pre-PR review loop: no remote,
-  push, or even commit needed (its stated niche vs GitHub PRs — read `skill://r3`). If the user
-  wants it, I put the finished diff up with `r3`, guide it with anchored `r3 feedback add`, and
-  `r3 watch <id>` while they annotate exact lines, revising live until it resolves — no further
-  edits until it does. Issues get caught cheaply here, on my machine, before anything is pushed;
-  this also covers local-only repos with no remote.
-- **Straight to a PR (async record).** If the user would rather review in slow time, the
-  finished branch goes up as a PR: `gh pr create` with a summary of what changed and where I'd
-  want eyes. I surface the URL and **end my turn** — no sitting blocked on their review latency;
-  feedback is picked up by a fresh session.
+- **An `r3` pass (local, live) — offered at every size.** r3 drives the local review loop: no
+  remote, push, or even commit needed (its stated niche vs GitHub PRs — read `skill://r3`). If
+  the user wants it, I put the finished diff up with `r3`, guide it with anchored `r3 feedback
+  add`, and `r3 watch <id>` while they annotate exact lines, revising live until it resolves —
+  no further edits until it does. Issues get caught cheaply here, on my machine, before
+  anything is pushed or committed; this also covers local-only repos with no remote.
+- **A single commit, no PR — for small, contained work.** One file, a handful of lines,
+  anything reviewable in one sitting: a branch and PR around it is ceremony. It lands as one
+  conventional commit straight on the default branch, and I never open a PR for work this size
+  unless the user asks for the async record.
+- **A PR — for larger or cross-cutting work.** Multi-file, behavioural, config, or infra
+  changes keep their work branch and go up as a PR: `gh pr create` with a summary of what
+  changed and where I'd want eyes. I surface the URL and **end my turn** — no sitting blocked
+  on their review latency; feedback is picked up by a fresh session.
 
-I usually ask both at once — "Finished — want an r3 review first, or should I just open the
-PR?" — and pick nothing myself. The two are not exclusive: the user can take the live pass now
-and still get a PR after.
+So the ask at the end of a task is one decision covering both landing spot and review: small
+and contained — "Finished — want an r3 pass first, or should I just commit straight to the
+default branch?"; larger — "Finished — want an r3 pass first, or should I open a PR?" The
+latter implies a work branch; the former skips it. I pick nothing myself. The paths are
+not exclusive: the user can take the live pass now and a commit or PR after.
 
 **Bar for stopping to ask.** Not "do I judge this high-impact?" — I am the worst-placed judge of
 that, having just written it. The bar is "could a human plausibly want to weigh in?": any change
