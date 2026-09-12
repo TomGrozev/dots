@@ -56,8 +56,8 @@ github:
   enabled: false
 task:
   isolation:
-    mode: auto
     commits: ai
+    enabled: true
   agentModelOverrides:
     security-reviewer: "@slow"
     reviewer: "@review"
@@ -473,7 +473,9 @@ stt:
   modelName: parakeet
 power:
   sleepPrevention: idle
-hideThinkingBlock: true
+hideThinkingBlock: false
 personality: pragmatic
 thinkingBudgets:
   xhigh: 16384
+isolation:
+  backend: auto
