@@ -1,5 +1,5 @@
 import { describe, expect, test, beforeEach, afterEach } from "bun:test";
-import { mkdtempSync, rmSync, writeFileSync, readFileSync } from "node:fs";
+import { mkdtempSync, rmSync, writeFileSync, readFileSync, existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createDefault } from "../index";
@@ -75,13 +75,23 @@ describe("git-bot-identity hook", () => {
 		expect(env.GIT_BOT_COAUTHOR).toBe("Co-authored-by: TomGrozev <1491414+TomGrozev@users.noreply.github.com>");
 	});
 
-	test("read-only with creds present: passes through untouched (no env added)", async () => {
+	test("read-only with creds present: runs as the agent account (transport granted, no signing)", async () => {
 		writeCreds();
 		const pi = new FakeExtensionAPI();
 		await createDefault(pi, { credsDir });
 		const event = bashEvent("git status");
-		await pi.dispatchToolCall(event);
-		expect(event.input.env).toBeUndefined();
+		const result = await pi.dispatchToolCall(event);
+		expect(result).toBeUndefined();
+		const env = event.input.env as Record<string, string>;
+		// Reads run as the agent account: PAT transport is granted...
+		expect(env.GH_TOKEN).toBe("github_pat_hooktoken");
+		expect(env.GIT_CONFIG_KEY_0).toBe("url.https://x-access-token:github_pat_hooktoken@github.com/.insteadOf");
+		// ...with the real PATH restored so the real git runs, not the shim.
+		expect(env.PATH).toBe(process.env.PATH);
+		// ...but no signing is configured for a read (no gpg key resolution).
+		const gitconfig = readFileSync(join(botDirTemp, "gitconfig"), "utf8");
+		expect(gitconfig).not.toContain("gpgsign");
+		expect(gitconfig).not.toContain("signingkey");
 	});
 
 	test("read-only without creds: passes through untouched", async () => {
@@ -90,6 +100,26 @@ describe("git-bot-identity hook", () => {
 		const event = bashEvent("git log --oneline");
 		await pi.dispatchToolCall(event);
 		expect(event.input.env).toBeUndefined();
+	});
+
+	test("createDefault returns a neutral env that strips credentials (block by default)", async () => {
+		const pi = new FakeExtensionAPI();
+		const { neutralEnv } = await createDefault(pi, { credsDir });
+		// gh keyring is defeated by an invalid sentinel token; git transport is
+		// disabled; PATH is prefixed with the guidance shim; global config is a
+		// credential-less deny file.
+		expect(neutralEnv.GH_TOKEN).toBe("git-bot-identity-no-creds");
+		expect(neutralEnv.GITHUB_TOKEN).toBe("git-bot-identity-no-creds");
+		expect(neutralEnv.GIT_SSH_COMMAND).toBe("false");
+		expect(neutralEnv.GIT_TERMINAL_PROMPT).toBe("0");
+		expect(neutralEnv.SSH_AUTH_SOCK).toBe("");
+		expect(neutralEnv.GIT_CONFIG_GLOBAL).toBe(join(credsDir, "deny-gitconfig"));
+		expect((neutralEnv.PATH ?? "").startsWith(join(credsDir, "shim") + ":")).toBe(true);
+		// scaffold exists on disk
+		expect(existsSync(join(credsDir, "deny-gitconfig"))).toBe(true);
+		expect(existsSync(join(credsDir, "shim", "git"))).toBe(true);
+		expect(existsSync(join(credsDir, "shim", "gh"))).toBe(true);
+		expect(readFileSync(join(credsDir, "deny-gitconfig"), "utf8")).toContain("[credential]");
 	});
 
 	test("write without creds: blocked with clear message, no fallback", async () => {

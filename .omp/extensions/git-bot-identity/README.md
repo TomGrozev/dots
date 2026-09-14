@@ -1,10 +1,10 @@
 # Git Bot Identity Extension
 
-Provides a secure, isolated bot identity for Git and GitHub operations within the Oh My Pi harness.
+Provides a secure, isolated bot identity for Git and GitHub operations within the Oh My Pi harness using a block-by-default credential model.
 
 - **Bot Identity**: Operates as a dedicated GitHub account for write actions.
 - **Human Co-author**: Automatically adds `Co-authored-by` trailers to bot commits.
-- **Fail-closed**: Write operations are blocked if valid agent credentials cannot be verified. Read-only operations always pass.
++ **Fail-closed**: Write operations are blocked by default and only granted for classified writes when valid agent credentials are configured.
 
 ## Why an Extension
 This is an OMP extension, utilizing the runtime `ExtensionAPI` for auto-discovery from `.omp/extensions/`.
@@ -52,18 +52,18 @@ Create `~/.config/git-bot-identity/config.json`:
 | `signingKey` | No | GPG key-id already present in the bot keyring; used as-is. |
 | `signingKeyFile` | No | Path to an armored, passphrase-less secret key to import into the bot keyring. The multi-host path: one key mounted on every host, one public key on GitHub. Takes precedence over generation. |
 
-## How It Works
+## Enforcement Model
+The extension employs a block-by-default credential model. Security is derived from removing credentials at the process level, not merely by classifying commands.
 
-### Execution Flow
-1. **Classification**: Calls are classified as either read-only or write. Only write-class calls are modified. Read-only calls (e.g. `git log`, `gh pr view`, `git fetch`) pass through untouched — they run as you, with your credentials and identity. This is deliberate: reads have nothing to attribute, so there is no reason to rewrite their identity or transport, injecting the PAT into commands that don't need it only widens token exposure, and reads MUST always pass so the agent stays functional even when bot credentials are absent (the fail-closed block applies to writes only).
-2. **Identity Injection**: For write calls, the extension overlays the following environment variables:
-   - `GIT_AUTHOR_NAME` / `GIT_COMMITTER_NAME`: Set to `config.name`.
-   - `GIT_AUTHOR_EMAIL` / `GIT_COMMITTER_EMAIL`: Set to `config.email`.
-3. **Transport**: To route requests using the PAT, the extension injects a Git configuration `insteadOf` override:
-   `url."https://x-access-token:${token}@github.com/".insteadOf`
-   This rewrites both `git@github.com:` and `https://github.com/` requests to use the agent's PAT.
-4. **Co-authorship**: A `prepare-commit-msg` hook is installed to append the `Co-authored-by` trailer using the human's identity (prioritizing `config.json` over global git config).
-5. **Isolation**: Environment variables are injected per-tool-call; the human's primary shell remains untouched.
+- **Neutralization at Load**: At extension load, the `omp` process environment is neutralized. Every child process—including the bash tool, the eval kernel, and task-subagent shells—is born without GitHub-reaching credentials. This is achieved by:
+    - Removing the SSH agent (`SSH_AUTH_SOCK`).
+    - Overriding `GH_TOKEN`, `GITHUB_TOKEN`, and `GH_ENTERPRISE_TOKEN` with an invalid sentinel to defeat the macOS keyring and force `gh` to fail closed.
+    - Disabling interactive prompts (`GIT_TERMINAL_PROMPT=0`) and SSH transport (`GIT_SSH_COMMAND=false`).
+    - Redirecting `GIT_CONFIG_GLOBAL` to a dedicated, credential-less deny configuration.
+    - Prefixing `PATH` with a directory containing guidance shims for `git` and `gh`.
+- **Selective Re-grant**: Credentials from `config.json` are re-granted *only* for classified write-class `git` or `gh` commands executed through the bash tool. This grant is strictly scoped to that single call. Read-only calls remain credential-neutral; public reads work normally, and when configured, reads run as the agent account.
+- **Prevention of Bypass**: Writes cannot be forced through the eval tool or subshells. The `git`/`gh` shims on `PATH` intercept unauthorized attempts and print a guidance message directing the agent to use the bash tool or stop.
+- **Boundary Limits**: This model is not hermetic. It does not prevent code from fetching secrets via alternative means (e.g., direct macOS keychain access via other tools, hardcoded tokens, or raw HTTPS calls to the API). Only launch-level credential isolation closes these gaps.
 
 ## GPG Signing
 Bot commits are signed with a bot-owned GPG key located in `~/.config/git-bot-identity/gnupg/`.
@@ -75,7 +75,7 @@ Bot commits are signed with a bot-owned GPG key located in `~/.config/git-bot-id
 
 ## Security
 - **Fail-closed Model**: Write-class calls are blocked if required credentials (`name`, `email`, `token`) are missing or invalid. Read-only calls proceed without credentials.
-- **Strict Identity**: Bot identity never falls back to human identity for write actions.
++ **Strict Identity**: The bot identity is isolated and never falls back to the human identity for write actions.
 
 ## Development
 
