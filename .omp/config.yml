@@ -18,7 +18,7 @@ modelRoles:
   commit: neuralwatt/qwen3.6-35b-fast
   advisor: anthropic/claude-sonnet-5
   vision: neuralwatt/gemma-4-31b
-  default: neuralwatt/glm-5.3-flash
+  default: neuralwatt/glm-5.3-flash:auto
 symbolPreset: nerd
 theme:
   dark: dark-nord
