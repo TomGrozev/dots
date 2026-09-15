@@ -17,7 +17,7 @@ The extension provides an interactive wizard to automate identity and key provis
 
 **The Wizard Flow:**
 
-1. **PAT entry** — Prompts for the agent account PAT. *Note: the token is visible while typing in this version; the dialog clears on submit.* Masked entry is a planned follow-up.
+1. **PAT entry** — Prompts for the agent account PAT. Use a **classic** PAT with the `repo` scope — a fine-grained token cannot write to a repo owned by a different personal account, even as a collaborator (see [Personal Access Token](#2-personal-access-token-pat) below). *Note: the token is visible while typing in this version; the dialog clears on submit.* Masked entry is a planned follow-up.
 2. **Authentication (hard gate)** — Validates the PAT via `gh api user`. Failure to authenticate aborts the setup.
 3. **Identity derivation** — Derives `name` and `email` (`{id}+{login}@users.noreply.github.com`) from the GitHub account, allowing manual overrides for both.
 4. **Signing key provisioning** — Offers three options:
@@ -46,10 +46,31 @@ Create a dedicated GitHub account to serve as the agent's identity.
 
 #### 2. Personal Access Token (PAT)
 
-Generate a PAT for the agent account with the following permissions:
+**Use a classic PAT, not a fine-grained one.** The agent is a *separate* GitHub account
+(a collaborator), and the repositories it writes to are typically owned by *you* (a personal
+account), not by the agent. A fine-grained PAT is scoped to a single resource owner and, for a
+personal-account owner, can only reach repositories owned by the token's own account — it
+**cannot** act on a repo owned by a different personal account even when the agent is a
+collaborator. So a fine-grained `contents:write` token authenticates and reads fine but is
+denied write repo-wide (a `403 Permission … denied`). Classic PATs carry the account's full
+collaborator access and are not owner-scoped, so they work here.
 
-- **Fine-grained**: `contents:write`
-- **Classic**: `repo` (full control of private repositories)
+Generate a **classic** PAT on the agent account:
+
+- **Scope**: `repo` — required. This grants push/pull to repositories the agent collaborates
+  on. `repo` is coarse (it covers every repo the account can reach), but the agent account is
+  itself the security boundary: it is a dedicated identity, separate from yours, added only to
+  the repositories it should touch. Scope its *collaborator membership*, and give the token
+  enough to do its job.
+- **Scope**: `workflow` — add only if the agent will push commits that modify files under
+  `.github/workflows/`; GitHub rejects such pushes without it. Skip it otherwise.
+- Everything else (`admin:*`, `delete_repo`, `write:packages`, gists, etc.) — leave off.
+
+> **When a fine-grained PAT *does* work:** only if the repo is owned by the agent account, or
+> is owned by an organization that has enabled fine-grained tokens and where the agent is a
+> member. In those cases use **Contents: Read and write** (+ **Workflows: R/W** for workflow
+> file changes, **Pull requests: R/W** for PR automation). For the common "my repo, agent is a
+> collaborator" setup, this path is unavailable — use the classic `repo` token above.
 
 #### 3. GPG Key
 

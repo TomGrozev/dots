@@ -48,7 +48,7 @@ export interface BotConfig {
 	name: string;
 	/** Agent account email (the GPG key UID email for Verified). */
 	email: string;
-	/** Personal Access Token for the agent account (contents:write / repo). */
+	/** Personal Access Token for the agent account (classic PAT, `repo` scope). */
 	token: string;
 	/** Human display name for the co-author trailer (optional; falls back to git config). */
 	humanName?: string;

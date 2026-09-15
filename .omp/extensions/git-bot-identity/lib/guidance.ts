@@ -25,8 +25,9 @@ export function blockGuidance(cause: string): string {
 	return `${BLOCK_HEADER}
 Cause: ${cause}
 What works: read-only git/gh runs normally. To make an authenticated write, configure the
-  agent account at ~/.config/git-bot-identity/config.json (name, email, token — a PAT with
-  contents:write); the extension grants those creds ONLY to this one classified write.
+  agent account at ~/.config/git-bot-identity/config.json (name, email, token — a CLASSIC PAT
+  with the 'repo' scope; a fine-grained token can't write to a repo owned by another personal
+  account, even as a collaborator); the extension grants those creds ONLY to this one write.
 What does NOT work: there is no fallback to your human identity, and writes cannot be forced
   through the eval tool or a subshell — those run with credentials stripped by design.
 If this action should run as you (the human), run it yourself in your interactive shell.`;

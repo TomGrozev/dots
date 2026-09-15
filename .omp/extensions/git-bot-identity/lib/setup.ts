@@ -172,8 +172,12 @@ export async function runSetup(deps: SetupDeps): Promise<boolean> {
 	async function rotatePat(): Promise<boolean> {
 		// Masked-PAT entry is deliberately out of scope for v1: the token is
 		// visible while typing and the dialog clears on submit — say so up front.
+		// Steer to a classic PAT: the agent is a collaborator on repos it does not
+		// own, and a fine-grained token cannot write to a repo owned by a different
+		// personal account, so it fails 403 on push (README §2 has the full why).
+		ui.notify("Use a CLASSIC PAT with the `repo` scope (add `workflow` only if the agent pushes .github/workflows/ changes). A fine-grained token can't write to a repo owned by another personal account, even as a collaborator.", "info");
 		ui.notify("Your token is visible while you type; the dialog clears on submit.", "warning");
-		const raw = await ui.input("Agent account Personal Access Token", "ghp_… / github_pat_…");
+		const raw = await ui.input("Agent account Personal Access Token (classic, `repo` scope)", "ghp_…");
 		const token = (raw ?? "").trim();
 		if (token === "") return false; // empty/cancel → abort, write nothing
 		const user = await fetchUser(token);
