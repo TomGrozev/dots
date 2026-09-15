@@ -42,9 +42,9 @@ function writeCreds(overrides: Record<string, unknown> = {}) {
 function fakeGpgSpawn(): SpawnFn {
 	return async (cmd: string[]) => {
 		if (cmd.includes("--list-secret-keys")) {
-			return { exitCode: 0, stdout: "sec:u:2048:1:ABCDEF1234567890:20260101::..." };
+			return { exitCode: 0, stdout: "sec:u:2048:1:ABCDEF1234567890:20260101::...", stderr: "" };
 		}
-		return { exitCode: 0, stdout: "" };
+		return { exitCode: 0, stdout: "", stderr: "" };
 	};
 }
 
@@ -173,7 +173,7 @@ describe("git-bot-identity hook", () => {
 		writeCreds();
 		const pi = new FakeExtensionAPI();
 		// Every gpg call fails → no key found, generation fails → block.
-		const failingSpawn: SpawnFn = async () => ({ exitCode: 1, stdout: "" });
+		const failingSpawn: SpawnFn = async () => ({ exitCode: 1, stdout: "", stderr: "" });
 		await createDefault(pi, { credsDir, spawn: failingSpawn });
 		const event = bashEvent("git push origin main");
 		const result = await pi.dispatchToolCall(event);

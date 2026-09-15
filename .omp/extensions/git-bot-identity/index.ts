@@ -56,6 +56,7 @@ import { buildBotEnv, installCoauthorHook, type BotEnvConfig } from "./lib/env";
 import { neutralBaseEnv, writeDenyConfig } from "./lib/neutralize";
 import { installShim } from "./lib/shim";
 import { blockGuidance } from "./lib/guidance";
+import { installSetup } from "./lib/setup";
 
 /**
  * Local equivalent of the SDK's `isToolCallEventType("bash", event)` guard.
@@ -86,7 +87,7 @@ export interface CreateOptions {
  * the production default export does, keeping unit tests free of global env
  * mutation.
  */
-export async function createDefault(pi: BotIdentityHookApi, options: CreateOptions = {}): Promise<{ neutralEnv: Record<string, string> }> {
+export async function createDefault(pi: BotIdentityHookApi, options: CreateOptions = {}): Promise<{ neutralEnv: Record<string, string>; pristineSpawn: SpawnFn }> {
 	const credsDir = options.credsDir ?? CONFIG_DIR;
 	// The real PATH, captured before any neutralization — used both to resolve
 	// the real git/gh for the shim and to restore transport on granted calls.
@@ -96,9 +97,9 @@ export async function createDefault(pi: BotIdentityHookApi, options: CreateOptio
 	// process.env — keeps identity resolution reading the real git config.
 	const pristineEnv = { ...process.env };
 	const pristineSpawn: SpawnFn = async (cmd, env) => {
-		const proc = Bun.spawn(cmd, { env: { ...pristineEnv, ...env } });
-		const stdout = await new Response(proc.stdout).text();
-		return { exitCode: await proc.exited, stdout };
+		const proc = Bun.spawn(cmd, { env: { ...pristineEnv, ...env }, stdout: "pipe", stderr: "pipe", stdin: "ignore" });
+		const [stdout, stderr] = await Promise.all([new Response(proc.stdout).text(), new Response(proc.stderr).text()]);
+		return { exitCode: await proc.exited, stdout, stderr };
 	};
 	const spawn = options.spawn ?? pristineSpawn;
 
@@ -191,7 +192,7 @@ export async function createDefault(pi: BotIdentityHookApi, options: CreateOptio
 		return undefined;
 	});
 
-	return { neutralEnv };
+	return { neutralEnv, pristineSpawn };
 }
 
 /**
@@ -203,7 +204,11 @@ export interface BotIdentityHookApi {
 }
 
 export default async function (pi: ExtensionAPI) {
-	const { neutralEnv } = await createDefault(pi, {});
+	const { neutralEnv, pristineSpawn } = await createDefault(pi, {});
+	// Register the interactive setup wizard + on-launch prompt BEFORE the env is
+	// neutralized: the wizard must run through the pristine (`pristineSpawn`)
+	// spawn captured above so its gh/gpg subprocesses are never self-blocked.
+	installSetup(pi, { credsDir: CONFIG_DIR, spawn: pristineSpawn });
 	// Block by default: neutralize the omp process env so every child born after
 	// this — the bash subprocess, the persistent eval kernel, subagent shells —
 	// inherits stripped credentials. The tool_call hook re-grants creds per

@@ -1,8 +1,8 @@
 import { describe, expect, test, beforeEach, afterEach } from "bun:test";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
-import { loadBotConfig, resolveHumanIdentity, CONFIG_FILE, type SpawnFn } from "../lib/config";
+import { expandTilde, loadBotConfig, resolveHumanIdentity, CONFIG_FILE, type SpawnFn } from "../lib/config";
 
 let dir: string;
 
@@ -23,8 +23,8 @@ function fakeSpawn(results: Record<string, string | null>): SpawnFn {
 	return async (cmd: string[]) => {
 		const key = cmd[cmd.length - 1] as string;
 		const value = results[key];
-		if (value == null) return { exitCode: 1, stdout: "" };
-		return { exitCode: 0, stdout: value };
+		if (value == null) return { exitCode: 1, stdout: "", stderr: "" };
+		return { exitCode: 0, stdout: value, stderr: "" };
 	};
 }
 
@@ -123,6 +123,25 @@ describe("loadBotConfig", () => {
 		writeCreds();
 		const cfg = await loadBotConfig(dir, fakeSpawn(NO_GIT));
 		expect(cfg?.signingKeyFile).toBeUndefined();
+	});
+
+	test("expands a tilde-prefixed signingKeyFile against the home dir", async () => {
+		writeCreds({ signingKeyFile: "~/.config/git-bot-identity/signing-key.asc" });
+		const cfg = await loadBotConfig(dir, fakeSpawn(NO_GIT));
+		expect(cfg?.signingKeyFile).toBe(join(homedir(), ".config/git-bot-identity/signing-key.asc"));
+	});
+
+	test("leaves an absolute signingKeyFile untouched", async () => {
+		writeCreds({ signingKeyFile: "/run/secrets/bot-signing-key.asc" });
+		const cfg = await loadBotConfig(dir, fakeSpawn(NO_GIT));
+		expect(cfg?.signingKeyFile).toBe("/run/secrets/bot-signing-key.asc");
+	});
+
+	test("expandTilde resolves a bare `~` and passes non-tilde paths through", () => {
+		expect(expandTilde("~")).toBe(homedir());
+		expect(expandTilde("~/.ssh/id_ed25519")).toBe(join(homedir(), ".ssh/id_ed25519"));
+		expect(expandTilde("/etc/hosts")).toBe("/etc/hosts");
+		expect(expandTilde("relative/path")).toBe("relative/path");
 	});
 });
 

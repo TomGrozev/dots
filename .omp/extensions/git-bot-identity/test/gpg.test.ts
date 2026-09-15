@@ -24,7 +24,7 @@ describe("ensureBotKey", () => {
 		const spawn: SpawnFn = async (cmd, env) => {
 			expect(cmd).toContain("--list-secret-keys");
 			seenEnv = env;
-			return { exitCode: 0, stdout: `sec:u:2048:1:${BOT_KEY}:20260101::...\n` };
+			return { exitCode: 0, stdout: `sec:u:2048:1:${BOT_KEY}:20260101::...\n`, stderr: "" };
 		};
 		const { keyId } = await ensureBotKey(dir, BOT_EMAIL, spawn);
 		expect(keyId).toBe(BOT_KEY);
@@ -37,12 +37,12 @@ describe("ensureBotKey", () => {
 		const spawn: SpawnFn = async cmd => {
 			if (cmd.includes("--quick-generate-key")) {
 				genArgv = cmd;
-				return { exitCode: 0, stdout: "" };
+				return { exitCode: 0, stdout: "", stderr: "" };
 			}
 			if (cmd.includes("--list-secret-keys")) {
 				listCount++;
 				// scan (fast path + under-lock recheck) finds none; post-gen lists the key.
-				return listCount < 3 ? { exitCode: 0, stdout: "" } : { exitCode: 0, stdout: `sec:u:2048:1:${BOT_KEY}:20260101::...\n` };
+				return listCount < 3 ? { exitCode: 0, stdout: "", stderr: "" } : { exitCode: 0, stdout: `sec:u:2048:1:${BOT_KEY}:20260101::...\n`, stderr: "" };
 			}
 			throw new Error("unexpected gpg argv: " + cmd.join(" "));
 		};
@@ -74,7 +74,7 @@ describe("ensureBotKey", () => {
 			if (cmd.includes("--list-secret-keys")) {
 				listCount++;
 				// Fast-path scan finds nothing; the wait-poll finds the peer's key.
-				return listCount >= 2 ? { exitCode: 0, stdout: `sec:u:2048:1:${BOT_KEY}:20260101::...\n` } : { exitCode: 0, stdout: "" };
+				return listCount >= 2 ? { exitCode: 0, stdout: `sec:u:2048:1:${BOT_KEY}:20260101::...\n`, stderr: "" } : { exitCode: 0, stdout: "", stderr: "" };
 			}
 			throw new Error("must not generate while the lock is held: " + cmd.join(" "));
 		};
@@ -86,11 +86,11 @@ describe("ensureBotKey", () => {
 		let listCount = 0;
 		const spawn: SpawnFn = async cmd => {
 			if (cmd.includes("--quick-generate-key")) {
-				return { exitCode: 2, stdout: "no pinentry" };
+				return { exitCode: 2, stdout: "no pinentry", stderr: "gpg: no pinentry in batch mode" };
 			}
 			if (cmd.includes("--list-secret-keys")) {
 				listCount++;
-				return { exitCode: 0, stdout: "" };
+				return { exitCode: 0, stdout: "", stderr: "" };
 			}
 			throw new Error("unexpected gpg argv: " + cmd.join(" "));
 		};
@@ -109,10 +109,10 @@ describe("importBotKey", () => {
 			if (cmd.includes("--import")) {
 				importArgv = cmd;
 				importEnv = env;
-				return { exitCode: 0, stdout: "" };
+				return { exitCode: 0, stdout: "", stderr: "" };
 			}
 			if (cmd.includes("--list-secret-keys")) {
-				return { exitCode: 0, stdout: `sec:u:2048:1:${BOT_KEY}:20260101::...\n` };
+				return { exitCode: 0, stdout: `sec:u:2048:1:${BOT_KEY}:20260101::...\n`, stderr: "" };
 			}
 			throw new Error("unexpected gpg argv: " + cmd.join(" "));
 		};
@@ -125,16 +125,30 @@ describe("importBotKey", () => {
 
 	test("fails closed when the import command errors", async () => {
 		const spawn: SpawnFn = async cmd => {
-			if (cmd.includes("--import")) return { exitCode: 2, stdout: "no valid OpenPGP data found" };
+			if (cmd.includes("--import")) return { exitCode: 2, stdout: "no valid OpenPGP data found", stderr: "gpg: no valid OpenPGP data found." };
 			throw new Error("must not list keys after a failed import: " + cmd.join(" "));
 		};
 		await expect(importBotKey(dir, KEY_FILE, spawn)).rejects.toThrow(/gpg key import failed/);
 	});
 
+	test("prefers the fake spawn's stderr over stdout when the import errors", async () => {
+		const spawn: SpawnFn = async cmd => {
+			if (cmd.includes("--import")) {
+				return { exitCode: 2, stdout: "no valid OpenPGP data found", stderr: "gpg: can't open '~/.config/...': No such file or directory" };
+			}
+			throw new Error("must not list keys after a failed import: " + cmd.join(" "));
+		};
+		// The thrown message must surface the real stderr diagnostic (gpg reports
+		// errors on stderr), falling back to stdout only when stderr is empty.
+		await expect(importBotKey(dir, KEY_FILE, spawn)).rejects.toThrow(
+			/gpg key import failed \(exit 2\): gpg: can't open '~\/.config\/\.\.\.': No such file or directory/,
+		);
+	});
+
 	test("fails closed when import succeeds but no secret key lands in the keyring", async () => {
 		const spawn: SpawnFn = async cmd => {
-			if (cmd.includes("--import")) return { exitCode: 0, stdout: "" };
-			if (cmd.includes("--list-secret-keys")) return { exitCode: 0, stdout: "" };
+			if (cmd.includes("--import")) return { exitCode: 0, stdout: "", stderr: "" };
+			if (cmd.includes("--list-secret-keys")) return { exitCode: 0, stdout: "", stderr: "" };
 			throw new Error("unexpected gpg argv: " + cmd.join(" "));
 		};
 		await expect(importBotKey(dir, KEY_FILE, spawn)).rejects.toThrow(/no secret key/);

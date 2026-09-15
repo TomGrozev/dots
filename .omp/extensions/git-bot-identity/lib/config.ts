@@ -23,15 +23,16 @@ export const CONFIG_FILE = "config.json";
  * Injectable subprocess reader shape so tests never shell out. `cmd` is the
  * full argv (e.g. `["git","config","--global","--get","user.name"]`);
  * `env` is an optional env overlay (used by the gpg key lifecycle to point
- * GNUPGHOME at the bot home).
+ * GNUPGHOME at the bot home). Both `stdout` and `stderr` are captured (gpg
+ * and git report errors on stderr, so diagnostics read them first).
  */
-export type SpawnFn = (cmd: string[], env?: Record<string, string>) => Promise<{ exitCode: number; stdout: string }>;
+export type SpawnFn = (cmd: string[], env?: Record<string, string>) => Promise<{ exitCode: number; stdout: string; stderr: string }>;
 
 /** Real Bun.spawn wrapper (production default). */
-async function defaultSpawn(cmd: string[], env?: Record<string, string>): Promise<{ exitCode: number; stdout: string }> {
-	const proc = Bun.spawn(cmd, { env: { ...process.env, ...env } });
-	const stdout = await new Response(proc.stdout).text();
-	return { exitCode: await proc.exited, stdout };
+async function defaultSpawn(cmd: string[], env?: Record<string, string>): Promise<{ exitCode: number; stdout: string; stderr: string }> {
+	const proc = Bun.spawn(cmd, { env: { ...process.env, ...env }, stdout: "pipe", stderr: "pipe", stdin: "ignore" });
+	const [stdout, stderr] = await Promise.all([new Response(proc.stdout).text(), new Response(proc.stderr).text()]);
+	return { exitCode: await proc.exited, stdout, stderr };
 }
 
 /** Read one `git config --global --get` key; non-zero exit or empty = absent. */
@@ -69,6 +70,20 @@ function optionalString(parsed: Record<string, unknown>, key: string): string | 
 	const value = parsed[key];
 	if (typeof value !== "string" || value.trim() === "") return undefined;
 	return value;
+}
+
+/**
+ * Expand a leading `~` (or a bare `~`) in a filesystem path against the
+ * current user's home directory. gpg is not a shell and never expands `~`,
+ * so a tilde-prefixed `signingKeyFile` must be resolved here before it is
+ * passed to `--import`. Non-tilde paths pass through untouched; a leading
+ * `$HOME` is deliberately NOT supported.
+ */
+export function expandTilde(path: string): string {
+	if (path === "~" || path.startsWith("~/")) {
+		return join(homedir(), path.slice(1));
+	}
+	return path;
 }
 
 /**
@@ -113,7 +128,9 @@ export async function loadBotConfig(dir: string = CONFIG_DIR, spawn: SpawnFn = d
 	// Path to a secret key to import into the bot keyring — the multi-host path:
 	// one key, mounted on every host, one public key registered on GitHub.
 	const signingKeyFile = optionalString(parsed, "signingKeyFile");
-	if (signingKeyFile !== undefined) config.signingKeyFile = signingKeyFile;
+	// Expand a tilde-prefixed signingKeyFile so every consumer gets a usable
+	// absolute path (gpg is not a shell and never expands `~`).
+	if (signingKeyFile !== undefined) config.signingKeyFile = expandTilde(signingKeyFile);
 
 	return config;
 }

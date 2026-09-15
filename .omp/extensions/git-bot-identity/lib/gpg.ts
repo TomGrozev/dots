@@ -20,10 +20,10 @@ const POLL_MS = 100;
 const LOCK_WAIT_MS = 30_000;
 
 /** Real gpg wrapper injecting GNUPGHOME (production default). */
-async function defaultGpgSpawn(cmd: string[], env?: Record<string, string>): Promise<{ exitCode: number; stdout: string }> {
-	const proc = Bun.spawn(cmd, { env: { ...process.env, ...env } });
-	const stdout = await new Response(proc.stdout).text();
-	return { exitCode: await proc.exited, stdout };
+async function defaultGpgSpawn(cmd: string[], env?: Record<string, string>): Promise<{ exitCode: number; stdout: string; stderr: string }> {
+	const proc = Bun.spawn(cmd, { env: { ...process.env, ...env }, stdout: "pipe", stderr: "pipe", stdin: "ignore" });
+	const [stdout, stderr] = await Promise.all([new Response(proc.stdout).text(), new Response(proc.stderr).text()]);
+	return { exitCode: await proc.exited, stdout, stderr };
 }
 
 /** Parse the first secret-key fingerprint from `--with-colons` output. */
@@ -86,7 +86,7 @@ export async function ensureBotKey(dir: string, email: string, spawn: SpawnFn = 
 			env,
 		);
 		if (res.exitCode !== 0) {
-			throw new Error(`gpg key generation failed (exit ${res.exitCode}): ${res.stdout.trim()}`);
+			throw new Error(`gpg key generation failed (exit ${res.exitCode}): ${res.stderr.trim() || res.stdout.trim()}`);
 		}
 		const generated = await findSecretKey(spawn, env);
 		if (!generated) throw new Error("gpg key generation succeeded but no secret key was produced");
@@ -116,9 +116,33 @@ export async function importBotKey(dir: string, keyFile: string, spawn: SpawnFn 
 
 	const res = await spawn(["gpg", "--batch", "--import", keyFile], env);
 	if (res.exitCode !== 0) {
-		throw new Error(`gpg key import failed (exit ${res.exitCode}): ${res.stdout.trim()}`);
+		throw new Error(`gpg key import failed (exit ${res.exitCode}): ${res.stderr.trim() || res.stdout.trim()}`);
 	}
 	const keyId = await findSecretKey(spawn, env);
 	if (!keyId) throw new Error("gpg key import succeeded but no secret key was found in the bot keyring");
 	return { keyId };
+}
+
+/**
+ * Export the armored secret key `keyId` from the bot's isolated keyring under
+ * `dir/gnupg`. Used to persist a portable copy of the bot's passphrase-less
+ * secret to an armored file — so the SAME key can be provisioned on other
+ * hosts/CI (e.g. into Coder secrets) instead of generating a new key per
+ * host. Fail-closed: a non-zero exit or empty output throws, so the caller
+ * blocks rather than persisting a truncated or absent secret.
+ * `spawn` is injectable for tests (real gpg by default).
+ */
+export async function exportBotSecretKey(dir: string, keyId: string, spawn: SpawnFn = defaultGpgSpawn): Promise<string> {
+	const gnupgDir = join(dir, "gnupg");
+	const env = { GNUPGHOME: gnupgDir };
+
+	const res = await spawn(
+		["gpg", "--batch", "--pinentry-mode", "loopback", "--passphrase", "", "--armor", "--export-secret-keys", keyId],
+		env,
+	);
+	if (res.exitCode !== 0) {
+		throw new Error(`gpg secret key export failed (exit ${res.exitCode}): ${res.stderr.trim() || res.stdout.trim()}`);
+	}
+	if (res.stdout.trim() === "") throw new Error("gpg secret key export succeeded but produced no output");
+	return res.stdout;
 }
