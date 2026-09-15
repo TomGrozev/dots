@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { ExtensionCommandContext } from "@oh-my-pi/pi-coding-agent";
 import type { ExtensionUIContext } from "@oh-my-pi/pi-coding-agent";
+import { runSetup, installSetup, notifyIfUnconfigured, checkKeyEmailVerified } from "../lib/setup";
 import { runSetup, installSetup, notifyIfUnconfigured } from "../lib/setup";
 import { loadBotConfig, CONFIG_FILE, type SpawnFn } from "../lib/config";
 import { FakeExtensionAPI, makeFakeUi } from "./fake-extension-api";
@@ -24,6 +25,21 @@ const ARMORED_PUB = "-----BEGIN PGP PUBLIC KEY BLOCK-----\nxyz\n-----END PGP PUB
 const GH_USER = JSON.stringify({ login: "myproject-agent", id: 12345678, name: "MyProject Agent" });
 const DERIVED_EMAIL = "12345678+myproject-agent@users.noreply.github.com";
 
+/** Account-string GPG-key responses served to the PUBLIC curl endpoint. */
+const GITHUB_KEYS_VERIFIED = JSON.stringify([
+	{ id: 1, public_key_fingerprint: FPR, emails: [{ email: DERIVED_EMAIL, verified: true }] },
+]);
+const GITHUB_KEYS_UNVERIFIED = JSON.stringify([
+	{ id: 1, public_key_fingerprint: FPR, emails: [{ email: DERIVED_EMAIL, verified: false }] },
+]);
+const GITHUB_KEYS_ABSENT = JSON.stringify([
+	{ id: 1, public_key_fingerprint: FPR, emails: [{ email: "someone-else@example.com", verified: true }] },
+]);
+/** Authenticated enumeration of the account's registered keys (re-register delete). */
+const GH_KEYS_LIST = JSON.stringify([
+	{ id: 77, public_key_fingerprint: FPR, emails: [{ email: DERIVED_EMAIL, verified: true }] },
+]);
+
 type SpawnResult = { exitCode: number; stdout: string; stderr: string };
 
 /** Record every spawn call and delegate to `handler` for a canned response. */
@@ -41,7 +57,14 @@ function makeSpawn(handler: (cmd: string[], env?: Record<string, string>) => Spa
  * (GNUPGHOME overlay) from the human-keyring list (no overlay) so both the
  * generate and the keyring-import paths can be driven without shelling out.
  */
-function gpgBotHandler(opts: { generate?: boolean; keyring?: boolean; failUser?: boolean; failSmoke?: boolean; failRegister?: boolean } = {}) {
+function gpgBotHandler(opts: {
+	generate?: boolean;
+	keyring?: boolean;
+	failUser?: boolean;
+	failSmoke?: boolean;
+	failRegister?: boolean;
+	gpgKeys?: "verified" | "unverified" | "absent" | "fail";
+} = {}) {
 	const generate = opts.generate ?? true;
 	let botListCalls = 0;
 	// A well-formed `uid` record: index 9 is the human-readable label (MainUid).
@@ -54,10 +77,18 @@ function gpgBotHandler(opts: { generate?: boolean; keyring?: boolean; failUser?:
 				if (opts.failUser) return { exitCode: 1, stdout: "Not Found", stderr: "" };
 				return { exitCode: 0, stdout: GH_USER, stderr: "" };
 			}
-			if (s.includes("user/gpg_keys")) {
+			if (s.includes("--method") && s.includes("DELETE")) return { exitCode: 0, stdout: "", stderr: "" };
+			if (s.includes("--method") && s.includes("POST") && s.includes("gpg_keys")) {
 				if (opts.failRegister) return { exitCode: 1, stdout: "HTTP 422", stderr: "" };
 				return { exitCode: 0, stdout: "{}", stderr: "" };
 			}
+			if (s.includes("gpg_keys")) return { exitCode: 0, stdout: GH_KEYS_LIST, stderr: "" };
+		}
+		if (cmd[0] === "curl") {
+			if (opts.gpgKeys === "unverified") return { exitCode: 0, stdout: GITHUB_KEYS_UNVERIFIED, stderr: "" };
+			if (opts.gpgKeys === "absent") return { exitCode: 0, stdout: GITHUB_KEYS_ABSENT, stderr: "" };
+			if (opts.gpgKeys === "fail") return { exitCode: 1, stdout: "not found", stderr: "not found" };
+			return { exitCode: 0, stdout: GITHUB_KEYS_VERIFIED, stderr: "" };
 		}
 		if (s.includes("--list-secret-keys")) {
 			if (env?.GNUPGHOME) {
@@ -330,5 +361,157 @@ describe("reconfigure — existing config is redacted and editable", () => {
 	test("loaded config can be read back via loadBotConfig", async () => {
 		writeFileSync(configPath(), JSON.stringify({ name: "MyProject Agent", email: DERIVED_EMAIL, token: "t", signingKey: FPR }));
 		expect(await loadBotConfig(dir, async () => ({ exitCode: 0, stdout: "", stderr: "" }))).not.toBeNull();
+	});
+});
+
+describe("checkKeyEmailVerified — verified-badge state via the PUBLIC endpoint", () => {
+	/** A spawn that always returns the given stdout and records the argv. */
+	function spawnReturning(stdout: string, exitCode = 0) {
+		const calls: string[][] = [];
+		const spawn: SpawnFn = async cmd => {
+			calls.push(cmd);
+			return { exitCode, stdout, stderr: "" };
+		};
+		return { spawn, calls };
+	}
+
+	test("(a) verified email on the matching key → ok, checked, unverified empty", async () => {
+		const { spawn, calls } = spawnReturning(GITHUB_KEYS_VERIFIED);
+		const r = await checkKeyEmailVerified("myproject-agent", FPR, DERIVED_EMAIL, spawn);
+		expect(r.ok).toBe(true);
+		expect(r.checked).toBe(true);
+		expect(r.unverified).toEqual([]);
+		// The endpoint is the PUBLIC (no-auth) user route, addressed with pristine curl.
+		expect(calls[0]).toEqual(["curl", "-fsS", "https://api.github.com/users/myproject-agent/gpg_keys"]);
+	});
+
+	test("(b) unverified email → ok false + unverified=[expectEmail]", async () => {
+		const { spawn } = spawnReturning(GITHUB_KEYS_UNVERIFIED);
+		const r = await checkKeyEmailVerified("myproject-agent", FPR, DERIVED_EMAIL, spawn);
+		expect(r.ok).toBe(false);
+		expect(r.checked).toBe(true);
+		expect(r.unverified).toEqual([DERIVED_EMAIL]);
+	});
+
+	test("(c) absent UID → ok false + unverified empty (upload under wrong UID / upload failed)", async () => {
+		const { spawn } = spawnReturning(GITHUB_KEYS_ABSENT);
+		const r = await checkKeyEmailVerified("myproject-agent", FPR, DERIVED_EMAIL, spawn);
+		expect(r.ok).toBe(false);
+		expect(r.checked).toBe(true);
+		expect(r.unverified).toEqual([]);
+	});
+
+	test("(d) request failure → checked=false, no verdict", async () => {
+		const { spawn } = spawnReturning("not found", 1);
+		const r = await checkKeyEmailVerified("myproject-agent", FPR, DERIVED_EMAIL, spawn);
+		expect(r.checked).toBe(false);
+		expect(r.ok).toBe(false);
+		expect(r.unverified).toEqual([]);
+	});
+
+	test("(d2) unparseable JSON body → checked=false", async () => {
+		const { spawn } = spawnReturning("not json");
+		const r = await checkKeyEmailVerified("myproject-agent", FPR, DERIVED_EMAIL, spawn);
+		expect(r.checked).toBe(false);
+	});
+
+	test("fingerprint matched case-insensitively, tolerating 0x prefix and whitespace", async () => {
+		const { spawn } = spawnReturning(GITHUB_KEYS_VERIFIED);
+		const r = await checkKeyEmailVerified("myproject-agent", `0x${FPR.toLowerCase()} `, DERIVED_EMAIL, spawn);
+		expect(r.ok).toBe(true);
+	});
+});
+
+describe("registerPublicKey — post-upload verified-badge wiring", () => {
+	/** Drive the fresh happy path to completion so the POST succeeds, then the check runs. */
+	async function runFresh(handler: ReturnType<typeof gpgBotHandler>) {
+		const { spawn, calls } = makeSpawn(handler);
+		const ui = makeFakeUi({ selects: ["Generate a new key", "Keep in the keyring only"], inputs: ["ghp_test_" + "x".repeat(20), "", ""] });
+		const ok = await runSetup({ ui: ui.ui as unknown as ExtensionUIContext, spawn, credsDir: dir });
+		return { ok, ui, calls };
+	}
+
+	test("good state → info notify, no warning", async () => {
+		const { ok, ui } = await runFresh(gpgBotHandler({ generate: true })); // default gpgKeys=verified
+		expect(ok).toBe(true);
+		expect(ui.notifications.some(n => n.message === "Verified-badge prerequisites look good.")).toBe(true);
+		expect(ui.notifications.some(n => n.type === "warning" && n.message.includes("is not a verified email"))).toBe(false);
+	});
+
+	test("unverified UID email → exactly one warning naming the mechanism + remediation", async () => {
+		const { ok, ui } = await runFresh(gpgBotHandler({ generate: true, gpgKeys: "unverified" }));
+		expect(ok).toBe(true); // soft: config still written
+		const warnings = ui.notifications.filter(n => n.type === "warning" && n.message.includes("is not a verified email"));
+		expect(warnings.length).toBe(1);
+		expect(warnings[0]!.message).toContain(DERIVED_EMAIL);
+		expect(warnings[0]!.message).toContain("myproject-agent");
+		expect(warnings[0]!.message).toContain("Re-register signing key on GitHub");
+		expect(ui.notifications.some(n => n.message === "Verified-badge prerequisites look good.")).toBe(false);
+	});
+
+	test("checked=false (key list unreadable) → manual-verify warning, no badge verdict", async () => {
+		const { ok, ui } = await runFresh(gpgBotHandler({ generate: true, gpgKeys: "fail" }));
+		expect(ok).toBe(true);
+		const warnings = ui.notifications.filter(n => n.type === "warning" && n.message.includes("settings/keys"));
+		expect(warnings.length).toBeGreaterThan(0);
+		expect(ui.notifications.some(n => n.message === "Verified-badge prerequisites look good.")).toBe(false);
+	});
+});
+
+describe("reconfigure — Re-register signing key on GitHub", () => {
+	test("deletes a matching existing key, then re-POSTs; config rewritten unchanged", async () => {
+		writeFileSync(configPath(), JSON.stringify({ name: "MyProject Agent", email: DERIVED_EMAIL, token: "t", signingKey: FPR }));
+		const { spawn, calls } = makeSpawn(gpgBotHandler({ generate: true, gpgKeys: "verified" }));
+		const ui = makeFakeUi({ selects: ["Re-register signing key on GitHub", "Done/abort"] });
+
+		const ok = await runSetup({ ui: ui.ui as unknown as ExtensionUIContext, spawn, credsDir: dir });
+		expect(ok).toBe(true);
+
+		const deleteCall = calls.find(c => c.cmd.join(" ").includes("--method DELETE"));
+		const postCall = calls.find(c => c.cmd.join(" ").includes("--method POST") && c.cmd.join(" ").includes("gpg_keys"));
+		expect(deleteCall).toBeDefined();
+		expect(postCall).toBeDefined();
+		// Delete-then-post ordering (an email verified after upload needs the
+		// key deleted+re-added for the UID-email link to register).
+		expect(calls.indexOf(deleteCall!)).toBeLessThan(calls.indexOf(postCall!));
+		// Both run with the bot token as GH_TOKEN; delete targets the enumerated id.
+		expect(deleteCall!.env?.GH_TOKEN).toBe("t");
+		expect(postCall!.env?.GH_TOKEN).toBe("t");
+		expect(deleteCall!.cmd.join(" ")).toContain("user/gpg_keys/77");
+		// The post-upload check still runs against the public endpoint (login resolved).
+		expect(calls.some(c => c.cmd[0] === "curl" && c.cmd[2] === "https://api.github.com/users/myproject-agent/gpg_keys")).toBe(true);
+		// Config is re-written with identical content (nothing else changed).
+		const cfg = JSON.parse(readFileSync(configPath(), "utf8"));
+		expect(cfg).toEqual({ name: "MyProject Agent", email: DERIVED_EMAIL, token: "t", signingKey: FPR });
+	});
+
+	test("signingKeyFile storage re-imports the existing key before delete+POST", async () => {
+		writeFileSync(
+			configPath(),
+			JSON.stringify({ name: "MyProject Agent", email: DERIVED_EMAIL, token: "t", signingKeyFile: join(dir, "signing-key.asc") }),
+		);
+		writeFileSync(join(dir, "signing-key.asc"), "secret-asc", { mode: 0o600 });
+		const { spawn, calls } = makeSpawn(gpgBotHandler({ generate: false, gpgKeys: "verified" }));
+		const ui = makeFakeUi({ selects: ["Re-register signing key on GitHub", "Done/abort"] });
+
+		const ok = await runSetup({ ui: ui.ui as unknown as ExtensionUIContext, spawn, credsDir: dir });
+		expect(ok).toBe(true);
+		// The existing armored secret was re-imported (never foreign material) to
+		// learn its fingerprint for the delete-match.
+		expect(calls.some(c => c.cmd.includes("--import"))).toBe(true);
+		const deleteCall = calls.find(c => c.cmd.join(" ").includes("--method DELETE"));
+		expect(deleteCall).toBeDefined();
+		expect(deleteCall!.cmd.join(" ")).toContain("user/gpg_keys/77");
+	});
+
+	test("no signing key set → warns and registers nothing", async () => {
+		writeFileSync(configPath(), JSON.stringify({ name: "MyProject Agent", email: DERIVED_EMAIL, token: "t" }));
+		const { spawn, calls } = makeSpawn(gpgBotHandler({ generate: true, gpgKeys: "verified" }));
+		const ui = makeFakeUi({ selects: ["Re-register signing key on GitHub", "Done/abort"] });
+
+		const ok = await runSetup({ ui: ui.ui as unknown as ExtensionUIContext, spawn, credsDir: dir });
+		expect(ok).toBe(true);
+		expect(ui.notifications.some(n => n.type === "error" && n.message.includes("No signing key"))).toBe(true);
+		expect(calls.some(c => c.cmd.includes("gpg_keys"))).toBe(false);
 	});
 });

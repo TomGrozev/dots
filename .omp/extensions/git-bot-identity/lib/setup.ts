@@ -61,6 +61,86 @@ function maskToken(token: string): string {
 	return `${token.slice(0, 4)}…${token.slice(-4)}`;
 }
 
+/**
+ * Normalize a GPG fingerprint for comparison: drop whitespace and any leading
+ * `0x`, upper-case. GitHub's `public_key_fingerprint` is uppercase hex with no
+ * `0x`; local key IDs may carry either, so compare on the normalized form only.
+ */
+function normalizeFingerprint(fp: string): string {
+	return fp.replace(/[\s0x]/gi, "").toUpperCase();
+}
+
+/**
+ * Check whether the bot's expected signing-UID email is a verified email on one
+ * of the account's registered GPG keys, via the PUBLIC (no-auth) user endpoint
+ * `GET /users/{login}/gpg_keys`. No token leaves the harness here — the route
+ * needs none, and `spawn` is the pristine-spawn arg so a neutralized env can't
+ * break the request.
+ *
+ * Why this exists: a bot can upload a correctly-formed key whose UID email is
+ * nevertheless NOT a verified email on the account, and every committing sign
+ * then shows `verified: false, reason: "bad_email"` — the local key, keyring,
+ * and UID are all good, only the account-side email-verification link is
+ * missing. Setup should catch that instead of letting it surface on the first
+ * commit. Data only: this NEVER shows dialogs (callers own the messaging).
+ *
+ * Matching: when `fingerprint` is given it must match `public_key_fingerprint`
+ * (normalized); otherwise every key is scanned. `unverified` collects each
+ * matching key's email that equals `expectEmail` (case-insensitive) but is not
+ * verified. `ok` is true only when `expectEmail` is present among the matching
+ * keys and none of its occurrences are unverified; a present-but-verified
+ * variant wins. `ok=false, unverified=[]` means the UID email was NOT found on
+ * any matching key (key uploaded under the wrong UID / upload failed).
+ *
+ * `checked=false` means the API request failed or its body didn't parse as an
+ * array — callers then fall back to a generic manual-verify warning only.
+ */
+export async function checkKeyEmailVerified(
+	login: string,
+	fingerprint: string | undefined,
+	expectEmail: string,
+	spawn: SpawnFn,
+): Promise<{ ok: boolean; unverified: string[]; checked: boolean }> {
+	const res = await spawn(["curl", "-fsS", `https://api.github.com/users/${login}/gpg_keys`]);
+	if (res.exitCode !== 0) return { ok: false, unverified: [], checked: false };
+	let keys: { public_key_fingerprint?: string; emails?: { email?: string; verified?: boolean }[] }[];
+	try {
+		const parsed: unknown = JSON.parse(res.stdout);
+		if (!Array.isArray(parsed)) return { ok: false, unverified: [], checked: false };
+		keys = parsed as typeof keys;
+	} catch {
+		return { ok: false, unverified: [], checked: false };
+	}
+
+	// Which keys count: the one matching the resolved fingerprint, else all keys.
+	// The PUBLIC endpoint omits `public_key_fingerprint` (it exists only on the
+	// authenticated /user/gpg_keys), and callers may pass a 16-char keyid from
+	// findSecretKey — not a 40-char fingerprint. If no usable fingerprint is
+	// available, fall back to scanning ALL of the account's keys: the check's
+	// purpose is "is expectEmail a verified email on this account", which holds
+	// account-wide. Scanning all keys can false-positive only if the email is
+	// verified on a DIFFERENT key of the same account — which still satisfies
+	// GitHub's rule.
+	const wantFpr = normalizeFingerprint(fingerprint ?? "");
+	const matched =
+		wantFpr.length === 40
+			? keys.filter(k => normalizeFingerprint(k.public_key_fingerprint ?? "") === wantFpr)
+			: keys;
+
+	let present = false; // expectEmail appears somewhere among matched keys
+	const unverified: string[] = [];
+	for (const k of matched) {
+		for (const e of k.emails ?? []) {
+			if (!e.email) continue;
+			if (e.email.toLowerCase() === expectEmail.toLowerCase()) {
+				present = true;
+				if (e.verified !== true) unverified.push(e.email);
+			}
+		}
+	}
+	return { ok: present && unverified.length === 0, unverified, checked: true };
+}
+
 /** The wizard. Returns true iff a config.json was written. */
 export async function runSetup(deps: SetupDeps): Promise<boolean> {
 	const { ui, spawn, credsDir } = deps;
@@ -181,7 +261,7 @@ export async function runSetup(deps: SetupDeps): Promise<boolean> {
 	}
 
 	/** Step 7 (soft): register the key's public half on GitHub; never aborts. */
-	async function registerPublicKey(keyId: string): Promise<void> {
+	async function registerPublicKey(keyId: string, login: string, expectEmail: string): Promise<void> {
 		const exportRes = await spawn(["gpg", "--armor", "--export", keyId], { GNUPGHOME: gnupgHome });
 		if (exportRes.exitCode !== 0 || exportRes.stdout.trim() === "") {
 			ui.notify("Signing key is ready, but its public key could not be exported for GitHub registration.", "warning");
@@ -196,6 +276,68 @@ export async function runSetup(deps: SetupDeps): Promise<boolean> {
 			ui.notify("Could not register the signing key on GitHub automatically — paste the public key below at https://github.com/settings/keys.", "warning");
 			// Print the armor so the human can paste it manually. Setup continues.
 			ui.notify(pub, "warning");
+			return;
+		}
+
+		// POST succeeded. Now check whether the UID email will actually be a
+		// verified email on the account — see checkKeyEmailVerified's rationale
+		// (the bad_email incident). This is still soft: failures only warn.
+		const check = await checkKeyEmailVerified(login, keyId, expectEmail, spawn);
+		if (!check.checked) {
+			// Couldn't read the key list at all — fall back to the manual-verify
+			// guidance instead of guessing at the badge state.
+			ui.notify(
+				`Signing key uploaded, but GitHub's key list could not be read — verify the email linkage manually at https://github.com/settings/keys.`,
+				"warning",
+			);
+			return;
+		}
+		if (!check.ok) {
+			ui.notify(
+				`Signing key uploaded, but the UID email ${expectEmail} is not a verified email on the GitHub account ${login} — commits will show "The email in this signature doesn't match the committer email" until it is. Fix: sign in as ${login} → Settings → Emails → enable "Keep my email addresses private" (and confirm the account's primary email), then use "Re-register signing key on GitHub" in /git-bot-setup.`,
+				"warning",
+			);
+			return;
+		}
+		ui.notify("Verified-badge prerequisites look good.", "info");
+	}
+
+	/**
+	 * The account login, derived from `gh api user` exactly as rotatePat validates
+	 * the PAT — used to address the PUBLIC gpg_keys endpoint for the badge check.
+	 */
+	async function currentLogin(): Promise<string | undefined> {
+		if (!acc.token) return undefined;
+		const user = await fetchUser(acc.token);
+		return user && typeof user["login"] === "string" ? (user["login"] as string) : undefined;
+	}
+
+	/**
+	 * Delete any already-uploaded GitHub GPG key whose fingerprint matches the
+	 * bot's, so a re-add refreshes the UID-email link. Community-corroborated
+	 * behavior: an email verified AFTER a key was uploaded does not refresh the
+	 * stored copy — the key must be deleted and re-added for the UID-email link
+	 * to register. Soft-fail like the rest of registerPublicKey: if enumeration
+	 * or deletion fails we proceed to the POST anyway. Skipped entirely when no
+	 * matching key exists (e.g. first registration).
+	 */
+	async function deleteMatchingRegisteredKeys(keyId: string): Promise<void> {
+		const want = normalizeFingerprint(keyId);
+		const list = await spawn(["gh", "api", "/user/gpg_keys"], { GH_TOKEN: acc.token! });
+		if (list.exitCode !== 0) return;
+		let keys: { id: number; public_key_fingerprint?: string }[];
+		try {
+			const parsed: unknown = JSON.parse(list.stdout);
+			if (!Array.isArray(parsed)) return;
+			keys = parsed as typeof keys;
+		} catch {
+			return;
+		}
+		for (const k of keys) {
+			if (typeof k?.id !== "number" || !k.public_key_fingerprint) continue;
+			if (normalizeFingerprint(k.public_key_fingerprint) === want) {
+				await spawn(["gh", "api", "--method", "DELETE", `user/gpg_keys/${k.id}`], { GH_TOKEN: acc.token! });
+			}
 		}
 	}
 
@@ -297,7 +439,8 @@ export async function runSetup(deps: SetupDeps): Promise<boolean> {
 			if (!(await askStorageDest(keyId!))) return false;
 		}
 
-		await registerPublicKey(keyId!);
+		const login = (await currentLogin()) ?? "";
+		await registerPublicKey(keyId!, login, acc.email!);
 		return true;
 	}
 
@@ -330,6 +473,39 @@ export async function runSetup(deps: SetupDeps): Promise<boolean> {
 		acc.signingKeyFile = outPath;
 		ui.notify(`Signing secret exported to ${outPath} — same key, so the public half already registered on GitHub stays valid.`, "info");
 	}
+
+	/**
+	 * Reconfigure-only: re-push the CURRENT bot key's public half to GitHub — the
+	 * remediation step after a bad_email badge failure (the UID email is correct
+	 * locally but was never a verified email on the account). It deliberately does
+	 * NOT generate or import any foreign key material: it resolves the existing
+	 * keyId (from `acc.signingKey`, or by re-importing the armored signingKeyFile
+	 * so its fingerprint is known), deletes any already-uploaded matching key so
+	 * the re-add refreshes the UID-email link, then re-registers. Soft-fail — the
+	 * human can always paste the armor manually from the warning path.
+	 */
+	async function reregisterSigningKey(): Promise<void> {
+		if (acc.signingKey === undefined && acc.signingKeyFile === undefined) {
+			ui.notify("No signing key is set to re-register — configure a signing key first.", "error");
+			return;
+		}
+		if (!acc.token) {
+			ui.notify("No token to register with — rotate the PAT first.", "warning");
+			return;
+		}
+		let keyId = acc.signingKey;
+		if (keyId === undefined) {
+			// Re-import the existing armored secret so we know its fingerprint for
+			// the delete-match and the (never-downloaded) public half — this is the
+			// bot's own key, never foreign material.
+			keyId = (await importBotKey(credsDir, acc.signingKeyFile!, spawn)).keyId;
+		}
+		const login = (await currentLogin()) ?? "";
+		// See deleteMatchingRegisteredKeys: an email verified after upload doesn't
+		// refresh the stored link; delete-then-re-add fixes it.
+		await deleteMatchingRegisteredKeys(keyId);
+		await registerPublicKey(keyId, login, acc.email!);
+	}
 	// ── top-level flow ────────────────────────────────────────────────────────
 
 	const existing = await loadBotConfig(credsDir, spawn);
@@ -351,6 +527,7 @@ export async function runSetup(deps: SetupDeps): Promise<boolean> {
 				"Rotate PAT",
 				"Change signing key",
 				"Export current signing key to a file",
+				"Re-register signing key on GitHub",
 				"Re-derive identity",
 				"Done/abort",
 			]);
@@ -358,6 +535,7 @@ export async function runSetup(deps: SetupDeps): Promise<boolean> {
 			if (action === "Rotate PAT") await rotatePat();
 			else if (action === "Change signing key") await changeSigning();
 			else if (action === "Export current signing key to a file") await exportCurrentSigningKey();
+			else if (action === "Re-register signing key on GitHub") await reregisterSigningKey();
 			else if (action === "Re-derive identity") await rederiveIdentity();
 		}
 	} else {
