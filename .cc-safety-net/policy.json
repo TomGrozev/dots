@@ -2,5 +2,8 @@
   "version": 1,
   "safety": {
     "level": "strict"
+  },
+  "destructive_command_protection": {
+    "overrides": { "git.ssh-env": "off" }
   }
 }
