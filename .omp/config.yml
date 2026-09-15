@@ -50,7 +50,7 @@ autolearn:
 mnemopi:
   llmMode: smol
 edit:
-  mode: patch
+  mode: hashline
   fuzzyMatch: true
 github:
   enabled: false
@@ -464,7 +464,7 @@ snapcompact:
   toolResults: true
 followUpMode: one-at-a-time
 interruptMode: immediate
-doubleEscapeAction: tree
+doubleEscapeAction: rewind
 treeFilterMode: default
 error:
   notify: "on"

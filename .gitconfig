@@ -57,7 +57,7 @@
     discard = checkout --
     uncomit = reset --mised HEAD~
 
-    l = log --grapg --decorate --oneline --all
+    l = log --graph --decorate --oneline --all
 
 [gpg]
 	program = gpg

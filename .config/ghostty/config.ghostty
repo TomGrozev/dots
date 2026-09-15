@@ -63,6 +63,8 @@ keybind = cmd+d=new_split:right
 keybind = cmd+shift+d=new_split:down
 keybind = cmd+shift+enter=toggle_split_zoom
 
+# Terminal keybindings (for Zellij interoperability)
+keybind = ctrl+h=raw:Ctrl+h
 # Tab navigation
 keybind = cmd+1=goto_tab:1
 keybind = cmd+2=goto_tab:2
