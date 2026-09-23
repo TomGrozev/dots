@@ -116,6 +116,11 @@ export FZF_DEFAULT_OPTS="--ansi"
 export OPENCODE_ENABLE_EXA=1
 export SEARXNG_API_URL=https://search.theg.house
 
+export GPG_TTY=$(tty)
+export SSH_AUTH_SOCK=$(gpgconf --list-dirs agent-ssh-socket)
+gpgconf --launch gpg-agent
+gpg-connect-agent updatestartuptty /bye > /dev/null
+
 # export LC_ALL=C   # disabled: the C locale breaks UTF-8 (tmux icons rendered as underscores)
 
 # Compilation flags
