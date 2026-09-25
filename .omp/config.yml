@@ -9,16 +9,22 @@ providers:
 modelRoles:
   slow: anthropic/claude-opus-5-5:auto
   plan: anthropic/claude-opus-5-5:auto
-  task: neuralwatt/deepseek-v4.1-flash-flex:auto
-  smol: neuralwatt/qwen3.6-35b-fast:off
+  task: neuralwatt/deepseek-v4.1-flash:auto
+  smol: neuralwatt/deepseek-v4-flash:low
   tiny: neuralwatt/qwen3.6-35b-fast:off
   writer: neuralwatt/gemma-4-31b:low
   review: anthropic/claude-sonnet-5:high
   designer: neuralwatt/glm-5.3-flash:auto
   commit: neuralwatt/qwen3.6-35b-fast:off
-  advisor: anthropic/claude-sonnet-5:auto
+  advisor: neuralwatt/glm-5.3-flash:low
   vision: neuralwatt/gemma-4-31b:low
   default: neuralwatt/deepseek-v4.1-flash:auto
+  memory: neuralwatt/deepseek-v4-flash-flex:low
+cycleOrder:
+  - smol
+  - default
+  - slow
+  - designer
 symbolPreset: nerd
 theme:
   dark: dark-nord
@@ -79,6 +85,12 @@ skills:
 disabledProviders:
   - opencode
   - opencode-go
+  - ollama
+  - llama.cpp
+  - lm-studio
+advisor:
+  enabled: true
+  syncBacklog: "off"
 tools:
   approvalMode: write
   approval:
@@ -381,55 +393,40 @@ retry:
   modelFallback: true
   fallbackChains:
     default:
-      - neuralwatt/deepseek-v4.1-flash:auto
+      - neuralwatt/glm-5.3-flash:auto
       - neuralwatt/deepseek-v4-flash:auto
       - neuralwatt/qwen-3.8-27b:auto
       - anthropic/claude-sonnet-5:auto
     slow:
-      - anthropic/claude-opus-5-5:auto
-      - neuralwatt/glm-5.3:high
-      - anthropic/claude-sonnet-5:auto
+      - neuralwatt/glm-5.3:auto
+      - neuralwatt/kimi-k3:auto
     plan:
-      - anthropic/claude-opus-5-5:auto
-      - neuralwatt/glm-5.3:high
-      - anthropic/claude-sonnet-5:auto
+      - neuralwatt/glm-5.3:auto
+      - neuralwatt/kimi-k3:auto
     task:
-      - neuralwatt/deepseek-v4.1-flash-flex:auto
-      - neuralwatt/qwen-3.8-27b-flex:auto
-      - neuralwatt/deepseek-v4-flash-flex:auto
+      - neuralwatt/glm-5.3-flash:auto
+      - neuralwatt/deepseek-v4-flash:auto
+      - neuralwatt/qwen-3.8-27b:auto
     smol:
-      - neuralwatt/qwen3.6-35b-fast:off
       - neuralwatt/gemma-4-31b:low
+      - neuralwatt/qwen3.6-35b:low
     tiny:
-      - neuralwatt/qwen3.6-35b-fast:off
       - neuralwatt/gemma-4-31b:low
     writer:
-      - neuralwatt/gemma-4-31b:low
-      - neuralwatt/deepseek-v4.1-flash:low
+      - neuralwatt/deepseek-v4-flash:low
     review:
-      - anthropic/claude-sonnet-5:high
       - neuralwatt/glm-5.3:high
-      - neuralwatt/kimi-k2.7-code-flex:high
+      - neuralwatt/kimi-k3:high
     designer:
-      - neuralwatt/glm-5.3-flash:auto
       - neuralwatt/deepseek-v4.1-flash:auto
       - neuralwatt/gemma-4-31b:low
     commit:
-      - neuralwatt/qwen3.6-35b-fast:off
       - neuralwatt/gemma-4-31b:low
     advisor:
-      - anthropic/claude-sonnet-5:auto
-      - neuralwatt/glm-5.3:high
+      - neuralwatt/deepseek-v4-flash:high
     vision:
-      - neuralwatt/gemma-4-31b:low
       - neuralwatt/deepseek-v4.1-flash:low
       - anthropic/claude-sonnet-5:auto
-    neuralwatt/*:
-      - neuralwatt/qwen3.6-35b-fast:off
-      - anthropic/claude-sonnet-5:auto
-    anthropic/*:
-      - anthropic/claude-sonnet-5:auto
-      - neuralwatt/glm-5.3:high
   usageAwareFallback: false
 secrets:
   enabled: true
@@ -462,6 +459,7 @@ compaction:
   idleThresholdTokens: 100000
 ttsr:
   contextMode: discard
+  repeatMode: after-gap
 snapcompact:
   toolResults: true
 followUpMode: one-at-a-time

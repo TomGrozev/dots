@@ -38,12 +38,19 @@
  * vector; a code-fetches-its-own-secret vector needs launch-level isolation.
  *
  * ── Seam ────────────────────────────────────────────────────────────────────
- *  Init mutates `process.env` once (block by default). The `pi.on("tool_call")`
- *  handler, guarded to bash, mutates `event.input.env` BEFORE the approval gate
- *  runs, so the preview reflects the call actually executed; blocking is via the
- *  same handler's return value. The extension's own git/gh reads (human identity
- *  lookup, gpg key setup) run through a pristine-env spawn captured before
- *  neutralization, so they are never self-blocked.
+ *  Init mutates `process.env` once (block by default), and the pristine
+ *  pre-neutralization env is snapshotted ONCE PER PROCESS (keyed by a
+ *  `Symbol.for` registry entry, so it survives the module being re-evaluated on
+ *  a later bind). Every bind therefore resolves the human identity and the real
+ *  PATH from that pristine snapshot, never from an already-overlaid env. The
+ *  `pi.on("tool_call")` handler, guarded to bash, mutates `event.input.env`
+ *  BEFORE the approval gate runs, so the preview reflects the call actually
+ *  executed; blocking is via the same handler's return value. The extension's
+ *  own git/gh reads (human identity lookup, gpg key setup) run through a
+ *  pristine-env spawn, so they are never self-blocked. A bind whose identity
+ *  resolution throws still returns the overlay + guard hook (writes blocked,
+ *  distinct warning) — it never escapes as a load error, which would leave the
+ *  process env unguarded.
  */
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
@@ -77,6 +84,34 @@ export interface CreateOptions {
 }
 
 /**
+ * Registry key for the process-wide pristine-env snapshot. A `Symbol.for` key
+ * (not a module-local variable) so the snapshot survives this module being
+ * re-evaluated: omp re-imports the extension on every bind (new session,
+ * subagent), and a module-local cache would reset while `process.env` stayed
+ * neutralized — making the second bind treat the overlay as pristine, so
+ * identity resolution would read the credential-less deny gitconfig and fail.
+ */
+const PRISTINE_ENV_KEY = Symbol.for("omp.git-bot-identity.pristine-env");
+
+/** The pre-neutralization `process.env`, snapshotted on first use in this process. */
+function pristineEnvSnapshot(): Record<string, string> {
+	const registry = globalThis as unknown as Record<symbol, Record<string, string> | undefined>;
+	const existing = registry[PRISTINE_ENV_KEY];
+	if (existing) return existing;
+	// Copy: `process.env` is mutated in place by the default export.
+	const snapshot = { ...process.env } as Record<string, string>;
+	registry[PRISTINE_ENV_KEY] = snapshot;
+	return snapshot;
+}
+
+/** Bind result: the deny overlay to apply to `process.env`, plus the
+ * pristine-env spawn the extension's own reads must use. */
+export interface BotIdentityBind {
+	neutralEnv: Record<string, string>;
+	pristineSpawn: SpawnFn;
+}
+
+/**
  * Extension factory with injection points for tests: `credsDir` redirects
  * config discovery and neutral-scaffold writes, so no production path is
  * touched from tests; `spawn` overrides the git-config/gpg reader (a
@@ -87,15 +122,17 @@ export interface CreateOptions {
  * the production default export does, keeping unit tests free of global env
  * mutation.
  */
-export async function createDefault(pi: BotIdentityHookApi, options: CreateOptions = {}): Promise<{ neutralEnv: Record<string, string>; pristineSpawn: SpawnFn }> {
+export async function createDefault(pi: BotIdentityHookApi, options: CreateOptions = {}): Promise<BotIdentityBind> {
 	const credsDir = options.credsDir ?? CONFIG_DIR;
+	// Process-wide pristine snapshot, taken at first bind before the default
+	// export neutralizes process.env — so later binds (subagents, new sessions)
+	// still resolve identity and the real PATH from the un-overlaid env.
+	const pristineEnv = pristineEnvSnapshot();
 	// The real PATH, captured before any neutralization — used both to resolve
 	// the real git/gh for the shim and to restore transport on granted calls.
-	const realPath = process.env.PATH ?? "";
+	const realPath = pristineEnv.PATH ?? "";
 	// A pristine-env spawn for the extension's OWN reads (human identity, gpg
-	// key setup). Snapshotting here — before the default export neutralizes
-	// process.env — keeps identity resolution reading the real git config.
-	const pristineEnv = { ...process.env };
+	// key setup), so they are never self-blocked by the neutral overlay.
 	const pristineSpawn: SpawnFn = async (cmd, env) => {
 		const proc = Bun.spawn(cmd, { env: { ...pristineEnv, ...env }, stdout: "pipe", stderr: "pipe", stdin: "ignore" });
 		const [stdout, stderr] = await Promise.all([new Response(proc.stdout).text(), new Response(proc.stderr).text()]);
@@ -106,12 +143,20 @@ export async function createDefault(pi: BotIdentityHookApi, options: CreateOptio
 	const config: BotConfig | null = await loadBotConfig(credsDir, spawn);
 
 	// Resolve the human's co-author identity (config value → git config) once
-	// at load. It can throw when nothing provides a name AND email — a broken
-	// identity setup surfaces as an extension load error (acceptable fail-closed
-	// behavior). loadBotConfig's null (absent creds) still blocks writes below.
+	// at load. A broken identity setup must NOT escape as a load error: the
+	// default export installs the neutral overlay and guard hook only after
+	// this returns, so throwing here would leave the process env unguarded
+	// (fail-open). Instead, leave `identity` null — which keeps every write
+	// blocked below — and warn distinctly on stderr.
 	let identity: { name: string; email: string } | null = null;
 	if (config) {
-		identity = await resolveHumanIdentity(config, spawn);
+		try {
+			identity = await resolveHumanIdentity(config, spawn);
+		} catch (err) {
+			console.warn(
+				`[git-bot-identity] human identity unresolved — all git/gh writes stay blocked: ${err instanceof Error ? err.message : String(err)}`,
+			);
+		}
 	}
 
 	// Scaffold the neutral environment (block by default), unconditionally — the

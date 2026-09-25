@@ -5,7 +5,6 @@ import { join } from "node:path";
 import type { ExtensionCommandContext } from "@oh-my-pi/pi-coding-agent";
 import type { ExtensionUIContext } from "@oh-my-pi/pi-coding-agent";
 import { runSetup, installSetup, notifyIfUnconfigured, checkKeyEmailVerified } from "../lib/setup";
-import { runSetup, installSetup, notifyIfUnconfigured } from "../lib/setup";
 import { loadBotConfig, CONFIG_FILE, type SpawnFn } from "../lib/config";
 import { FakeExtensionAPI, makeFakeUi } from "./fake-extension-api";
 

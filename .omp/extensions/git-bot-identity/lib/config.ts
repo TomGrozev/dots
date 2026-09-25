@@ -139,8 +139,8 @@ export async function loadBotConfig(dir: string = CONFIG_DIR, spawn: SpawnFn = d
  * Resolve the human co-author identity. Precedence: an explicit config value
  * wins; otherwise the human's global git config (`user.name` / `user.email`).
  * Each of name and email is resolved independently and mixed freely. Throws
- * when neither source yields BOTH a name and an email — the caller surfaces
- * this as a load error (fail-closed: never invent an identity).
+ * when neither source yields BOTH a name and an email — the caller turns this
+ * into a warning and blocks all writes (fail-closed: never invent an identity).
  */
 export async function resolveHumanIdentity(
 	config: { humanName?: string; humanNoreply?: string },

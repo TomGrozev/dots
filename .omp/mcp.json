@@ -10,7 +10,8 @@
       "url": "https://mcp.grep.app"
     },
     "codebase-memory-mcp": {
-      "command": "${HOME}/.local/bin/codebase-memory-mcp",
+      "command": "/bin/sh",
+      "args": ["-c", "exec \"$(command -v codebase-memory-mcp || echo \"$HOME/.local/bin/codebase-memory-mcp\")\" \"$@\"", "cbm"],
       "enabled": true
     }
   }
