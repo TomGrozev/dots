@@ -1,27 +1,36 @@
 # Dotfiles
 
-These are by personal dot files that I use to setup mainly dev pods.
+My personal dotfiles, mainly used to set up dev pods and AI-assisted coding.
 
 ## What's Included
 
-- **Shell**: Bash (`.bashrc`, `.fzf.bash`) and Zsh (`.zshrc`, `.zshenv`, `.zprofile`) configs with Oh My Zsh + Powerlevel10k
-- **Git**: GPG signing, delta pager, global ignores (`.gitconfig`, `.gitignore_global`)
-- **Editor**: Neovim/LazyVim configuration (`.config/nvim`)
-- **CLI Tools**: GitHub CLI (`.config/gh`), opencode (`.config/opencode`)
-- **Terminal**: Powerlevel10k theme (`.p10k.zsh`), FZF integration (`.fzf.bash`, `.fzf.zsh`)
-- **Version Manager**: asdf (`.tool-versions`)
+### Shell & Core
+- **Zsh & Bash**: Full configuration (`.zshrc`, `.zshenv`, `.zprofile`, `.bashrc`, `.profile`) including Oh My Zsh and Powerlevel10k.
+- **Environment**: Specialized agent environment (`.agent-env.sh`) and tool versions via [asdf](https://asdf.io/) (`.tool-versions`).
+- **FZF**: Shell integration (`.fzf.bash`, `.fzf.zsh`).
 
-## Prerequisites
+### AI Agent Tooling
+- **OMP (Orchestrator)**: High-level agent management, roles, skills, and rules (`.omp/`).
+- **OpenCode**: AI-powered code interaction tools (`.config/opencode/`).
+- **Codebase Memory**: Knowledge graph MCP for structural codebase analysis.
+- **Companion Tools**: Captain Miao (session manager) and r3 (review tool).
+- **CortexKit**: AI toolkit integration (`.cortexkit/`, `.config/cortexkit/`).
 
-- Unix-like system (macOS, Linux)
-- Zsh
-- Git with GPG signing configured
-- [asdf](https://asdf.io/) for version management
+### Editor & Git
+- **Neovim**: LazyVim-based configuration with custom AI and development plugins (`.config/nvim/`).
+- **Git**: GPG signing, delta pager, and global ignores (`.gitconfig`, `.gitignore_global`).
+- **Git Bot Identity**: Separate git identity for agent-made commits (`.config/git-bot-identity/`).
 
-The install script will install [Oh My Zsh](https://ohmyz.sh/) if it is not already present.
+### Terminal & System
+- **Ghostty**: Modern terminal configuration (`.config/ghostty/`).
+- **Zellij**: Multiplexer setup (`.config/zellij/`).
+- **Yazi**: Terminal file manager (`.config/yazi/`).
+- **GitHub CLI**: gh configuration (`.config/gh/`).
+- **Safety Net**: CC-safety-net policy management (`.cc-safety-net/`).
 
-## Quick Setup
+## Setup
 
+### Quick Install
 ```bash
 cd ~
 git clone https://github.com/TomGrozev/dots dotfiles
@@ -29,22 +38,23 @@ cd dotfiles
 ./install.sh
 ```
 
-The install script will:
+The install script performs the following:
+1. **Symlinks**: Maps dotfiles from `~/dotfiles` to home directory, backing up existing files with `.bak`.
+2. **Shell**: Installs Oh My Zsh and required plugins (syntax highlighting, autosuggestions) and Powerlevel10k.
+3. **Tooling**: Installs binaries for `codebase-memory-mcp`, `captain-miao`, and `r3`.
+4. **Configuration**: Sets up `.config/` subdirectories for `gh`, `nvim`, `opencode`, `ghostty`, `yazi`, `zellij`, `cortexkit`, and `captain-miao`.
+5. **Agents**: Installs essential agent skills (Matt Pocock engineering skills, conventional-commit, frontend-design) via npm.
+6. **Integration**: Configures `r3` public URLs for Coder workspaces.
 
-1. Symlink dotfiles from `~/dotfiles` to your home directory
-2. Back up any existing files with `.bak` suffix
-3. Install Oh My Zsh (if missing) and Oh My Zsh plugins (zsh-syntax-highlighting, zsh-autosuggestions)
-4. Install Powerlevel10k theme
-5. Set up `.config/` subdirectories for gh, nvim, and opencode
-
-TBH this install script was written by AI so I haven't tested. YOLO, have fun!
-
-## Manual Installation
-
-If you prefer not to run the install script, you can manually symlink the files:
-
+### Manual Installation
+If you prefer not to use the script, manually symlink the required files:
 ```bash
 ln -s ~/dotfiles/.zshrc ~/.zshrc
 ln -s ~/dotfiles/.gitconfig ~/.gitconfig
 # ... etc.
 ```
+
+## Docs
+For detailed information on specific components, see the documentation:
+- [AI Agent Tooling](docs/ai-agents.md) - Detail on OMP, OpenCode, and supporting tools.
+
