@@ -604,8 +604,11 @@ fi
 # Skills install into ~/.agents/skills/, which omp exposes via its
 # config.yml `skills.customDirectories` and opencode reads natively.
 # `skills add -a universal` targets that shared directory agent-agnostically.
-# Matt Pocock engineering skills. `implement` and `to-tickets` are deliberately absent:
-# pairing-workflow variants of both live in .omp/skills (→ ~/.omp/agent/skills).
+# Matt Pocock engineering skills. `implement` and `to-tickets` are excluded from
+# MATT_POCOCK_SKILLS because pairing-workflow variants of both live in .omp/skills
+# (→ ~/.omp/agent/skills). Even so, `skills add` pulls the whole mattpocock/skills
+# repo, which also ships implement/ and to-tickets/ — they would shadow the local
+# variants, so they are removed after the install (see below).
 MATT_POCOCK_SKILLS=(
   ask-matt
   code-review
@@ -644,6 +647,12 @@ if command -v npm &>/dev/null; then
     matt_pocock_skill_args+=(-s "$skill")
   done
   npx skills add mattpocock/skills "${matt_pocock_skill_args[@]}" -a universal -y -g
+
+  echo "  Removing bundled upstream implement and to-tickets (local variants shadow them)..."
+  rm -rf "$HOME/.agents/skills/implement" "$HOME/.agents/skills/to-tickets" || true
+  if [ -d "$HOME/.agents/skills/implement" ] || [ -d "$HOME/.agents/skills/to-tickets" ]; then
+    echo "  WARNING: failed to remove upstream implement/to-tickets; local variants may be shadowed"
+  fi
 
   echo "  Installing conventional-commit skill..."
   npx skills add https://github.com/github/awesome-copilot --skill conventional-commit -a universal -y -g
