@@ -167,7 +167,7 @@ fi
 echo ""
 echo "Linking omp config..."
 
-omp_entries=(config.yml config-devcontainer.yml models.yml mcp.json AGENTS.md RULES.md agents extensions rules)
+omp_entries=(config.yml config-devcontainer.yml models.yml mcp.json AGENTS.md RULES.md agents extensions rules hooks)
 
 for entry in "${omp_entries[@]}"; do
   # config.yml is handled below in devcontainers: baked with the overlay
@@ -604,7 +604,8 @@ fi
 # Skills install into ~/.agents/skills/, which omp exposes via its
 # config.yml `skills.customDirectories` and opencode reads natively.
 # `skills add -a universal` targets that shared directory agent-agnostically.
-# Matt Pocock engineering skills
+# Matt Pocock engineering skills. `implement` and `to-tickets` are deliberately absent:
+# pairing-workflow variants of both live in .omp/skills (→ ~/.omp/agent/skills).
 MATT_POCOCK_SKILLS=(
   ask-matt
   code-review
@@ -615,7 +616,6 @@ MATT_POCOCK_SKILLS=(
   grill-with-docs
   grilling
   handoff
-  implement
   improve-codebase-architecture
   prototype
   research
@@ -625,7 +625,6 @@ MATT_POCOCK_SKILLS=(
   teach
   to-questionnaire
   to-spec
-  to-tickets
   triage
   wait-what
   wayfinder

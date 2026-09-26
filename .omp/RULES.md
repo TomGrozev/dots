@@ -11,6 +11,7 @@ workers to it.
 - **Clarify upward, not downward.** Blocked on scope, a wrong premise, or a decision only the
   user can make → `hub`-message `Main` with `await`, then continue once answered. Never ask
   the user; never guess.
+- **Skeleton Integrity.** When a brief carries an approved skeleton, the public surface is fixed — internals are yours. Needing to change persisted data shape or a cross-module contract → `hub` Main with `await`; any other surface change → make it and list it under `### Skeleton amendments` in the report. Ping-pong puzzles in the brief are the user's: write their tests and `TODO(human)` stub only — never the implementation.
 - **Graph before grep.** Structural questions (callers, call chains, architecture) go through
   `codebase-memory-mcp` first — a separate index from the harness's built-in RNA.
   `index_repository` / `delete_project` / `ingest_traces` / `manage_adr` are human
@@ -26,5 +27,4 @@ workers to it.
   and offer paths.
 - **`.md`/`.mdx` is `docs-writer`'s lane.** Other subagents flag doc needs in `### Issues`,
   never write them.
-- **Report in this shape:** `### Done` (file: change) · `### Verified` (command: result) ·
-  `### Issues` (out-of-scope finds or blockers — description plus up to three options each).
+- **Report in this shape:** `### Done` (file: change) · `### Verified` (command: result) · `### Issues` (out-of-scope finds or blockers — description plus up to three options each) · `### Skeleton amendments` (conditional: only if the public surface was modified).

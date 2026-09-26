@@ -89,7 +89,7 @@ disabledProviders:
   - llama.cpp
   - lm-studio
 advisor:
-  enabled: true
+  enabled: false
   syncBacklog: "off"
 tools:
   approvalMode: write

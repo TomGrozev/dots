@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Pairing workflow</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root { --you:#1d4ed8; --auto:#6b7280; --wait:#b45309; --ink:#111827; --muted:#4b5563; }
+  body { font: 16px/1.55 ui-sans-serif, system-ui, -apple-system, sans-serif; color: var(--ink); max-width: 980px; margin: 2.5rem auto; padding: 0 1.25rem; }
+  h1 { margin-bottom: .25rem; } .sub { color: var(--muted); margin-top: 0; }
+  .legend { display:flex; gap:1.25rem; flex-wrap:wrap; margin:1.25rem 0; font-size:.95rem; }
+  .chip { display:inline-block; padding:.15rem .6rem; border-radius:.4rem; margin-right:.4rem; }
+  .you { background:var(--you); color:#fff; } .auto { background:#e5e7eb; border:1px dashed var(--auto); } .wait { background:#fde68a; border:1px solid var(--wait); }
+  .mermaid { background:#fafafa; border:1px solid #e5e7eb; border-radius:.6rem; padding:1rem; }
+  table { border-collapse: collapse; width:100%; margin:1rem 0 2rem; font-size:.95rem; }
+  th, td { text-align:left; vertical-align:top; padding:.5rem .6rem; border-bottom:1px solid #e5e7eb; }
+  th { background:#f3f4f6; } code { background:#f3f4f6; padding:.05rem .3rem; border-radius:.25rem; }
+</style>
+</head>
+<body>
+<h1>Pairing workflow</h1>
+<p class="sub">Matt Pocock's flow (wayfinder → to-spec → to-tickets → implement), with pairing layered in. Source of truth: <code>~/.omp/agent/skills/</code>.</p>
+
+<div class="legend">
+  <span><span class="chip you">skill</span>you call it</span>
+  <span><span class="chip auto">skill</span>called for you by another skill</span>
+  <span><span class="chip wait">⏸</span>AI waits for you</span>
+</div>
+
+<pre class="mermaid">
+flowchart TD
+  classDef you fill:#1d4ed8,color:#fff,stroke:#1e3a8a
+  classDef auto fill:#e5e7eb,color:#111,stroke:#6b7280,stroke-dasharray:4 3
+  classDef wait fill:#fde68a,color:#111,stroke:#b45309
+
+  ON["onboard — once per repo"]:::you --> SM["setup-matt-pocock-skills"]:::auto
+
+  WF["wayfinder — big or foggy work"]:::you --> DT["decision tickets:<br/>grilling · research · prototype · task"]:::auto
+  GM["grill-me — medium work"]:::you --> SPEC
+  DT --> SPEC["to-spec"]:::you
+  SPEC --> TIX["to-tickets<br/>AI proposes mode + puzzles, you approve"]:::you
+  TIX --> IMP["implement"]:::you
+  ASK["small ask, no skill"] --> M
+  IMP --> M{"ticket mode"}
+
+  M -- hitl --> PAIR["pair"]:::auto
+  PAIR --> SK["⏸ you edit the skeleton"]:::wait
+  SK --> PZ["⏸ your puzzles:<br/>ping-pong or strong-style"]:::wait
+  PZ --> TDD
+  M -- afk --> TDD["tdd — AI does the chores"]:::auto
+
+  TDD --> CR["code-review (blind) + Gate"]:::auto
+  CR --> Q{"⏸ r3 pass?"}:::wait
+  Q -- yes --> WK["walkthrough as r3 comments"]:::auto
+  Q -- no --> WC["walkthrough in chat"]:::auto
+  WK --> END["commit or PR"]:::auto
+  WC --> END
+
+  CAL["calibrate — now and then:<br/>measures rework in git history"]:::you
+</pre>
+
+<p>Only other stop: the <b>hard stop</b> — if implementation needs a new persisted data shape or cross-module contract the skeleton doesn't have, the AI stops, you decide, and the decision becomes an ADR.</p>
+
+<h2>Terms</h2>
+<table>
+  <tr><th>Term</th><th>Meaning</th></tr>
+  <tr><td><code>hitl</code> / <code>afk</code></td><td>Ticket mode: who is in charge. <b>hitl</b> (human in the loop, label <code>ready-for-human</code>) = the ticket changes the public surface, or has a puzzle you take. <b>afk</b> (away from keyboard, label <code>ready-for-agent</code>) = everything else, incl. anything describable in one sentence. Same words wayfinder uses for its tickets.</td></tr>
+  <tr><td>Public surface</td><td>Modules and where they live, public function heads + types, schemas/migrations, contracts between modules. Yours.</td></tr>
+  <tr><td>Skeleton</td><td>The public surface as real code in the real files, bodies not implemented. You edit it in your editor and say "go".</td></tr>
+  <tr><td>Puzzle</td><td>A piece of a ticket's internals where the thinking is the work: an algorithm, state machine, edge-case policy, ordering/concurrency, a non-obvious query. Usually 0–3 per ticket, often none. Everything else is a <b>chore</b> (wiring, boilerplate, tests, CSS) and is never offered.</td></tr>
+  <tr><td>Ping-pong</td><td>AI writes the failing tests + a <code>TODO(human)</code> stub with context and tradeoffs. You write the code; AI reviews it like a pair.</td></tr>
+  <tr><td>Strong-style</td><td>You navigate, AI drives: AI offers 2–3 approaches, you pick or sketch, AI types it.</td></tr>
+  <tr><td>Solo</td><td>AI does it alone; you see it in the walkthrough.</td></tr>
+  <tr><td>Tests</td><td>Derived by the AI from the spec's user stories/testing decisions and the ticket's acceptance criteria. You never write or approve a test list.</td></tr>
+  <tr><td>Gate</td><td>One command in the repo's agent file under <code>## Gate</code> (written by onboard), e.g. tests + compiler + linter + formatter. It is one repo-owned command — the repo's pre-commit hook runs the same one — and must pass with output shown before the review.</td></tr>
+  <tr><td>Blind review</td><td>A reviewer that sees only skeleton, acceptance criteria and diff — not the implementer's reasoning — looking for untested criteria, duplicated code, and changed semantics behind a stable interface.</td></tr>
+  <tr><td>Stack pack</td><td><code>rule://stack-&lt;name&gt;</code>, e.g. <code>stack-elixir</code>: language-wide rules that auto-load when the AI edits that language's files.</td></tr>
+</table>
+
+<h2>Where you decide</h2>
+<table>
+  <tr><th>Moment</th><th>Your input</th></tr>
+  <tr><td>wayfinder / grilling</td><td>What to build and how it behaves (becomes user stories and acceptance criteria).</td></tr>
+  <tr><td>to-spec</td><td>Test seams (to-spec asks once).</td></tr>
+  <tr><td>to-tickets review</td><td>Slicing, blockers, each ticket's mode, puzzles and their styles — one approval for the batch.</td></tr>
+  <tr><td>pair</td><td>Edit the skeleton; write ping-pong puzzles; pick strong-style approaches.</td></tr>
+  <tr><td>End of every task</td><td>r3 pass? then the walkthrough (as r3 comments or in chat) · commit or PR? (skip either with one word)</td></tr>
+</table>
+
+<script type="module">
+  import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
+  mermaid.initialize({ startOnLoad: true, theme: "default", flowchart: { curve: "basis" } });
+</script>
+</body>
+</html>
