@@ -164,10 +164,12 @@ fi
 # --- Link omp (Oh My Pi) config ---
 # ~/.omp/agent/ holds runtime state (agent.db, sessions/, memories/) alongside
 # authored config, so individual entries are linked rather than the directory.
+# merge-config.py is deliberately absent: install.sh invokes it from
+# $DOTFILES_DIR, and omp never reads it from the agent dir.
 echo ""
 echo "Linking omp config..."
 
-omp_entries=(config.yml config-devcontainer.yml models.yml mcp.json AGENTS.md RULES.md agents extensions rules hooks)
+omp_entries=(config.yml config-devcontainer.yml mcp.json AGENTS.md RULES.md WATCHDOG.md agents extensions rules hooks skills)
 
 for entry in "${omp_entries[@]}"; do
   # config.yml is handled below in devcontainers: baked with the overlay
