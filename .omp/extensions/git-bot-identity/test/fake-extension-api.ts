@@ -3,7 +3,7 @@
  * Only the surface git-bot-identity.ts touches.
  */
 import type { BashToolCallEvent, ExtensionContext, ExecOptions, ExecResult, ToolCallEvent, ToolCallEventResult } from "@oh-my-pi/pi-coding-agent";
-import type { ExtensionCommandContext, ExtensionUIContext, SessionStartEvent } from "@oh-my-pi/pi-coding-agent";
+import type { ExtensionCommandContext, ExtensionUIContext, SessionStartEvent, ToolResultEvent } from "@oh-my-pi/pi-coding-agent";
 import type { logger as PiLogger } from "@oh-my-pi/pi-utils";
 
 /** Same shape as the SDK's ExtensionHandler<ToolCallEvent, ToolCallEventResult>. */
@@ -11,6 +11,9 @@ export type ToolCallHandler = (
 	event: ToolCallEvent,
 	ctx: ExtensionContext,
 ) => Promise<ToolCallEventResult | void> | ToolCallEventResult | void;
+
+/** Handler shape for the post-call `tool_result` hook (grant revocation). */
+export type ToolResultHandler = (event: ToolResultEvent, ctx: ExtensionContext) => void | Promise<void>;
 
 /** Handler shape for the setup extension's session_start hook. */
 export type SessionStartHandler = (event: SessionStartEvent, ctx: ExtensionContext) => void | Promise<void>;
@@ -34,6 +37,7 @@ const execResponses: Record<string, FakeExecResult | Error> = {};
 
 export class FakeExtensionAPI {
 	handlers: Record<string, ToolCallHandler> = {};
+	toolResultHandlers: ToolResultHandler[] = [];
 	commands: Record<string, RegisteredCommand> = {};
 	sessionStartHandlers: SessionStartHandler[] = [];
 	execCalls: { command: string; args: string[] }[] = [];
@@ -41,11 +45,20 @@ export class FakeExtensionAPI {
 
 	logger = {} as unknown as typeof PiLogger;
 
-	on(eventName: "tool_call" | (string & {}), handler: ToolCallHandler | SessionStartHandler): void {
+	on(
+		eventName: "tool_call" | (string & {}),
+		handler: ToolCallHandler | SessionStartHandler | ToolResultHandler,
+	): void {
 		// Route session_start to a dedicated list so tests can dispatch it and
 		// drive the on-launch setup prompt independently of tool_call hooks.
 		if (eventName === "session_start") {
 			this.sessionStartHandlers.push(handler as unknown as SessionStartHandler);
+			return;
+		}
+		// tool_result handlers have a distinct shape; keep them separate so a
+		// `tool_call` dispatch never runs them.
+		if (eventName === "tool_result") {
+			this.toolResultHandlers.push(handler as unknown as ToolResultHandler);
 			return;
 		}
 
@@ -86,6 +99,13 @@ export class FakeExtensionAPI {
 		if (!handler) throw new Error("No tool_call handler registered");
 		return handler(event, ctx as ExtensionContext);
 	}
+
+	/** Fire the registered tool_result handlers the way omp's event bus would. */
+	async dispatchToolResult(event: ToolResultEvent, ctx?: Partial<ExtensionContext>): Promise<void> {
+		for (const handler of this.toolResultHandlers) {
+			await handler(event, ctx as ExtensionContext);
+		}
+	}
 }
 
 /** A bash tool_call event with mutable input, as omp delivers it. */
@@ -93,6 +113,19 @@ export function bashEvent(command: string, env?: Record<string, string>): BashTo
 	const input = { command };
 	if (env) Object.assign(input, { env });
 	return { type: "tool_call", toolCallId: "test-1", toolName: "bash", input } as BashToolCallEvent;
+}
+
+/** A bash tool_result event for the given call, as omp delivers it. */
+export function toolResultEvent(toolCallId: string): ToolResultEvent {
+	return {
+		type: "tool_result",
+		toolCallId,
+		toolName: "bash",
+		input: {},
+		content: [{ type: "text", text: "ok" }],
+		isError: false,
+		details: undefined,
+	} as ToolResultEvent;
 }
 
 /** Scriptable ui surface: canned answers by FIFO queue, notifications recorded. */

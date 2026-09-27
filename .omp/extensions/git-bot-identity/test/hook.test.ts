@@ -3,7 +3,10 @@ import { mkdtempSync, rmSync, writeFileSync, readFileSync, existsSync } from "no
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createDefault } from "../index";
-import { FakeExtensionAPI, bashEvent } from "./fake-extension-api";
+import { FakeExtensionAPI, bashEvent, toolResultEvent } from "./fake-extension-api";
+import { redeem } from "./grant-probe";
+import { stopGrantServer } from "../lib/grant-server";
+import { GRANT_CLIENT_PATH } from "../lib/shim";
 import type { SpawnFn } from "../lib/config";
 import type { BashToolCallEvent } from "@oh-my-pi/pi-coding-agent";
 
@@ -19,6 +22,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+	stopGrantServer(credsDir);
 	if (botDirBackup === undefined) delete process.env.GIT_BOT_CONFIG_DIR;
 	else process.env.GIT_BOT_CONFIG_DIR = botDirBackup;
 	rmSync(credsDir, { recursive: true, force: true });
@@ -48,17 +52,35 @@ function fakeGpgSpawn(): SpawnFn {
 	};
 }
 
+/** Pull the ticket the hook prefixed onto a command, and the original command. */
+function parseTicket(command: string): { ticket: string; original: string } {
+	const m = /^export GBI_TICKET=([0-9a-f]+); ([\s\S]*)$/.exec(command);
+	if (!m) throw new Error(`command was not ticket-prefixed: ${command}`);
+	return { ticket: m[1] as string, original: m[2] as string };
+}
+
 describe("git-bot-identity hook", () => {
-	test("write with creds present: env overlaid with agent identity and PAT transport", async () => {
+	test("write with creds present: command is ticket-prefixed and the ticket resolves over the real socket to the grant env", async () => {
 		writeCreds();
 		const pi = new FakeExtensionAPI();
-		await createDefault(pi, { credsDir, spawn: fakeGpgSpawn() });
+		const { neutralEnv } = await createDefault(pi, { credsDir, spawn: fakeGpgSpawn() });
 		const event = bashEvent("git add -A && git commit -m x");
 		const result = await pi.dispatchToolCall(event);
 
-		// No block: the call proceeds with mutated input env.
+		// No block: the call proceeds with a rewritten command.
 		expect(result).toBeUndefined();
-		const env = event.input.env as Record<string, string>;
+		// The neutral overlay carries the socket path; the shell inherits it.
+		expect(neutralEnv.GBI_GRANT_SOCK).toBe(join(credsDir, `grant-${process.pid}.sock`));
+
+		const { ticket, original } = parseTicket(event.input.command as string);
+		expect(original).toBe("git add -A && git commit -m x");
+		// No env on the event — the handoff is in-memory, not event-mediated.
+		expect(event.input.env).toBeUndefined();
+
+		// The ticket resolves over the live socket to the env the shim will apply.
+		const reply = await redeem(neutralEnv.GBI_GRANT_SOCK as string, ticket);
+		expect(reply.ok).toBe(true);
+		const env = reply.env as Record<string, string>;
 		expect(env.GIT_AUTHOR_NAME).toBe("MyProject Agent");
 		expect(env.GIT_AUTHOR_EMAIL).toBe("12345678+myproject-agent@users.noreply.github.com");
 		expect(env.GH_TOKEN).toBe("github_pat_hooktoken");
@@ -68,21 +90,34 @@ describe("git-bot-identity hook", () => {
 		// Bot owns signing: GNUPGHOME points at the bot gnupg dir (never the
 		// human keyring) and the generated config pins the bot key.
 		expect(env.GNUPGHOME).toBe(join(botDirTemp, "gnupg"));
+		// PATH restored so the shim execs the real git/gh.
+		expect(env.PATH).toBe(process.env.PATH);
 		const gitconfig = readFileSync(join(botDirTemp, "gitconfig"), "utf8");
 		expect(gitconfig).toContain("signingkey = ABCDEF1234567890");
 		expect(gitconfig).toContain("gpgsign = true");
 		// Co-author trailer is delivered via the bot's prepare-commit-msg hook.
 		expect(env.GIT_BOT_COAUTHOR).toBe("Co-authored-by: TomGrozev <1491414+TomGrozev@users.noreply.github.com>");
+
+		// The grant is valid for the whole call (repeated git invocations)...
+		expect((await redeem(neutralEnv.GBI_GRANT_SOCK as string, ticket)).ok).toBe(true);
+		// ...and revoked the moment the call finishes.
+		await pi.dispatchToolResult(toolResultEvent(event.toolCallId));
+		const after = await redeem(neutralEnv.GBI_GRANT_SOCK as string, ticket);
+		expect(after.ok).toBe(false);
+		expect(after.reason).toContain("revoked");
 	});
 
 	test("read-only with creds present: runs as the agent account (transport granted, no signing)", async () => {
 		writeCreds();
 		const pi = new FakeExtensionAPI();
-		await createDefault(pi, { credsDir });
+		const { neutralEnv } = await createDefault(pi, { credsDir });
 		const event = bashEvent("git status");
 		const result = await pi.dispatchToolCall(event);
 		expect(result).toBeUndefined();
-		const env = event.input.env as Record<string, string>;
+
+		const { ticket, original } = parseTicket(event.input.command as string);
+		expect(original).toBe("git status");
+		const env = (await redeem(neutralEnv.GBI_GRANT_SOCK as string, ticket)).env as Record<string, string>;
 		// Reads run as the agent account: PAT transport is granted...
 		expect(env.GH_TOKEN).toBe("github_pat_hooktoken");
 		expect(env.GIT_CONFIG_KEY_0).toBe("url.https://x-access-token:github_pat_hooktoken@github.com/.insteadOf");
@@ -99,6 +134,7 @@ describe("git-bot-identity hook", () => {
 		await createDefault(pi, { credsDir });
 		const event = bashEvent("git log --oneline");
 		await pi.dispatchToolCall(event);
+		expect(event.input.command).toBe("git log --oneline");
 		expect(event.input.env).toBeUndefined();
 	});
 
@@ -115,10 +151,13 @@ describe("git-bot-identity hook", () => {
 		expect(neutralEnv.SSH_AUTH_SOCK).toBe("");
 		expect(neutralEnv.GIT_CONFIG_GLOBAL).toBe(join(credsDir, "deny-gitconfig"));
 		expect((neutralEnv.PATH ?? "").startsWith(join(credsDir, "shim") + ":")).toBe(true);
-		// scaffold exists on disk
+		// scaffold exists on disk; the grant client is NOT copied into the shim
+		// dir — the wrappers reference the checked-in lib/grant-client.ts.
 		expect(existsSync(join(credsDir, "deny-gitconfig"))).toBe(true);
 		expect(existsSync(join(credsDir, "shim", "git"))).toBe(true);
 		expect(existsSync(join(credsDir, "shim", "gh"))).toBe(true);
+		expect(existsSync(join(credsDir, "shim", "grant-client.ts"))).toBe(false);
+		expect(readFileSync(join(credsDir, "shim", "git"), "utf8")).toContain(GRANT_CLIENT_PATH);
 		expect(readFileSync(join(credsDir, "deny-gitconfig"), "utf8")).toContain("[credential]");
 	});
 
@@ -130,6 +169,8 @@ describe("git-bot-identity hook", () => {
 		expect(result?.block).toBe(true);
 		expect(String(result?.reason)).toContain("bot credentials");
 		expect(String(result?.reason)).toContain("no fallback");
+		// Blocked: no ticket minted, command untouched.
+		expect(event.input.command).toBe("git push origin main");
 	});
 
 	test("write with a config.json missing a required key: blocked (fail-closed)", async () => {
@@ -156,16 +197,27 @@ describe("git-bot-identity hook", () => {
 		const event = bashEvent("ls -la");
 		const result = await pi.dispatchToolCall(event);
 		expect(result).toBeUndefined();
+		expect(event.input.command).toBe("ls -la");
 		expect(event.input.env).toBeUndefined();
 	});
 
-	test("mixed line (benign write-adjacent, e.g. git status && foo push) triggers env overlay when creds present", async () => {
+	test("an unknown ticket is denied by the server", async () => {
+		const pi = new FakeExtensionAPI();
+		const { neutralEnv } = await createDefault(pi, { credsDir });
+		const reply = await redeem(neutralEnv.GBI_GRANT_SOCK as string, "deadbeefdeadbeefdeadbeef");
+		expect(reply.ok).toBe(false);
+		expect(reply.reason).toContain("unknown or revoked");
+	});
+
+	test("mixed line (benign write-adjacent, e.g. git status && foo push) triggers a write grant when creds present", async () => {
 		writeCreds();
 		const pi = new FakeExtensionAPI();
-		await createDefault(pi, { credsDir, spawn: fakeGpgSpawn() });
+		const { neutralEnv } = await createDefault(pi, { credsDir, spawn: fakeGpgSpawn() });
 		const event = bashEvent("git status && sgi push");
 		await pi.dispatchToolCall(event);
-		const env = event.input.env as Record<string, string>;
+		const { ticket, original } = parseTicket(event.input.command as string);
+		expect(original).toBe("git status && sgi push");
+		const env = (await redeem(neutralEnv.GBI_GRANT_SOCK as string, ticket)).env as Record<string, string>;
 		expect(env.GIT_AUTHOR_NAME).toBe("MyProject Agent");
 	});
 

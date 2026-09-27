@@ -18,11 +18,18 @@
  *    shim dir. Public reads still work; every write and private read fails
  *    closed. (Empirically verified.)
  *  * Grant on write (bash tool_call hook): when — and only when — a command
- *    classifies write-class AND a valid config.json exists, the hook overlays
- *    the agent account's credentials onto THAT ONE call, with a real PATH so
- *    the real git/gh (not the shim) runs. Reads, when configured, run as the
- *    agent account too (no signing). No config → the write is blocked with a
- *    guidance message; there is never a fallback to the human identity.
+ *    classifies write-class AND a valid config.json exists, the hook hands the
+ *    agent account's credentials to THAT ONE call. It cannot use
+ *    `event.input.env` (this omp version only forwards `env` in service mode),
+ *    so it stores the per-call env in the in-process grant server (lib/
+ *    grant-server.ts) under a random ticket and rewrites the command in place
+ *    to `export GBI_TICKET=<t>; <command>`; the git/gh shim redeems the ticket
+ *    over a 0600 unix socket whose path every shell inherits as `GBI_GRANT_SOCK`
+ *    and execs the real git/gh with the granted env (incl. the real PATH) —
+ *    credentials never touch disk. The ticket is revoked on the matching
+ *    `tool_result` (TTL as backstop). Reads, when configured, are granted the
+ *    same way (transport only, no signing). No config → the write is blocked
+ *    with a guidance message; there is never a fallback to the human identity.
  *  * Guidance: a POSIX-sh git/gh shim on the neutralized PATH prints an explicit
  *    "blocked — use the bash tool, or stop" message when the eval kernel (which
  *    cannot be hooked) or a subshell attempts a write. The shim is UX only;
@@ -43,25 +50,31 @@
  *  `Symbol.for` registry entry, so it survives the module being re-evaluated on
  *  a later bind). Every bind therefore resolves the human identity and the real
  *  PATH from that pristine snapshot, never from an already-overlaid env. The
- *  `pi.on("tool_call")` handler, guarded to bash, mutates `event.input.env`
- *  BEFORE the approval gate runs, so the preview reflects the call actually
- *  executed; blocking is via the same handler's return value. The extension's
- *  own git/gh reads (human identity lookup, gpg key setup) run through a
- *  pristine-env spawn, so they are never self-blocked. A bind whose identity
- *  resolution throws still returns the overlay + guard hook (writes blocked,
- *  distinct warning) — it never escapes as a load error, which would leave the
- *  process env unguarded.
+ *  `pi.on("tool_call")` handler, guarded to bash, mutates `event.input.command`
+ *  in place BEFORE the approval gate runs (so the preview reflects what
+ *  executes, and sibling handlers that rewrite the command in place are not
+ *  clobbered); blocking is via the same handler's return value. Credential
+ *  handoff is in-memory: the handler stores the call's env in the grant server
+ *  and prefixes the command with a ticket; the `tool_result` handler revokes
+ *  that ticket. The grant server and its ticket map are shared per process per
+ *  creds dir through the same `Symbol.for` registry pattern, so re-binds reuse
+ *  one socket. The extension's own git/gh reads (human identity lookup, gpg key
+ *  setup) run through a pristine-env spawn, so they are never self-blocked. A
+ *  bind whose identity resolution throws still returns the overlay + guard hook
+ *  (writes blocked, distinct warning) — it never escapes as a load error, which
+ *  would leave the process env unguarded.
  */
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import type { ExtensionAPI } from "@oh-my-pi/pi-coding-agent";
-import type { ToolCallEvent, BashToolCallEvent, ToolCallEventResult } from "@oh-my-pi/pi-coding-agent";
+import type { ToolCallEvent, BashToolCallEvent, ToolCallEventResult, ToolResultEvent } from "@oh-my-pi/pi-coding-agent";
 import { classifyCommand } from "./lib/classify";
 import { loadBotConfig, resolveHumanIdentity, type BotConfig, type SpawnFn, CONFIG_DIR } from "./lib/config";
 import { ensureBotKey, importBotKey } from "./lib/gpg";
 import { buildBotEnv, installCoauthorHook, type BotEnvConfig } from "./lib/env";
 import { neutralBaseEnv, writeDenyConfig } from "./lib/neutralize";
 import { installShim } from "./lib/shim";
+import { GRANT_SOCK_ENV, TICKET_ENV, getGrantServer } from "./lib/grant-server";
 import { blockGuidance } from "./lib/guidance";
 import { installSetup } from "./lib/setup";
 
@@ -169,8 +182,27 @@ export async function createDefault(pi: BotIdentityHookApi, options: CreateOptio
 	mkdirSync(neutralGnupg, { recursive: true, mode: 0o700 });
 	const realGit = Bun.which("git", { PATH: realPath }) ?? "git";
 	const realGh = Bun.which("gh", { PATH: realPath }) ?? "gh";
-	const { shimDir } = installShim(credsDir, { git: realGit, gh: realGh });
-	const neutralEnv = neutralBaseEnv({ shimDir, denyConfigPath, gnupgHome: neutralGnupg, realPath });
+	// In-process credential handoff. `event.input.env` never reaches the bash
+	// subprocess on this omp version, so the hook stores the per-call env here
+	// under a ticket and prefixes the command with `export GBI_TICKET=<t>;`; the
+	// shim redeems it over this socket (see lib/grant-server.ts + lib/shim.ts).
+	// One server per process per creds dir, shared across binds.
+	const grant = getGrantServer(credsDir);
+	const { shimDir } = installShim(credsDir, { git: realGit, gh: realGh, runtime: process.execPath });
+	const neutralEnv = neutralBaseEnv({ shimDir, denyConfigPath, gnupgHome: neutralGnupg, realPath, grantSock: grant.socketPath });
+
+	// toolCallId → live ticket, so the matching tool_result revokes the grant the
+	// moment the call finishes. Expiry is the server's job (flat one-hour cap).
+	const openTickets = new Map<string, string>();
+
+	/** Hand `env` to the call's shell under a fresh ticket: prefix the command
+	 * (mutating in place — sibling handlers rewrite `event.input.command` too)
+	 * and remember the ticket for revocation on `tool_result`. */
+	function handOffTicket(event: BashToolCallEvent, env: Record<string, string>): void {
+		const ticket = grant.grant({ ...env, PATH: realPath });
+		event.input.command = `export ${TICKET_ENV}=${ticket}; ${event.input.command}`;
+		openTickets.set(event.toolCallId, ticket);
+	}
 
 	pi.on("tool_call", async event => {
 		if (!isBashToolCallEvent(event)) return;
@@ -197,7 +229,7 @@ export async function createDefault(pi: BotIdentityHookApi, options: CreateOptio
 				humanName: identity.name,
 				humanNoreply: identity.email,
 			});
-			event.input.env = { ...(event.input.env ?? {}), ...readEnv, PATH: realPath };
+			handOffTicket(event, readEnv);
 			return undefined;
 		}
 
@@ -232,9 +264,17 @@ export async function createDefault(pi: BotIdentityHookApi, options: CreateOptio
 		};
 		const botEnv = buildBotEnv(envConfig);
 		installCoauthorHook(envConfig);
-		// PATH restored so the real git/gh runs (not the guidance shim).
-		event.input.env = { ...(event.input.env ?? {}), ...botEnv, PATH: realPath };
+		handOffTicket(event, botEnv);
 		return undefined;
+	});
+
+	// Revoke the call's grant as soon as it finishes. If the call never reaches
+	// tool_result (denied approval, abort), the server's one-hour expiry reclaims it.
+	pi.on("tool_result", event => {
+		const ticket = openTickets.get(event.toolCallId);
+		if (ticket === undefined) return;
+		openTickets.delete(event.toolCallId);
+		grant.revoke(ticket);
 	});
 
 	return { neutralEnv, pristineSpawn };
@@ -246,6 +286,7 @@ export async function createDefault(pi: BotIdentityHookApi, options: CreateOptio
  */
 export interface BotIdentityHookApi {
 	on(event: "tool_call", handler: (event: ToolCallEvent, ctx: unknown) => ToolCallEventResult | Promise<ToolCallEventResult | void> | void): void;
+	on(event: "tool_result", handler: (event: ToolResultEvent, ctx: unknown) => void): void;
 }
 
 export default async function (pi: ExtensionAPI) {

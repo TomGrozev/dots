@@ -120,7 +120,8 @@ The extension employs a block-by-default credential model. Security is derived f
   - Disabling interactive prompts (`GIT_TERMINAL_PROMPT=0`) and SSH transport (`GIT_SSH_COMMAND=false`).
   - Redirecting `GIT_CONFIG_GLOBAL` to a dedicated, credential-less deny configuration.
   - Prefixing `PATH` with a directory containing guidance shims for `git` and `gh`.
-- **Selective Re-grant**: Credentials from `config.json` are re-granted *only* for classified write-class `git` or `gh` commands executed through the bash tool. This grant is strictly scoped to that single call. Read-only calls remain credential-neutral; public reads work normally, and when configured, reads run as the agent account.
+- **Selective Re-grant**: Credentials from `config.json` are re-granted *only* for classified `git`/`gh` commands executed through the bash tool, via an in-memory ticket handoff. (omp 18.3's bash tool never passes a per-call `env` to foreground commands, so the grant cannot ride on the tool input.) The extension runs a per-process unix socket server (`<credsDir>/grant-<pid>.sock`, 0600) whose path is exposed via `GBI_GRANT_SOCK`. For a classified call, the hook stores the granted environment in memory under a 192-bit random ticket and rewrites the command in place to `export GBI_TICKET=<hex>; <original>`. The `git`/`gh` shim runs `lib/grant-client.ts` as `BUN_BE_BUN=1 <omp runtime>` (the omp binary acting as plain bun, so no separate bun install and no nested omp session), receives the env over the socket, unsets the ticket, and execs the real binary. Credentials never touch disk, argv, or the transcript. Tickets are revoked on `tool_result`; the server also rejects any ticket older than 1h.
+- **Loop Protection**: The client runs with `GBI_IN_SHIM=1` and a `PATH` without the shim dir, and the shim never redeems when `GBI_IN_SHIM` is set, so nothing under a redemption can start another runtime. The ticket is unset before the real binary runs, so its descendants (hooks, nested `git`) cannot redeem either.
 - **Prevention of Bypass**: Writes cannot be forced through the eval tool or subshells. The `git`/`gh` shims on `PATH` intercept unauthorized attempts and print a guidance message directing the agent to use the bash tool or stop.
 - **Boundary Limits**: This model is not hermetic. It does not prevent code from fetching secrets via alternative means (e.g., direct macOS keychain access via other tools, hardcoded tokens, or raw HTTPS calls to the API). Only launch-level credential isolation closes these gaps.
 
@@ -150,7 +151,10 @@ Bot commits are signed with a bot-owned GPG key located in `~/.config/git-bot-id
 
 - `index.ts`: Hook wiring and entry point.
 - `lib/classify.ts`: Call classification logic.
-- `lib/env.ts`: Environment variable assembly and transport configuration.
+- `lib/env.ts`: Environment variable assembly.
+- `lib/grant-server.ts`: In-memory grant server and ticket management.
+- `lib/grant-client.ts`: Socket client the shim runs to redeem a ticket (import-free, spawn-free).
+- `lib/shim.ts`: The `git`/`gh` shim scripts.
 - `lib/config.ts`: Credential and configuration discovery.
 - `lib/gpg.ts`: GPG key management and signing.
 - `lib/setup.ts`: Interactive setup wizard and launch prompt.

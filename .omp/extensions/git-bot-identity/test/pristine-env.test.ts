@@ -15,6 +15,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createDefault } from "../index";
 import { FakeExtensionAPI, bashEvent } from "./fake-extension-api";
+import { redeem } from "./grant-probe";
+import { stopGrantServer } from "../lib/grant-server";
 import type { SpawnFn } from "../lib/config";
 
 /** Same registry key the extension uses to hold its process-wide snapshot. */
@@ -77,6 +79,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+	stopGrantServer(credsDir);
 	delete (globalThis as unknown as Record<symbol, unknown>)[PRISTINE_ENV_KEY];
 	// Restore process.env wholesale: these tests emulate the default export's
 	// `Object.assign(process.env, neutralEnv)`.
@@ -110,10 +113,12 @@ describe("pristine env across binds", () => {
 		expect(bind2.neutralEnv.PATH).toBe(`${join(credsDir, "shim")}:${stubPath}`);
 
 		// A read is granted the bot transport + resolved human co-author, which
-		// only happens when `identity` is non-null.
+		// only happens when `identity` is non-null. The grant is redeemed over the
+		// live socket, exactly as the shim does.
 		const read = bashEvent("git status");
 		await second.dispatchToolCall(read);
-		const env = read.input.env as Record<string, string>;
+		const ticket = /^export GBI_TICKET=([0-9a-f]+); /.exec(read.input.command as string)?.[1] as string;
+		const env = (await redeem(bind2.neutralEnv.GBI_GRANT_SOCK as string, ticket)).env as Record<string, string>;
 		expect(env.GH_TOKEN).toBe(BOT.token);
 		expect(env.PATH).toBe(stubPath);
 		expect(env.GIT_BOT_COAUTHOR).toBe(`Co-authored-by: ${HUMAN_NAME} <${HUMAN_EMAIL}>`);

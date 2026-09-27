@@ -19,12 +19,13 @@ afterEach(() => {
 	rmSync(dir, { recursive: true, force: true });
 });
 
-function paths(overrides: Partial<Record<"shimDir" | "denyConfigPath" | "gnupgHome" | "realPath", string>> = {}) {
+function paths(overrides: Partial<Record<"shimDir" | "denyConfigPath" | "gnupgHome" | "realPath" | "grantSock", string>> = {}) {
 	return {
 		shimDir: join(dir, "shim"),
 		denyConfigPath: join(dir, "deny", "config"),
 		gnupgHome: join(dir, ".gnupg"),
 		realPath: "/usr/bin:/bin:/usr/sbin:/sbin",
+		grantSock: join(dir, "grant-123.sock"),
 		...overrides,
 	};
 }
@@ -35,6 +36,7 @@ describe("neutralBaseEnv", () => {
 		const env = neutralBaseEnv(p);
 
 		expect(env.PATH).toBe(`${p.shimDir}:${p.realPath}`);
+		expect(env.GBI_GRANT_SOCK).toBe(p.grantSock);
 		expect(env.GIT_CONFIG_GLOBAL).toBe(p.denyConfigPath);
 		expect(env.GIT_SSH_COMMAND).toBe("false");
 		expect(env.GIT_TERMINAL_PROMPT).toBe("0");
@@ -50,6 +52,7 @@ describe("neutralBaseEnv", () => {
 		expect(Object.keys(env).sort()).toEqual(
 			[
 				"PATH",
+				"GBI_GRANT_SOCK",
 				"GIT_CONFIG_GLOBAL",
 				"GIT_SSH_COMMAND",
 				"GIT_TERMINAL_PROMPT",

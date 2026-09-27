@@ -50,6 +50,9 @@ export interface NeutralPaths {
 	gnupgHome: string;
 	/** Original PATH value the shim dir is prepended onto. */
 	realPath: string;
+	/** Unix-socket path of the in-process grant server (see lib/grant-server.ts).
+	 * Carried to every shell so the shim can redeem a ticket without any file. */
+	grantSock: string;
 }
 
 /**
@@ -60,6 +63,7 @@ export interface NeutralPaths {
 export function neutralBaseEnv(p: NeutralPaths): Record<string, string> {
 	return {
 		PATH: `${p.shimDir}:${p.realPath}`,
+		GBI_GRANT_SOCK: p.grantSock,
 		GIT_CONFIG_GLOBAL: p.denyConfigPath,
 		GIT_SSH_COMMAND: "false",
 		GIT_TERMINAL_PROMPT: "0",
