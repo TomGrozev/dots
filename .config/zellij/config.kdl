@@ -14,6 +14,12 @@ serialization_interval 1
 focus_follows_mouse false
 mouse_click_through false
 
+// Inline images. Zellij 0.45 normally turns kitty graphics on only if its startup
+// capability probe of the host terminal succeeds; pinning it on decouples image
+// rendering from that probe. Needs a Zellij restart (kitty protocol only — Zellij
+// has no OSC-1337/iTerm2 image support).
+support_kitty_graphics_protocol true
+
 // ── Keybindings ──────────────────────────────────────────────────────────
 
 keybinds clear-defaults=true {
