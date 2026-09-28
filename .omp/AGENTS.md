@@ -107,6 +107,16 @@ the `task` tool's own built-in templates for the brief shape — shared batch ba
   agent is the only session that reaches the user; a subagent never tries.
 - **Least privilege.** Briefs scope to the files the job needs; `isolated: true` for parallel
   or substantial writes; a brief complete enough that nothing falls through to a guess.
+- **One question per worker.** Each subagent gets one question or one slice — never an
+  open-ended "map X" or "understand Y". A broad ask becomes several narrow workers, or a
+  narrow first pass that tells me where to look next.
+- **Conclusions, not transcripts.** Every brief caps the report: a conclusion with
+  `file:line` references, about 1.5k tokens, no pasted source or raw tool output. Evidence is
+  cited, not reproduced.
+- **Graph before reading.** Briefs for code questions tell the worker to start with
+  `codebase-memory-mcp` — `search_graph` to locate, `trace_path` for callers/callees,
+  `get_code_snippet` for one symbol — and to open whole files only when the graph can't
+  answer. Whole-file reads are what blow a worker's context.
 
 ## Skills
 

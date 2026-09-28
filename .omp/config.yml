@@ -1,10 +1,4 @@
 providers:
-  webSearchOrder:
-    - exa
-    - public
-  webSearchExclude:
-    - anthropic
-  tts: auto
   autoThinkingMaxEffort: xhigh
 modelRoles:
   slow: anthropic/claude-opus-5-5:auto
@@ -20,6 +14,7 @@ modelRoles:
   vision: neuralwatt/gemma-4-31b:low
   default: neuralwatt/deepseek-v4.1-flash:auto
   memory: neuralwatt/deepseek-v4-flash-flex:low
+  web: web/exa
 cycleOrder:
   - smol
   - default
@@ -43,6 +38,8 @@ tui:
   renderMermaid: true
   titleState: true
   hyperlinks: auto
+  vimMode: true
+  vimModeDisplay: icon
 display:
   shimmer: kitt
   showTokenUsage: true
@@ -72,6 +69,7 @@ task:
   enableEffort: true
   maxEffort: medium
   showResolvedModelBadge: true
+  softRequestBudget: 60
 dev:
   autoqa: false
 browser:
@@ -427,6 +425,8 @@ retry:
     vision:
       - neuralwatt/deepseek-v4.1-flash:low
       - anthropic/claude-sonnet-5:auto
+    web:
+      - web/public
   usageAwareFallback: false
 secrets:
   enabled: true
@@ -470,7 +470,6 @@ error:
   notify: "on"
 stt:
   enabled: true
-  modelName: parakeet
 power:
   sleepPrevention: idle
 hideThinkingBlock: false
