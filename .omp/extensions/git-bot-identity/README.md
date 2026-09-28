@@ -4,7 +4,7 @@ Provides a secure, isolated bot identity for Git and GitHub operations within th
 
 - **Bot Identity**: Operates as a dedicated GitHub account for write actions.
 - **Human Co-author**: Automatically adds `Co-authored-by` trailers to bot commits.
-- **Fail-closed**: Write operations are blocked by default and only granted for classified writes when valid agent credentials are configured.
+- **Fail-closed**: Write operations are blocked by default; the shim classifies commands and requests credentials from a background grant server when valid agent credentials are configured.
 
 ## Why an Extension
 This is an OMP extension, utilizing the runtime `ExtensionAPI` for auto-discovery from `.omp/extensions/`.
@@ -120,9 +120,9 @@ The extension employs a block-by-default credential model. Security is derived f
   - Disabling interactive prompts (`GIT_TERMINAL_PROMPT=0`) and SSH transport (`GIT_SSH_COMMAND=false`).
   - Redirecting `GIT_CONFIG_GLOBAL` to a dedicated, credential-less deny configuration.
   - Prefixing `PATH` with a directory containing guidance shims for `git` and `gh`.
-- **Selective Re-grant**: Credentials from `config.json` are re-granted *only* for classified `git`/`gh` commands executed through the bash tool, via an in-memory ticket handoff. (omp 18.3's bash tool never passes a per-call `env` to foreground commands, so the grant cannot ride on the tool input.) The extension runs a per-process unix socket server (`<credsDir>/grant-<pid>.sock`, 0600) whose path is exposed via `GBI_GRANT_SOCK`. For a classified call, the hook stores the granted environment in memory under a 192-bit random ticket and rewrites the command in place to `export GBI_TICKET=<hex>; <original>`. The `git`/`gh` shim runs `lib/grant-client.ts` as `BUN_BE_BUN=1 <omp runtime>` (the omp binary acting as plain bun, so no separate bun install and no nested omp session), receives the env over the socket, unsets the ticket, and execs the real binary. Credentials never touch disk, argv, or the transcript. Tickets are revoked on `tool_result`; the server also rejects any ticket older than 1h.
-- **Loop Protection**: The client runs with `GBI_IN_SHIM=1` and a `PATH` without the shim dir, and the shim never redeems when `GBI_IN_SHIM` is set, so nothing under a redemption can start another runtime. The ticket is unset before the real binary runs, so its descendants (hooks, nested `git`) cannot redeem either.
-- **Prevention of Bypass**: Writes cannot be forced through the eval tool or subshells. The `git`/`gh` shims on `PATH` intercept unauthorized attempts and print a guidance message directing the agent to use the bash tool or stop.
+- **Dynamic Re-grant**: Credentials from `config.json` are re-granted via a per-process unix socket server (`<credsDir>/grant-<pid>.sock`, 0600) whose path is exposed via `GBI_GRANT_SOCK`. The `git`/`gh` shim classifies its own `argv`: allowlisted read subcommands send `GET read`, and all others send `GET write` to the socket. The grant server resolves these requests: `read` returns the bot transport environment, and `write` returns full bot credentials plus signing keys and the co-author hook. Because the shim handles classification, any session process (bash, eval, or subprocesses) that can reach the socket can obtain bot credentials.
+- **Fail-Closed Behavior**: If a `read` request fails (e.g. server unreachable), the shim runs the real binary with the neutral environment. If a `write` request fails (e.g. missing configuration), the shim prints the server's reason and exits with code 1.
+- **Loop Protection**: The shim runs with `GBI_IN_SHIM=1` and a `PATH` without the shim directory. To prevent recursive loops, the shim never requests credentials from the socket if `GBI_IN_SHIM` is already set.
 - **Boundary Limits**: This model is not hermetic. It does not prevent code from fetching secrets via alternative means (e.g., direct macOS keychain access via other tools, hardcoded tokens, or raw HTTPS calls to the API). Only launch-level credential isolation closes these gaps.
 
 ## GPG Signing
@@ -150,10 +150,9 @@ Bot commits are signed with a bot-owned GPG key located in `~/.config/git-bot-id
 ### File Map
 
 - `index.ts`: Hook wiring and entry point.
-- `lib/classify.ts`: Call classification logic.
 - `lib/env.ts`: Environment variable assembly.
-- `lib/grant-server.ts`: In-memory grant server and ticket management.
-- `lib/grant-client.ts`: Socket client the shim runs to redeem a ticket (import-free, spawn-free).
+- `lib/grant-server.ts`: In-memory grant server for credential resolution.
+- `lib/grant-client.ts`: Socket client used by the shim to request credentials.
 - `lib/shim.ts`: The `git`/`gh` shim scripts.
 - `lib/config.ts`: Credential and configuration discovery.
 - `lib/gpg.ts`: GPG key management and signing.

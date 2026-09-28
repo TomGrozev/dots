@@ -1,8 +1,8 @@
 /**
  * Test-only client for the grant-server socket protocol. Mirrors what the
- * generated shim grant-client does (lib/shim.ts) so hook tests can prove a
- * ticket really resolves over the live socket — not a private shortcut into the
- * server's map.
+ * checked-in shim grant-client does (lib/grant-client.ts) so tests can prove a
+ * mode really resolves over the live socket — not a private shortcut into the
+ * server.
  */
 
 export interface GrantReply {
@@ -11,15 +11,15 @@ export interface GrantReply {
 	reason?: string;
 }
 
-/** Ask the server at `sock` to redeem `ticket`. */
-export async function redeem(sock: string, ticket: string): Promise<GrantReply> {
+/** Send one raw request line (no trailing newline) to the server at `sock`. */
+export async function request(sock: string, line: string): Promise<GrantReply> {
 	const { promise, resolve, reject } = Promise.withResolvers<GrantReply>();
 	let buf = "";
 	Bun.connect({
 		unix: sock,
 		socket: {
 			open(s) {
-				s.write(`GET ${ticket}\n`);
+				s.write(`${line}\n`);
 			},
 			data(_s, chunk) {
 				buf += chunk.toString();
@@ -39,4 +39,9 @@ export async function redeem(sock: string, ticket: string): Promise<GrantReply> 
 		},
 	}).catch(reject);
 	return promise;
+}
+
+/** Ask the server at `sock` for `mode`'s env. */
+export function redeem(sock: string, mode: "read" | "write"): Promise<GrantReply> {
+	return request(sock, `GET ${mode}`);
 }

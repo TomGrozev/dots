@@ -6,15 +6,14 @@
  * with the neutral overlay (GIT_CONFIG_GLOBAL → the deny gitconfig), so a
  * SECOND bind in the same process (subagent, new session) resolved the human
  * identity against the overlay and threw — leaving the bot path dead. Latent
- * seam: if the first bind threw, the overlay and guard hook were never
- * installed, so writes ran unguarded.
+ * seam: if the first bind threw, the overlay was never installed, so writes ran
+ * unguarded.
  */
 import { describe, expect, test, beforeEach, afterEach } from "bun:test";
-import { chmodSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createDefault } from "../index";
-import { FakeExtensionAPI, bashEvent } from "./fake-extension-api";
 import { redeem } from "./grant-probe";
 import { stopGrantServer } from "../lib/grant-server";
 import type { SpawnFn } from "../lib/config";
@@ -98,16 +97,14 @@ describe("pristine env across binds", () => {
 		writeCreds();
 
 		// Bind #1, then the production default export's neutralization.
-		const first = new FakeExtensionAPI();
-		const bind1 = await createDefault(first, { credsDir });
+		const bind1 = await createDefault({ credsDir });
 		Object.assign(process.env, bind1.neutralEnv);
 		delete process.env.SSH_AUTH_SOCK;
 		expect(process.env.GIT_CONFIG_GLOBAL).toBe(join(credsDir, "deny-gitconfig"));
 
 		// Bind #2 in the same process: identity must come from the pristine
 		// snapshot, not from the overlay installed above (pre-fix: threw).
-		const second = new FakeExtensionAPI();
-		const bind2 = await createDefault(second, { credsDir });
+		const bind2 = await createDefault({ credsDir });
 		// Overlay unchanged: same deny config, no shim dir prepended twice.
 		expect(bind2.neutralEnv.GIT_CONFIG_GLOBAL).toBe(join(credsDir, "deny-gitconfig"));
 		expect(bind2.neutralEnv.PATH).toBe(`${join(credsDir, "shim")}:${stubPath}`);
@@ -115,16 +112,13 @@ describe("pristine env across binds", () => {
 		// A read is granted the bot transport + resolved human co-author, which
 		// only happens when `identity` is non-null. The grant is redeemed over the
 		// live socket, exactly as the shim does.
-		const read = bashEvent("git status");
-		await second.dispatchToolCall(read);
-		const ticket = /^export GBI_TICKET=([0-9a-f]+); /.exec(read.input.command as string)?.[1] as string;
-		const env = (await redeem(bind2.neutralEnv.GBI_GRANT_SOCK as string, ticket)).env as Record<string, string>;
+		const env = (await redeem(bind2.neutralEnv.GBI_GRANT_SOCK as string, "read")).env as Record<string, string>;
 		expect(env.GH_TOKEN).toBe(BOT.token);
 		expect(env.PATH).toBe(stubPath);
 		expect(env.GIT_BOT_COAUTHOR).toBe(`Co-authored-by: ${HUMAN_NAME} <${HUMAN_EMAIL}>`);
 	});
 
-	test("a throwing first bind still installs the guard and blocks writes", async () => {
+	test("a throwing first bind still installs the overlay and keeps every request refused", async () => {
 		writeCreds();
 		// Every git-config read fails → resolveHumanIdentity throws.
 		const failingSpawn: SpawnFn = async () => ({ exitCode: 1, stdout: "", stderr: "fatal: no user" });
@@ -132,12 +126,12 @@ describe("pristine env across binds", () => {
 		const warnings: string[] = [];
 		const originalWarn = console.warn;
 		console.warn = (...args: unknown[]) => void warnings.push(args.map(String).join(" "));
-		const result = await createDefault(new FakeExtensionAPI(), { credsDir, spawn: failingSpawn }).finally(() => {
+		const result = await createDefault({ credsDir, spawn: failingSpawn }).finally(() => {
 			console.warn = originalWarn;
 		});
 
 		// Distinct warning, not a load error — the caller (default export) can
-		// still install the overlay + guard hook.
+		// still install the overlay.
 		expect(warnings.length).toBe(1);
 		expect(warnings[0]).toContain("[git-bot-identity] human identity unresolved");
 
@@ -146,17 +140,13 @@ describe("pristine env across binds", () => {
 		expect(result.neutralEnv.GH_TOKEN).toBe("git-bot-identity-no-creds");
 		expect(result.neutralEnv.GIT_SSH_COMMAND).toBe("false");
 
-		// Writes fail closed; reads never receive bot credentials.
-		const pi = new FakeExtensionAPI();
-		await createDefault(pi, { credsDir, spawn: failingSpawn });
-		const write = bashEvent("git push origin main");
-		const blocked = await pi.dispatchToolCall(write);
-		expect(blocked?.block).toBe(true);
-		expect(String(blocked?.reason)).toContain("no fallback");
-		expect(write.input.env).toBeUndefined();
-
-		const read = bashEvent("git log --oneline");
-		await pi.dispatchToolCall(read);
-		expect(read.input.env).toBeUndefined();
+		// A later bind in the same process shares the socket but re-installs its
+		// own (still-refusing) resolver; no mode ever receives credentials.
+		const later = await createDefault({ credsDir, spawn: failingSpawn });
+		const write = await redeem(later.neutralEnv.GBI_GRANT_SOCK as string, "write");
+		expect(write.ok).toBe(false);
+		expect(String(write.reason)).toContain("no fallback");
+		const read = await redeem(later.neutralEnv.GBI_GRANT_SOCK as string, "read");
+		expect(read.ok).toBe(false);
 	});
 });

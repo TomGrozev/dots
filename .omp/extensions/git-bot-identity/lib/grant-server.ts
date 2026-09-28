@@ -1,63 +1,59 @@
 /**
- * In-memory grant server: the credential handoff channel between the bash
- * `tool_call` hook and the git/gh shim.
+ * In-process grant server: the credential channel between the git/gh shim and
+ * the extension.
  *
- * The hook cannot hand credentials to the bash subprocess through the tool
- * event (`event.input.env` only reaches service-mode calls), so instead it
- * stores the per-call env in this process under a random ticket and rewrites
- * the command to `export GBI_TICKET=<ticket>; <command>`. The shim then asks
- * this server — over a unix socket in the creds dir whose path every shell
- * inherits as `GBI_GRANT_SOCK` — for that ticket's env and execs the real
- * binary with it.
+ * The shim classifies its own argv and asks this server — over a unix socket in
+ * the creds dir whose path every shell inherits as `GBI_GRANT_SOCK` — for one of
+ * two environments: a read-class `GET read` (bot transport only) or a
+ * write-class `GET write` (full bot creds + signing). There are no tickets and
+ * no per-call state: the server computes the answer on each request through a
+ * resolver callback supplied by index.ts, so any process in the omp session that
+ * reaches the socket can obtain bot credentials — by design.
  *
- * Credentials are NEVER written to disk: tickets and their env live only in
- * this process's memory. The socket is per-pid (`grant-<pid>.sock`) and 0600
- * inside a 0700 dir, so no other user can connect; a stale socket from a dead
- * process is unlinked before listen.
+ * Credentials are NEVER written to disk by this module: the resolved env travels
+ * only over the socket and through the caller's shell. The socket is per-pid
+ * (`grant-<pid>.sock`) and 0600 inside a 0700 dir, so no other user can connect;
+ * a stale socket from a dead process is unlinked before listen.
  *
  * One server per creds dir per process, shared across binds (omp re-imports the
  * extension per session/subagent) through a `Symbol.for` globalThis registry,
- * mirroring the pristine-env snapshot in index.ts.
+ * mirroring the pristine-env snapshot in index.ts. A re-bind REPLACES the
+ * resolver (`getGrantServer` calls `setResolver`), so a shared server always
+ * answers with the latest bind's view of config/identity — never a stale one.
  */
 
-import { randomBytes } from "node:crypto";
 import { chmodSync, mkdirSync, rmSync } from "node:fs";
 import { join } from "node:path";
 
 /** Env var carrying the unix-socket path to every shell (neutral overlay). */
 export const GRANT_SOCK_ENV = "GBI_GRANT_SOCK";
-/** Env var carrying the per-call ticket (set by the hook's command prefix). */
-export const TICKET_ENV = "GBI_TICKET";
+/** Env var carrying the requested class to the grant client. */
+export const GRANT_MODE_ENV = "GBI_GRANT_MODE";
 
-/** Flat ticket lifetime: the server alone owns expiry, checked on redeem. A
- * bash call that outlives it simply loses its grant and fails closed. */
-export const TICKET_TTL_MS = 60 * 60 * 1000;
+/** The two credential classes the shim can request. */
+export type GrantMode = "read" | "write";
 
-interface Ticket {
-	env: Record<string, string>;
-	expiresAt: number;
-}
+/** A grant answer: the env to apply, or a reason the request was refused. */
+export type GrantDecision = { ok: true; env: Record<string, string> } | { ok: false; reason: string };
+
+/** Computes the env for a requested mode. index.ts supplies the real one. */
+export type GrantResolver = (mode: GrantMode) => GrantDecision | Promise<GrantDecision>;
 
 /** The in-process grant server for one creds dir. */
 export interface GrantServer {
 	/** Absolute unix-socket path every shell reaches via `GBI_GRANT_SOCK`. */
 	readonly socketPath: string;
-	/** Store `env` under a fresh random ticket and return it. The ticket
-	 * expires `ttlMs` after minting (default one hour); the server is the only
-	 * owner of expiry and checks it on redeem. */
-	grant(env: Record<string, string>, ttlMs?: number): string;
-	/** Forget a ticket immediately (call finished). Idempotent. */
-	revoke(ticket: string): void;
-	/** Resolve a ticket to its env, or `null` if unknown/expired/revoked. */
-	lookup(ticket: string): Record<string, string> | null;
-	/** Stop the listener and drop all tickets. Tests only. */
+	/** Install the resolver used for subsequent requests. Later binds overwrite
+	 * earlier ones so the shared server reflects the latest config/identity. */
+	setResolver(resolver: GrantResolver): void;
+	/** Stop the listener. Tests only. */
 	stop(): void;
 }
 
 /**
  * Registry key for the per-process, per-dir grant servers. `Symbol.for` (not a
- * module-local) so re-imports of this module share one server and one ticket
- * map per process, exactly like the pristine-env snapshot.
+ * module-local) so re-imports of this module share one server per process, exactly
+ * like the pristine-env snapshot.
  */
 const REGISTRY_KEY = Symbol.for("omp.git-bot-identity.grant-server");
 
@@ -72,14 +68,17 @@ function registry(): Map<string, GrantServer> {
 
 /**
  * Get (or lazily start) the process-wide grant server for `credsDir`. The
- * second and later binds in the same process reuse the first server's socket
- * and ticket map.
+ * second and later binds in the same process reuse the first server's socket but
+ * replace its resolver with their own.
  */
-export function getGrantServer(credsDir: string): GrantServer {
+export function getGrantServer(credsDir: string, resolver: GrantResolver): GrantServer {
 	const reg = registry();
 	const existing = reg.get(credsDir);
-	if (existing) return existing;
-	const server = startGrantServer(credsDir);
+	if (existing) {
+		existing.setResolver(resolver);
+		return existing;
+	}
+	const server = startGrantServer(credsDir, resolver);
 	reg.set(credsDir, server);
 	return server;
 }
@@ -89,43 +88,44 @@ export function stopGrantServer(credsDir: string): void {
 	registry().get(credsDir)?.stop();
 }
 
-/** Protocol: one request line `GET <hex-ticket>\n`; one JSON response line. */
-function handleRequest(line: string, tickets: Map<string, Ticket>): string {
-	const match = /^GET ([0-9a-f]{16,})\s*$/.exec(line);
-	if (!match) return JSON.stringify({ ok: false, reason: "malformed request" });
-	const ticket = match[1] as string;
-	const entry = tickets.get(ticket);
-	if (!entry) return JSON.stringify({ ok: false, reason: "unknown or revoked ticket" });
-	if (Date.now() > entry.expiresAt) {
-		tickets.delete(ticket);
-		return JSON.stringify({ ok: false, reason: "expired ticket" });
-	}
-	return JSON.stringify({ ok: true, env: entry.env });
+/** Protocol: one request line `GET read\n` or `GET write\n`; one JSON response line. */
+async function handleRequest(line: string, resolver: GrantResolver): Promise<GrantDecision> {
+	const match = /^GET (read|write)\s*$/.exec(line);
+	if (!match) return { ok: false, reason: "malformed request: expected 'GET read' or 'GET write'" };
+	return resolver(match[1] as GrantMode);
 }
 
-function startGrantServer(credsDir: string): GrantServer {
+function startGrantServer(credsDir: string, resolver: GrantResolver): GrantServer {
 	mkdirSync(credsDir, { recursive: true, mode: 0o700 });
 	const socketPath = join(credsDir, `grant-${process.pid}.sock`);
 	// A leftover socket from a crashed run of this pid can never be live; unlink
 	// so bind succeeds. Never touch another pid's socket.
 	rmSync(socketPath, { force: true });
 
-	const tickets = new Map<string, Ticket>();
+	let currentResolver = resolver;
 
-	const listener = Bun.listen<{ buf: string }>({
+	const listener = Bun.listen<{ buf: string; answered: boolean }>({
 		unix: socketPath,
-		data: { buf: "" },
+		data: { buf: "", answered: false },
 		socket: {
 			open(socket) {
-				socket.data = { buf: "" };
+				socket.data = { buf: "", answered: false };
 			},
-			data(socket, chunk) {
+			async data(socket, chunk) {
+				if (socket.data.answered) return;
 				// Accumulate until the request line's newline arrives; chunks may split.
 				socket.data.buf += chunk.toString();
 				const nl = socket.data.buf.indexOf("\n");
 				if (nl === -1) return;
+				socket.data.answered = true;
 				const line = socket.data.buf.slice(0, nl);
-				socket.end(`${handleRequest(line, tickets)}\n`);
+				let decision: GrantDecision;
+				try {
+					decision = await handleRequest(line, currentResolver);
+				} catch (err) {
+					decision = { ok: false, reason: err instanceof Error ? err.message : String(err) };
+				}
+				socket.end(`${JSON.stringify(decision)}\n`);
 			},
 			error() {
 				/* A misbehaving client must never take down the server. */
@@ -139,27 +139,11 @@ function startGrantServer(credsDir: string): GrantServer {
 
 	return {
 		socketPath,
-		grant(env, ttlMs = TICKET_TTL_MS) {
-			// 192 bits of randomness — unguessable, and never derived from input.
-			const ticket = randomBytes(24).toString("hex");
-			tickets.set(ticket, { env, expiresAt: Date.now() + ttlMs });
-			return ticket;
-		},
-		revoke(ticket) {
-			tickets.delete(ticket);
-		},
-		lookup(ticket) {
-			const entry = tickets.get(ticket);
-			if (!entry) return null;
-			if (Date.now() > entry.expiresAt) {
-				tickets.delete(ticket);
-				return null;
-			}
-			return entry.env;
+		setResolver(next) {
+			currentResolver = next;
 		},
 		stop() {
 			listener.stop(true);
-			tickets.clear();
 			rmSync(socketPath, { force: true });
 			registry().delete(credsDir);
 		},
