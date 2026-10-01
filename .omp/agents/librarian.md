@@ -9,7 +9,7 @@ tools:
   - fetch
   - context7
   - gh_grep
-model: "@task"
+model: "@smol"
 output:
   properties:
     summary:

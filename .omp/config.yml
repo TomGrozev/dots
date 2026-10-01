@@ -73,7 +73,8 @@ task:
 dev:
   autoqa: false
 browser:
-  enabled: false
+  enabled: true
+  headless: true
 computer:
   enabled: false
 skills:
@@ -93,7 +94,7 @@ tools:
   approvalMode: write
   approval:
     bash: allow
-    eval: prompt
+    eval: allow
     task: allow
     hub: allow
     fetch: allow
