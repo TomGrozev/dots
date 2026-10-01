@@ -32,8 +32,8 @@ A **skeleton** is the public surface written as real code in the real files, bod
 1. **Write skeleton** in the real files, following the repo's `## Conventions` and the spec's implementation decisions.
    - *Done when*: every public-surface item in the ticket exists as a head/type/struct/schema and bodies are not-implemented.
 2. **Stage it**: `git add` the touched files, so the user's edits show up as the unstaged `git diff`.
-3. **User shapes** — **WAIT**. Post the skeleton's file list; for ad-hoc work, also the puzzles and proposed styles.
-   - Default: the user edits the files in their editor and says "go" (optionally changing styles). On request: `r3` annotations.
+3. **User shapes** — **WAIT**. Post the skeleton's file list; for ad-hoc work, also the puzzles and proposed styles. Then use the `ask` tool to ask how they want to review it: **edit in editor** (recommended) or **r3 annotations**.
+   - Editor: the user edits the files and says "go" (optionally changing styles). r3: open the review per `skill://r3`, `r3 watch` it, and treat resolved annotations as the edits.
 4. **Restate**: read the edits via `git diff`, then `git add` again. Apply **convention capture** (below). Restate the resulting surface as one short list and continue immediately — no confirmation wait.
 5. **Implement** with `tdd` against the skeleton: chores and solo/strong-style puzzles first (strong-style waits only for the user's pick), then hand each ping-pong puzzle over (tests + stub ready) and wait for "done".
    - *Done when*: every acceptance criterion has a passing test, no body is still not-implemented, and `implement`'s exit steps (blind review, gate) pass; then hand over to `skill://walkthrough`.
