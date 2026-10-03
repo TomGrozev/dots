@@ -142,13 +142,18 @@ layout {
                 format_space  "#[bg=$nord0]"
 
                 // ── Tabs ──────────────────────────────────────────
-                tab_normal  "#[fg=$nord3] {index} {name} {fullscreen_indicator}{sync_indicator}{floating_indicator}"
-                tab_active  "#[fg=$nord4,bg=$nord1,bold,italic] {index} {name} {fullscreen_indicator}{sync_indicator}{floating_indicator}"
+                tab_normal  "#[fg=$nord3] {index} {name} {fullscreen_indicator}{sync_indicator}{floating_indicator}{bell_indicator}"
+                tab_active  "#[fg=$nord4,bg=$nord1,bold,italic] {index} {name} {fullscreen_indicator}{sync_indicator}{floating_indicator}{bell_indicator}"
                 tab_separator "#[fg=$nord3] │ "
                 tab_rename  "#[fg=$nord13] {index} {name} "
                 tab_fullscreen_indicator "□ "
                 tab_sync_indicator       "⎈ "
                 tab_floating_indicator   "ESC "
+
+                // ── Tab rang BEL: amber, flashing tab gets a solid badge ──
+                tab_normal_bell           "#[fg=$nord13] {index} {name} {fullscreen_indicator}{sync_indicator}{floating_indicator}{bell_indicator}"
+                tab_normal_flashing_bell  "#[fg=$nord0,bg=$nord13,bold] {index} {name} {fullscreen_indicator}{sync_indicator}{floating_indicator}{bell_indicator}"
+                tab_bell_indicator        "🔔 "
             }
         }
 
@@ -175,7 +180,7 @@ layout {
 
                 // ── Format zones ──────────────────────────────────
                 format_left   "{mode} #[fg=$nord8,bold]{session}"
-                format_right  "{pipe_zjstatus_hints} #[fg=$nord3]{datetime}"
+                format_right  "{command_miao} {pipe_zjstatus_hints} #[fg=$nord3]{datetime}"
                 format_space  "#[bg=$nord0]"
 
                 // ── Mode indicators ───────────────────────────────
@@ -198,6 +203,15 @@ layout {
                 // ── zjstatus-hints pipe ───────────────────────────
                 pipe_zjstatus_hints_format "#[fg=$nord5,italic] {output} "
 
+                // ── captain-miao tally (see scripts/miao-status) ───
+                // Format is bare {stdout}: the script colours its own output
+                // against the nord palette and prints nothing when there is
+                // nothing to report, so the widget disappears.
+                command_miao_command    "sh -c \"$HOME/.config/zellij/scripts/miao-status\""
+                command_miao_format     "{stdout}"
+                command_miao_interval   "3"
+                command_miao_rendermode "dynamic"
+
                 // ── DateTime ──────────────────────────────────────
                 datetime          "#[fg=$nord4] {format}"
                 datetime_format   "%H:%M %d %b %Y"
@@ -205,5 +219,14 @@ layout {
         }
     }
 
-    tab
+    // Dashboard tab: first tab, so `Alt x` reaches it. In any session other
+    // than `main`, or when a dashboard is already running, miao-dashboard
+    // closes this tab itself.
+    tab name="miao" {
+        pane command="sh" {
+            args "-c" "$HOME/.config/zellij/scripts/miao-dashboard"
+        }
+    }
+
+    tab focus=true
 }

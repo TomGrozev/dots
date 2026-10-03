@@ -1,0 +1,25 @@
+#!/bin/sh
+# Dashboard pane for the "miao" tab in the nord layout.
+#
+# The tab is only useful in the long-lived `main` session, and only one
+# dashboard may run at a time (it takes dashboard.lock). Anywhere else — a
+# throwaway `zellij -l nord`, or a second start while the dashboard is
+# already up — close this tab and exit.
+set -u
+
+# Closing explicitly: the first tab also hosts the hidden `load_plugins`
+# panes (they move to the next tab), so it never empties and closes by itself.
+bail() {
+  tab="$(zellij action list-panes --tab --json |
+    jq -r --argjson p "$ZELLIJ_PANE_ID" '.[] | select((.is_plugin | not) and .id == $p) | .tab_id')"
+  [ -n "$tab" ] && zellij action close-tab-by-id "$tab"
+  exit 0
+}
+
+[ "${ZELLIJ_SESSION_NAME:-}" = "main" ] || bail
+
+state="${XDG_STATE_HOME:-$HOME/.local/state}/captain-miao"
+pid="$(cat "$state/dashboard.pid" 2>/dev/null)"
+[ -n "$pid" ] && kill -0 "$pid" 2>/dev/null && bail
+
+exec miao

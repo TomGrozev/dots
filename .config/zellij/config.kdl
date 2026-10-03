@@ -103,7 +103,8 @@ keybinds clear-defaults=true {
 
     // ── Navigation + quick actions available in normal AND locked. ──
     shared_among "normal" "locked" {
-        bind "Alt ." { GoToTab 1; }
+        // Tab 1 is the captain-miao dashboard in the `main` session (layouts/nord.kdl).
+        bind "Alt x" { GoToTab 1; }
         bind "Alt left" { MoveFocusOrTab "left"; }
         bind "Alt down" { MoveFocus "down"; }
         bind "Alt up" { MoveFocus "up"; }

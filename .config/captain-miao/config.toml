@@ -12,9 +12,9 @@
 default_agent = "omp"
 
 [terminal]
-backend = "zellij"
-# One session per tab rather than stacked into a single shared tab.
-sessions_layout = "per-tab"
+# Sessions stack as full-screen floating panes in one `miao:sessions` tab, so
+# the dashboard (tab 1, `Alt x`) is the switcher rather than the tab bar.
+sessions_layout = "stacked"
 
 [remote]
 # Closing a pooled session's window detaches; never kills the session.
