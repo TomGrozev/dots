@@ -7,7 +7,7 @@ modelRoles:
   smol: neuralwatt/deepseek-v4-flash:low
   tiny: neuralwatt/qwen3.6-35b-fast:off
   writer: neuralwatt/gemma-4-31b:low
-  review: anthropic/claude-sonnet-5:high
+  review: anthropic/claude-opus-5-5:high
   designer: neuralwatt/glm-5.3-flash:auto
   commit: neuralwatt/qwen3.6-35b-fast:off
   advisor: neuralwatt/glm-5.3-flash:low
