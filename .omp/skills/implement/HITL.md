@@ -1,0 +1,13 @@
+# Implement: hitl steps
+
+Read by `implement` when the ticket changes the surface or has a human puzzle.
+
+## Skeleton
+1. **Write** the surface as real code in the real files, bodies not implemented. Use the stack pack's skeleton idiom (`rule://stack-<name>`) when one exists, else the language's own (`raise "not implemented"`, `throw new Error("not implemented")`, `todo!()`). Follow `docs/agents/conventions.md`. Every surface item the ticket names exists as a head, type, struct or schema.
+2. **Review in r3**: publish the skeleton as a `diff` artifact against the start commit and watch it (commands: `skill://r3`). For each annotation, revise the skeleton and reply. Expect architectural restructures, not only renames: restructure fully, republish, and keep watching until the review resolves.
+3. **Record what the annotations teach**: propose each item in your reply as one line, filed by kind (onboard § What goes where). A new or renamed domain term goes in `CONTEXT.md`. A general rule for how code is written goes in `docs/agents/conventions.md`, tagged repo-specific or stack-generic. A decision with real tradeoffs becomes an ADR. Write only the lines the user accepts.
+4. **Update later tickets**: when the agreed surface differs from what later tickets (the ones this ticket blocks) assume, edit them on the tracker so each stays self-contained and correct, and list the edits in the walkthrough.
+
+## Human puzzles
+1. **Hand over**: outside `tdd`, write all the puzzle's failing tests at once (the user needs the whole target before starting) and its `TODO(human)` stub, or fill in the stub implement's step 2 left. The stub carries what is already built around it, the task, and the tradeoffs to weigh; the answer stays with the user. Tell the user which file and tests, then wait for "done".
+2. **Review as a pair**: rerun the tests. Point out anything you would push back on, and offer one insight. Edit the user's code only when they ask.

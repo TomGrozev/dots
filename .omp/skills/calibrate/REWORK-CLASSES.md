@@ -27,8 +27,8 @@ it reworks when identifiable:
 ## Target metric: unexplained rework
 
 **Unexplained rework** = commits in **a**, **b**, and **structural e** that cite no new
-requirement, ticket, or ADR. This is what the pairing workflow exists to drive down: a shape
-re-changed with no new decision behind it (ADRs written at hard stops count as a decision).
+- requirement, ticket, or ADR. This is what the pairing workflow exists to drive down: a shape
+re-changed with no new decision behind it (ADRs written at surface changes count as a decision).
 
 - **c** is learning, not failure: tallied, never counted in the metric.
 - **d** is tracked separately: a rising bug count points at acceptance criteria/tests, not at

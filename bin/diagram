@@ -1,0 +1,27 @@
+#!/bin/sh
+# Render a d2 file to an SVG the agent shows with `read <path>:img`.
+# Usage: diagram <name>.d2
+# Prints the SVG path, or "no images: use mermaid" (exit 3) when this terminal
+# can't show images. The check mirrors the variables omp reads at startup to
+# pick an image protocol; font sizes and padding keep labels readable.
+set -eu
+
+case "${PI_FORCE_IMAGE_PROTOCOL:-}" in
+kitty | iterm2 | iterm | sixel) can_show=1 ;;
+?*) can_show= ;;
+*) can_show="${KITTY_WINDOW_ID:-}${GHOSTTY_RESOURCES_DIR:-}${WEZTERM_PANE:-}${ITERM_SESSION_ID:-}" ;;
+esac
+
+if [ -z "$can_show" ]; then
+  echo "no images: use mermaid"
+  exit 3
+fi
+
+src=${1:?usage: diagram <name>.d2}
+out="${src%.d2}.svg"
+if ! err=$({ cat "$src"; printf '*.style.font-size: 28\n(* -> *)[*].style.font-size: 24\n'; } |
+  d2 --pad 20 - "$out" 2>&1); then
+  printf '%s\n' "$err" >&2
+  exit 1
+fi
+echo "$out"

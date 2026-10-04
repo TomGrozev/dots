@@ -19,13 +19,16 @@
 </head>
 <body>
 <h1>Pairing workflow</h1>
-<p class="sub">Matt Pocock's flow (wayfinder → to-spec → to-tickets → implement), with pairing layered in. Source of truth: <code>~/.omp/agent/skills/</code>.</p>
+<p class="sub">The human-readable map of how the agent and I work together. The agent's own instructions live in <code>.omp/AGENTS.md</code>, <code>.omp/RULES.md</code> and the skills in <code>.omp/skills/</code> (symlinked into <code>~/.omp/agent/</code>); Matt Pocock's skills install to <code>~/.agents/skills</code> via <code>install.sh</code>. The agent finds this page at <code>~/.omp/agent/pairing-workflow.html</code>, linked there by <code>install.sh</code>. Text version: <a href="pairing-workflow.md">pairing-workflow.md</a>.</p>
 
 <div class="legend">
   <span><span class="chip you">skill</span>you call it</span>
   <span><span class="chip auto">skill</span>called for you by another skill</span>
-  <span><span class="chip wait">⏸</span>AI waits for you</span>
+  <span><span class="chip wait">⏸</span>agent stops for me</span>
 </div>
+
+<h2>Pathways</h2>
+<p>I pick the entry point; nothing routes automatically.</p>
 
 <pre class="mermaid">
 flowchart TD
@@ -33,59 +36,122 @@ flowchart TD
   classDef auto fill:#e5e7eb,color:#111,stroke:#6b7280,stroke-dasharray:4 3
   classDef wait fill:#fde68a,color:#111,stroke:#b45309
 
-  ON["onboard — once per repo"]:::you --> SM["setup-matt-pocock-skills"]:::auto
+  FOG["Huge or foggy"]:::you --> WF["wayfinder"]:::you
+  FEAT["A feature in a repo"]:::you --> GWD["grill-with-docs<br/>(optionally prototype)"]:::you
+  GWD --> TS
+  PLAN["A plan or decision, no docs"]:::you --> GR["grill-me"]:::you
+  BUG["A bug"]:::you --> DB["diagnosing-bugs"]:::you
+  DB --> FIX["fix + regression test"]:::auto
+  FIX --> WK
+  SMALL["A small, clear ask"]:::you --> JUST["just ask"]:::auto
+  JUST --> WK
+  ADHOC["Ad-hoc surface work, no ticket"]:::you --> IMP
+  NEW["New repo for this workflow"]:::you --> OB["onboard<br/>(runs setup-matt-pocock-skills first)"]:::you
+  OLD["Workflow changed or older repo setup"]:::you --> OB2["onboard<br/>(upgrades it)"]:::you
+  DRIFT["Checking drift and rework"]:::you --> CAL["calibrate"]:::you
 
-  WF["wayfinder — big or foggy work"]:::you --> DT["decision tickets:<br/>grilling · research · prototype · task"]:::auto
-  GM["grill-me — medium work"]:::you --> SPEC
-  DT --> SPEC["to-spec"]:::you
-  SPEC --> TIX["to-tickets<br/>AI proposes mode + puzzles, you approve"]:::you
-  TIX --> IMP["implement"]:::you
-  ASK["small ask, no skill"] --> M
-  IMP --> M{"ticket mode"}
-
-  M -- hitl --> PAIR["pair"]:::auto
-  PAIR --> SK["⏸ you edit the skeleton"]:::wait
-  SK --> PZ["⏸ your puzzles:<br/>ping-pong or strong-style"]:::wait
-  PZ --> TDD
-  M -- afk --> TDD["tdd — AI does the chores"]:::auto
-
-  TDD --> CR["code-review (blind) + Gate"]:::auto
-  CR --> Q{"⏸ r3 pass?"}:::wait
-  Q -- yes --> WK["walkthrough as r3 comments"]:::auto
-  Q -- no --> WC["walkthrough in chat"]:::auto
-  WK --> END["commit or PR"]:::auto
-  WC --> END
-
-  CAL["calibrate — now and then:<br/>measures rework in git history"]:::you
+  WF --> TS["to-spec"]:::you
+  TS --> TIX["to-tickets"]:::you
+  TIX --> IMP["implement<br/>per ticket"]:::you
+  IMP --> WK["walkthrough"]:::auto
 </pre>
 
-<p>Only other stop: the <b>hard stop</b> — if implementation needs a new persisted data shape or cross-module contract the skeleton doesn't have, the AI stops, you decide, and the decision becomes an ADR.</p>
+<h2>Ask vs do</h2>
+<p>The agent asks me before anything hard to reverse or potentially harmful:</p>
+<ol>
+  <li><b>publishing</b>: commit, push, tag, PR, merge;</li>
+  <li>deleting or overwriting work it didn't create, or rewriting git history;</li>
+  <li>changing persisted data, a public contract, or an external system (deploys, messages, paid services);</li>
+  <li>anything involving secrets or credentials.</li>
+</ol>
+<p><code>implement</code> adds two stops of its own: a surface change (I review the skeleton) and a human puzzle (I write it). Everything else it decides, states the assumption, and lists in the walkthrough for my veto. Questions come batched in one <code>ask</code>.</p>
 
 <h2>Terms</h2>
 <table>
   <tr><th>Term</th><th>Meaning</th></tr>
-  <tr><td><code>hitl</code> / <code>afk</code></td><td>Ticket mode: who is in charge. <b>hitl</b> (human in the loop, label <code>ready-for-human</code>) = the ticket changes the public surface, or has a puzzle you take. <b>afk</b> (away from keyboard, label <code>ready-for-agent</code>) = everything else, incl. anything describable in one sentence. Same words wayfinder uses for its tickets.</td></tr>
-  <tr><td>Public surface</td><td>Modules and where they live, public function heads + types, schemas/migrations, contracts between modules. Yours.</td></tr>
-  <tr><td>Skeleton</td><td>The public surface as real code in the real files, bodies not implemented. You edit it in your editor and say "go".</td></tr>
-  <tr><td>Puzzle</td><td>A piece of a ticket's internals where the thinking is the work: an algorithm, state machine, edge-case policy, ordering/concurrency, a non-obvious query. Usually 0–3 per ticket, often none. Everything else is a <b>chore</b> (wiring, boilerplate, tests, CSS) and is never offered.</td></tr>
-  <tr><td>Ping-pong</td><td>AI writes the failing tests + a <code>TODO(human)</code> stub with context and tradeoffs. You write the code; AI reviews it like a pair.</td></tr>
-  <tr><td>Strong-style</td><td>You navigate, AI drives: AI offers 2–3 approaches, you pick or sketch, AI types it.</td></tr>
-  <tr><td>Solo</td><td>AI does it alone; you see it in the walkthrough.</td></tr>
-  <tr><td>Tests</td><td>Derived by the AI from the spec's user stories/testing decisions and the ticket's acceptance criteria. You never write or approve a test list.</td></tr>
-  <tr><td>Gate</td><td>One command in the repo's agent file under <code>## Gate</code> (written by onboard), e.g. tests + compiler + linter + formatter. It is one repo-owned command — the repo's pre-commit hook runs the same one — and must pass with output shown before the review.</td></tr>
-  <tr><td>Blind review</td><td>A reviewer that sees only skeleton, acceptance criteria and diff — not the implementer's reasoning — looking for untested criteria, duplicated code, and changed semantics behind a stable interface.</td></tr>
-  <tr><td>Stack pack</td><td><code>rule://stack-&lt;name&gt;</code>, e.g. <code>stack-elixir</code>: language-wide rules that auto-load when the AI edits that language's files.</td></tr>
+  <tr><td>Surface</td><td>Module layout, public function heads and types, persisted data shape, cross-module contracts.</td></tr>
+  <tr><td>Skeleton</td><td>The surface written as real code, bodies not implemented.</td></tr>
+  <tr><td>Puzzle</td><td>A piece of a ticket's internals where the thinking is the work; pure plumbing has none.</td></tr>
+  <tr><td>Human puzzle</td><td>The user writes its code.</td></tr>
+  <tr><td>Agent puzzle</td><td>The agent writes it and explains its approach.</td></tr>
+  <tr><td><code>hitl</code> / <code>afk</code></td><td>hitl when a ticket changes the surface or has a human puzzle; otherwise afk. On a tracker: <code>ready-for-human</code> / <code>ready-for-agent</code>.</td></tr>
+  <tr><td>Gate</td><td>The repo's one check command, in <code>docs/agents/gate.md</code>.</td></tr>
+  <tr><td>Stack pack</td><td><code>rule://stack-&lt;name&gt;</code>, what is true of every repo in a stack (e.g. <code>stack-elixir</code>, <code>stack-typescript</code>).</td></tr>
 </table>
 
-<h2>Where you decide</h2>
+<h2>to-tickets</h2>
+<p>Upstream <code>to-tickets</code>, plus: each ticket lists its puzzles, each marked <code>(human)</code> (I write it) or <code>(agent)</code> (the agent writes it), and its mode follows from that and from whether it changes the surface. Slices are also sized so I can review each in one sitting (about 300 changed non-test lines). While proposing, the agent tells me in the session why it marked each puzzle human or agent, recommending human where a mistake would be silent, costly or hard to undo, and says when it is unsure. I can claim any puzzle. That reasoning isn't written into the tickets. I approve the batch once.</p>
+
+<h2>implement</h2>
+<p>One ticket per fresh session, afk included.</p>
+
+<pre class="mermaid">
+flowchart TD
+  classDef you fill:#1d4ed8,color:#fff,stroke:#1e3a8a
+  classDef auto fill:#e5e7eb,color:#111,stroke:#6b7280,stroke-dasharray:4 3
+  classDef wait fill:#fde68a,color:#111,stroke:#b45309
+
+  L["0 · Load<br/>ticket, spec's user stories, conventions.md,<br/>CONTEXT.md, ADRs · record the start commit"]:::auto
+  L --> S{"Does the surface change?"}
+  S -- yes --> SK["1 · Skeleton ⏸<br/>written in the real files,<br/>reviewed by me in r3"]:::wait
+  S -- no --> B
+  SK --> B["2 · Build<br/>tdd on the agent's own code only;<br/>my puzzles stay outside the tdd loop<br/>(at most an empty TODO(human) stub if its code needs one)"]:::auto
+  B --> P{"Any human puzzles?"}
+  P -- yes --> PZ["3 · my puzzles ⏸<br/>all its failing tests at once + a TODO(human) stub;<br/>I write it, agent reruns tests and reviews"]:::wait
+  P -- no --> C
+  PZ --> C["4 · Check<br/>code-review, then the Gate"]:::auto
+  C --> W["5 · walkthrough"]:::auto
+</pre>
+
+<p><b>Step 0 without a ticket:</b> it first proposes the surface change and puzzles in one <code>ask</code>. <b>Skeleton review:</b> it revises until I resolve the review, restructures included; what my annotations teach gets filed by kind (domain terms in <code>CONTEXT.md</code>, general rules in <code>conventions.md</code>, real tradeoffs in ADRs), and later tickets that assumed the old surface get updated. <b>During the build:</b> if it needs a new data shape or contract, it stops, asks, and records an ADR; any other public addition it makes and lists for veto.</p>
+
+<h2>walkthrough</h2>
+<p>Every task that changes files ends here. In chat, in as few words as it can, the agent gives (empty parts left out):</p>
+<ol>
+  <li>what changed and why, naming the mechanism I should be able to explain back;</li>
+  <li>one large diagram, when a flow or structure changed;</li>
+  <li>up to three places it wants my eyes, with <code>file:line</code>;</li>
+  <li>decisions for my veto;</li>
+  <li>the Gate line.</li>
+</ol>
+<p>Then one question: <b>commit</b> · <b>r3 then commit</b> · <b>PR</b> · <b>leave it</b> — recommending commit for small, contained work and a branch + PR for larger or cross-cutting work. When the ticket was the last open one in its spec, in an onboarded repo that isn't a fork, it also suggests running <code>calibrate</code> in a fresh session.</p>
+
+<h2>Diagrams</h2>
+<p>The agent draws diagrams with <code>d2</code> through <code>bin/diagram</code>, which <code>install.sh</code> links into <code>~/.local/bin</code>. The script checks the same environment variables omp uses to decide whether it can show images (set by Ghostty, kitty, WezTerm and iTerm2; zellij passes images through) and renders an SVG with readable font sizes. When images can't show (SSH, other terminals, or after you say an image didn't show), the agent uses mermaid instead. Text read elsewhere, like r3 summaries and PR bodies, also uses mermaid, which GitHub draws.</p>
+
+<h2>Repo docs</h2>
+<p>Project knowledge has three homes, one kind each:</p>
 <table>
-  <tr><th>Moment</th><th>Your input</th></tr>
-  <tr><td>wayfinder / grilling</td><td>What to build and how it behaves (becomes user stories and acceptance criteria).</td></tr>
-  <tr><td>to-spec</td><td>Test seams (to-spec asks once).</td></tr>
-  <tr><td>to-tickets review</td><td>Slicing, blockers, each ticket's mode, puzzles and their styles — one approval for the batch.</td></tr>
-  <tr><td>pair</td><td>Edit the skeleton; write ping-pong puzzles; pick strong-style approaches.</td></tr>
-  <tr><td>End of every task</td><td>r3 pass? then the walkthrough (as r3 comments or in chat) · commit or PR? (skip either with one word)</td></tr>
+  <tr><th>Home</th><th>Holds</th></tr>
+  <tr><td><code>CONTEXT.md</code> (repo root)</td><td>The domain's terms, meaning what words mean in this project.</td></tr>
+  <tr><td>ADRs (the repo's ADR directory)</td><td>Decisions with real tradeoffs, and why.</td></tr>
+  <tr><td><code>docs/agents/conventions.md</code></td><td>How code is written here, as one-line rules; its existence marks the repo as onboarded.</td></tr>
 </table>
+<p>Also in <code>docs/agents/</code>:</p>
+<table>
+  <tr><th>File</th><th>What it is</th></tr>
+  <tr><td><code>gate.md</code></td><td>The Gate.</td></tr>
+  <tr><td><code>calibration.md</code></td><td>The <code>calibrate</code> log.</td></tr>
+  <tr><td><code>issue-tracker.md</code></td><td>Written by <code>setup-matt-pocock-skills</code>.</td></tr>
+</table>
+<p>In a fork, these live under <code>.omp/</code> (<code>.omp/CONTEXT.md</code>, <code>.omp/adr/</code>, <code>.omp/docs/agents/</code>), excluded from git.</p>
+
+<h2>Worked examples</h2>
+<h3>A small fix</h3>
+<p>"Fix the typo in the missing-user API error." The agent edits the string and runs the Gate, then gives the walkthrough: one sentence on the fix and the Gate line; no other part applies. It asks commit · r3 then commit · PR · leave it, recommending commit. I pick commit.</p>
+
+<h3>Three afk tickets</h3>
+<p><code>to-tickets</code> splits an internal logging utility into three tickets, none touching the surface, no puzzles. Each runs in its own fresh session: load → build → check → walkthrough, where the agent lists an assumption for veto (log level as a string; async flushing; JSON output) and I pick commit.</p>
+
+<h3>A hitl ticket</h3>
+<p>A payment-gateway integration ticket changes the surface and has one human puzzle, the HMAC signature, which the agent recommended for me because a mistake would be silent.</p>
+<ol>
+  <li><b>Skeleton</b>: the agent writes the <code>PaymentProvider</code> behaviour and publishes it to r3. I annotate "amount should be a Money struct, not an integer"; it revises, proposes a convention line, and I resolve the review.</li>
+  <li><b>Build</b>: tdd for the HTTP glue.</li>
+  <li><b>Puzzle</b>: failing tests and a <code>TODO(human)</code> for the HMAC. I write it and say "done"; it reruns the tests and reviews.</li>
+  <li><b>Check</b>: code-review, then the Gate.</li>
+  <li><b>walkthrough</b>: what and why (signature verification), a diagram of the payment flow, where it wants my eyes. It recommends PR; I pick PR.</li>
+</ol>
 
 <script type="module">
   import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";

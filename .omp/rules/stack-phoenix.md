@@ -7,14 +7,14 @@ interruptMode: never
 
 # Stack pack: Phoenix
 
-Rules for Phoenix apps and libraries with a Phoenix web layer. Generic Elixir rules live in `stack-elixir`; repo-specific rules in the repo's pairing context `## Conventions`.
+Rules for Phoenix apps and libraries with a Phoenix web layer. Generic Elixir rules live in `stack-elixir`; repo-specific rules in `docs/agents/conventions.md`.
 
 ## Contexts are the boundary
 
 - A context module (`MyApp.Accounts`) and its public functions are the cross-module contract; its internal modules (`MyApp.Accounts.*`) are private unless exported.
 - The web layer (`MyAppWeb`) calls context functions, never `Repo` or a context's internal modules.
 - In the web layer, `Ecto.Changeset` is the only Ecto module used; keep `import Ecto.Query`, schemas, and `Repo` inside contexts.
-- Ecto schemas and migrations are persisted data shape — a hard stop. PubSub message structs, behaviours, and protocols are contracts.
+- Ecto schemas and migrations are persisted data shape: part of the surface, and a change to them stops for the user. PubSub message structs, behaviours, and protocols are contracts.
 - One context per domain area, named for the noun (`Accounts`, `Billing`); its schema's `changeset/2` stays `@doc false`, and its public functions return tagged tuples.
 
 ## Conventions
@@ -30,7 +30,7 @@ Rules for Phoenix apps and libraries with a Phoenix web layer. Generic Elixir ru
 - Generated LiveViews and pages follow the `phx.gen` layout; keep it rather than hand-rolling structure.
 - Function components declare `attr`/`slot` blocks above the function, with `attr :rest, :global` and `doc:` strings.
 - LiveView pages define `render/1` before `mount/3`, and every callback carries `@impl Phoenix.LiveView`.
-- Drive LiveViews in tests with `live/2` and `render_click/2` / `render_submit/3`; integration tests use `async: false`, pure component tests `async: true`.
+- Test LiveViews with `live/2` and `render_click/2` / `render_submit/3`; integration tests use `async: false`, pure component tests `async: true`.
 - Fetch outbound HTTP with `Req` (`:req`), which ships with Phoenix.
 - `phx.gen.auth` auth lives at the router level; the assign is `@current_scope`, never `@current_user`.
 
@@ -40,4 +40,4 @@ Rules for Phoenix apps and libraries with a Phoenix web layer. Generic Elixir ru
 
 ## Default gate
 
-Phoenix 1.8 generates a `precommit` alias (`compile --warnings-as-errors`, `deps.unlock --unused`, `format`, `test`); extend it with `credo --strict` as in `stack-elixir`, and name it as the repo's `## Gate` (`skill://onboard`).
+Phoenix 1.8 generates a `precommit` alias (`compile --warnings-as-errors`, `deps.unlock --unused`, `format`, `test`); extend it with `credo --strict` as in `stack-elixir`, and record it as the repo's Gate in `docs/agents/gate.md` (`skill://onboard`).

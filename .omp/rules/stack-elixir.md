@@ -7,7 +7,7 @@ interruptMode: never
 
 # Stack pack: Elixir
 
-Rules true of any Elixir repo. Phoenix-specific rules live in `stack-phoenix`. Repo-specific rules live in the repo's pairing context `## Conventions` — an onboarded repo is one whose pairing context has that section (see `skill://onboard`).
+Rules true of any Elixir repo. Phoenix-specific rules live in `stack-phoenix`. Repo-specific rules live in `docs/agents/conventions.md` — an onboarded repo is one where this file exists (see `skill://onboard`).
 
 ## Skeleton idiom
 
@@ -61,7 +61,7 @@ end
 
 ## Default gate
 
-One repo-owned command, the `## Gate` in the pairing context. Idiomatic Elixir default is a `mix precommit` alias:
+One repo-owned command, recorded in `docs/agents/gate.md`. Idiomatic Elixir default is a `mix precommit` alias:
 
 ```elixir
 # mix.exs

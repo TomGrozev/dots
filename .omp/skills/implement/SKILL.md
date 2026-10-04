@@ -1,45 +1,61 @@
 ---
 name: implement
-description: "Implement tickets or a spec in the pairing workflow: routes each ticket by mode (hitl → user shapes the surface, puzzles run ping-pong/strong-style/solo via pair; afk → straight through), then blind review, the repo gate, and one review unit per ticket."
+description: "Implement one ticket (or one ad-hoc task) in a fresh session: tdd, code-review, Gate, then the walkthrough."
 disable-model-invocation: true
 ---
 
 # Implement
 
-Implement the work described in the tickets. Route each ticket by its mode:
+Implement the work described by one ticket, in this session. One ticket per fresh session, every mode: the ticket is self-contained, so nothing from another ticket's session is needed.
 
-- **`hitl`** (human in the loop; tracker label `ready-for-human`): run `skill://pair` — skeleton, then `tdd` with the puzzles in their agreed styles.
-- **`afk`** (agent works while the user is away; label `ready-for-agent`): implement with `tdd` directly.
-- **Mode-less tickets** (older/Matt-format): propose mode, puzzles, and styles per ticket using the rules in `to-tickets` and confirm once for the batch.
+Use `tdd` at pre-agreed seams. Typecheck and run single test files regularly; the full suite runs in the Gate.
 
-Tests come from the ticket's acceptance criteria and the spec's user stories and testing decisions, at the seams to-spec agreed (the highest existing seam when there is no spec). Never ask the user to confirm a test list.
+## Surface
+The module layout, public function heads and types, persisted data shape, and cross-module contracts.
 
-**Override — `afk` for the whole run**: invoking implement with the argument `afk` (e.g. `/skill:implement afk #12`) forces `afk` for every ticket in that run. It skips `pair` only; blind review, the Gate, and the end-of-task flow still run.
+## Steps
 
-## Implementation Rules
+### 0. Load
+Read the ticket (the argument: a tracker reference or a local ticket path), its spec's user stories, `docs/agents/conventions.md`, `CONTEXT.md`, and the ADRs in the area. Record the start commit: `git rev-parse HEAD`.
 
-- **Hard stop**: stop and await the user if the change needs persisted data shape or a cross-module contract that the approved skeleton (or existing code, for `afk`) lacks. Definition and ADR requirement: `skill://pair`.
-- **While working**: typecheck and run single-file tests regularly; full suite only in the gate.
+- **Ad-hoc** (no ticket): to-tickets never ran, so propose here, in one `ask`: the surface change (if any), and each puzzle marked as human or agent with a one-line reason, saying plainly where you are unsure.
+- **hitl** (the ticket or the ad-hoc proposal changes the surface or has a human puzzle): steps 1 and 3 run, each from its section of [HITL.md](HITL.md).
+- **afk**: no stops before the walkthrough; skip steps 1 and 3.
 
-## Exit Steps (every ticket, in order)
+**Done when** the ticket and its context are read, the start commit is recorded, and the mode is known (ad-hoc: the user has answered).
 
-1. **Blind review**: run `skill://code-review`. Its **Spec** axis reviewer receives ONLY the skeleton (or the ticket for `afk`), the ticket's acceptance criteria (plus the spec's relevant user stories), and the diff — never the implementer's reasoning or transcript. Its brief asks for exactly three lists: (a) acceptance criteria or stories with no covering test, (b) duplicated code paths or a second convention for something the repo already does, (c) semantics changed behind an unchanged-looking interface (defaults, nil/empty handling, error shapes, ordering). Fix what's real; the rest goes into the walkthrough as "where I'd want your eyes". It is input to the walkthrough, not a verdict.
-2. **Gate**: run the repo's gate command from the pairing context's `## Gate` (`skill://onboard`; if absent, use the stack pack's default or the repo's test + lint commands, and suggest running `onboard`). It is ONE repo-owned command — the same one the repo's pre-commit hook runs — and I run it explicitly here, because r3 reviews uncommitted work and its output is the evidence. It MUST pass. Paste the command and the tail of its output into the handover — claims without output don't count. Never `--no-verify`, and never make it pass by skipping, deleting, or weakening tests or lint rules.
-3. **Done** when: acceptance criteria have passing tests, the gate passed with evidence, skeleton amendments are recorded, and hard-stop ADRs are written to the pairing context's ADR location (`skill://onboard`; `.omp/adr/` in fork mode).
+### 1. Skeleton
+Only when the ticket changes the surface: follow HITL.md § Skeleton.
 
-## Review Units and Flow
+**Done when** the r3 review is resolved, the lines the user accepted are written, and every later ticket that builds on this surface (the tickets this one blocks) is edited to match the agreed surface, so each stays self-contained and correct.
 
-- **`hitl` tickets**: after each ticket's exit steps, run the end-of-task flow in `skill://walkthrough` before starting the next ticket.
-- **`afk` tickets**: run back-to-back on a work branch (`feat/<slug>`; create it at the start of the run if on the default branch). One conventional commit per ticket after its exit steps, without asking (local and reversible; this is the review unit). At the end of the run follow `skill://walkthrough`'s multi-ticket flow: one end-of-task flow for the batch — walkthrough sections per commit, one r3 question, then land on the default branch or open a PR.
-- **Mixed runs**: work the frontier in dependency order. A `hitl` ticket interrupts the `afk` streak; flush the pending `afk` commits through the end-of-task flow first so review units stay small.
+### 2. Build
+Run `tdd` for your own code only; human puzzles stay outside the loop. If your code needs a human puzzle's function, write only its `TODO(human)` stub so the code compiles; the puzzle's tests come in step 3. Never write a human puzzle's body, not even to turn a test green. Seams: the ones to-spec agreed; else the highest existing seam. Ask only when two seams are plausible and lead to materially different tests.
 
-## Delegation
+**Done when** every acceptance criterion outside human puzzles has a passing test, and the only unimplemented bodies are the human puzzles' `TODO(human)` stubs.
 
-Chores and solo puzzles may go to `task` subagents. The brief MUST carry:
-1. The approved skeleton and the ticket's acceptance criteria (plus relevant spec user stories and testing decisions).
-2. Which puzzles are ping-pong — the subagent writes only their tests and `TODO(human)` stubs, never the implementation — and any strong-style picks the user made.
-3. The repo's `## Conventions` pointer and stack pack name, if any.
-4. A requirement to use `tdd`, and to paste the gate (or scoped test) command output in `### Verified`.
-5. The hard stop definition (`skill://pair`) and the instruction to hub-message Main with `await` if triggered; ADRs and conventions go to the pairing context (`skill://onboard`, `.omp/adr/` in fork mode).
+### 3. Human puzzles
+For each, follow HITL.md § Human puzzles.
 
-Subagents report skeleton amendments under `### Skeleton amendments`. The blind reviewer is never the subagent that wrote the code.
+**Done when** every human puzzle passes its tests and has been reviewed.
+
+### 4. Check
+1. Run `code-review` with its inputs supplied, so it has nothing to ask:
+   - fixed point: the start commit;
+   - diff command: `git add -N . && git diff <start>` (the work is uncommitted);
+   - spec: the ticket, its spec's user stories, and the skeleton.
+
+   The Spec reviewer receives only those and the diff, never your reasoning. Fix what's real; the rest goes to the walkthrough as "where I'd want your eyes".
+2. Run the Gate: the command in `docs/agents/gate.md`; if absent, the stack pack's default gate, else the repo's test + lint commands, and suggest `onboard`. Make it pass by fixing the code; tests and lint rules stay as they are, and hooks stay on.
+
+**Done when** both review axes are reported and the Gate passes, with its command and output tail shown.
+
+### 5. Finish
+Run `skill://walkthrough`, passing the ticket reference so the commit or PR cites it. Landing (commit, branch, PR) is the walkthrough's question; this skill writes no git history.
+
+**Done when** the walkthrough's question is answered.
+
+## Surface needs found mid-build
+The skeleton (or, for afk, the existing code) fixes the surface. A subagent building part of this ticket gets this in its brief: the approved skeleton is fixed; `TODO(human)` stubs are the user's to write; surface needs go in its report under `### Surface additions`.
+- Needs a new persisted data shape or cross-module contract: stop, `ask`, and record the decision as an ADR (`domain-modeling` format) in the repo's ADR directory.
+- Any other public addition: make it, and list it in the walkthrough under For veto.

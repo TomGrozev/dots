@@ -13,12 +13,12 @@ The orchestrator manages agent sessions, roles, and tool integrations.
 - **Knowledge Graph**: `mcp.json` defines the Model Context Protocol server connections (e.g., `codebase-memory-mcp`).
 - **Agent Ecosystem**:
   - **Roster**: Defined in `.omp/AGENTS.md`.
-  - **Skills**: Found in `.omp/skills/` (internal) and `~/.agents/skills/` (universal).
-  - **Rules**: Global and role-specific guardrails in `.omp/RULES.md` and `.omp/rules/`.
+  - **Skills**: Found in `.omp/skills/` (internal) and `~/.agents/skills/` (universal). `to-tickets` and `implement` are local forks of Matt Pocock's skills, edited directly.
+  - **Rules**: Global and role-specific guardrails in `.omp/RULES.md` and `.omp/rules/`, including the stack packs (`stack-elixir`, `stack-phoenix`, `stack-typescript`).
   - **Hooks**: Pre/post-execution hooks in `.omp/hooks/`.
   - **Extensions**: Custom functionality plugins in `.omp/extensions/`.
 - **Monitoring**: `WATCHDOG.md` describes the automated oversight process.
-- **Workflow**: See [pairing-workflow.md](pairing-workflow.md) for an overview of the pairing model, with a [flow diagram](pairing-workflow.html).
+- **Workflow**: See [pairing-workflow.md](pairing-workflow.md) for the collaboration map and [flow diagram](pairing-workflow.html).
 
 ## OpenCode
 
@@ -32,3 +32,4 @@ A set of tools for AI-powered code generation and interaction.
 - **Codebase Memory MCP**: Provides a knowledge graph of the repository. Installed as a binary.
 - **CortexKit**: AI toolkit integration found in `.cortexkit/` and `.config/cortexkit/`.
 - **Git Bot Identity**: Specialized extension for managing AI bot identities. See the [Git Bot Identity README](../.omp/extensions/git-bot-identity/README.md).
+- **d2**: diagram renderer, run through `bin/diagram` (linked into `~/.local/bin`), which shows images where omp can (Ghostty, kitty, WezTerm, iTerm2) and tells the agent to use mermaid elsewhere. Binary installed via `install.sh`.
