@@ -20,6 +20,13 @@ mouse_click_through false
 // has no OSC-1337/iTerm2 image support).
 support_kitty_graphics_protocol true
 
+// omp uses kitty Unicode placeholders (U=1) on Ghostty; Zellij 0.45.1 rejects them
+// silently (zellij#5530). Force omp's direct placements instead.
+// ponytail: drop once Zellij ships U=1 support (PR #5531) or omp#12930 lands.
+env {
+    PI_NO_KITTY_PLACEHOLDERS "1"
+}
+
 // ── Keybindings ──────────────────────────────────────────────────────────
 
 keybinds clear-defaults=true {
