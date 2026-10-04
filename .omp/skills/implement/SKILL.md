@@ -27,7 +27,7 @@ Read the ticket (the argument: a tracker reference or a local ticket path), its 
 ### 1. Skeleton
 Only when the ticket changes the surface: follow HITL.md § Skeleton.
 
-**Done when** the r3 review is resolved, the lines the user accepted are written, and every later ticket that builds on this surface (the tickets this one blocks) is edited to match the agreed surface, so each stays self-contained and correct.
+**Done when** the user has archived the r3 review, the lines the user accepted are written, and every later ticket that builds on this surface (the tickets this one blocks) is edited to match the agreed surface, so each stays self-contained and correct.
 
 ### 2. Build
 Run `tdd` for your own code only; human puzzles stay outside the loop. If your code needs a human puzzle's function, write only its `TODO(human)` stub so the code compiles; the puzzle's tests come in step 3. Never write a human puzzle's body, not even to turn a test green. Seams: the ones to-spec agreed; else the highest existing seam. Ask only when two seams are plausible and lead to materially different tests.

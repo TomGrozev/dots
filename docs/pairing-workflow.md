@@ -48,7 +48,7 @@ Upstream `to-tickets`, plus: each ticket lists its puzzles, each marked `(human)
 One ticket per fresh session, afk included.
 
 0. **Load** the ticket, the spec's user stories, `docs/agents/conventions.md`, `CONTEXT.md`, the ADRs; record the start commit. Without a ticket, it first proposes the surface change and puzzles in one `ask`.
-1. **Skeleton**, only if the surface changes: written in the real files, reviewed by me in r3. It revises until I resolve the review, restructures included. What my annotations teach gets filed by kind: domain terms in `CONTEXT.md`, general rules in `conventions.md`, real tradeoffs in ADRs. Later tickets that assumed the old surface get updated.
+1. **Skeleton**, only if the surface changes: written in the real files, reviewed by me in r3. It revises until I archive the review, restructures included. What my annotations teach gets filed by kind: domain terms in `CONTEXT.md`, general rules in `conventions.md`, real tradeoffs in ADRs. Later tickets that assumed the old surface get updated.
 2. **Build** with `tdd`, everything except my puzzles, which stay outside the tdd loop (at most an empty `TODO(human)` stub if its code needs one).
 3. **My puzzles**: all its failing tests at once and a `TODO(human)` stub with the context and tradeoffs. I write it and say "done"; it reruns the tests and reviews my code as a pair.
 4. **Check**: `code-review` (Standards and Spec reviewers; the Spec one sees only the ticket, stories, skeleton and diff), then the Gate with its output.
@@ -99,7 +99,7 @@ In a fork, these live under `.omp/` (`.omp/CONTEXT.md`, `.omp/adr/`, `.omp/docs/
 
 ### A hitl ticket
 A payment-gateway integration ticket changes the surface and has one human puzzle, the HMAC signature, which the agent recommended for me because a mistake would be silent.
-1. **Skeleton**: the agent writes the `PaymentProvider` behaviour and publishes it to r3. I annotate "amount should be a Money struct, not an integer"; it revises, proposes a convention line, and I resolve the review.
+1. **Skeleton**: the agent writes the `PaymentProvider` behaviour and publishes it to r3. I annotate "amount should be a Money struct, not an integer"; it revises, proposes a convention line, and I archive the review.
 2. **Build**: tdd for the HTTP glue.
 3. **Puzzle**: failing tests and a `TODO(human)` for the HMAC. I write it and say "done"; it reruns the tests and reviews.
 4. **Check**: code-review, then the Gate.

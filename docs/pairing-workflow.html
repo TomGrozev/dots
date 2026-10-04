@@ -103,7 +103,7 @@ flowchart TD
   C --> W["5 · walkthrough"]:::auto
 </pre>
 
-<p><b>Step 0 without a ticket:</b> it first proposes the surface change and puzzles in one <code>ask</code>. <b>Skeleton review:</b> it revises until I resolve the review, restructures included; what my annotations teach gets filed by kind (domain terms in <code>CONTEXT.md</code>, general rules in <code>conventions.md</code>, real tradeoffs in ADRs), and later tickets that assumed the old surface get updated. <b>During the build:</b> if it needs a new data shape or contract, it stops, asks, and records an ADR; any other public addition it makes and lists for veto.</p>
+<p><b>Step 0 without a ticket:</b> it first proposes the surface change and puzzles in one <code>ask</code>. <b>Skeleton review:</b> it revises until I archive the review, restructures included; what my annotations teach gets filed by kind (domain terms in <code>CONTEXT.md</code>, general rules in <code>conventions.md</code>, real tradeoffs in ADRs), and later tickets that assumed the old surface get updated. <b>During the build:</b> if it needs a new data shape or contract, it stops, asks, and records an ADR; any other public addition it makes and lists for veto.</p>
 
 <h2>walkthrough</h2>
 <p>Every task that changes files ends here. In chat, in as few words as it can, the agent gives (empty parts left out):</p>
@@ -146,7 +146,7 @@ flowchart TD
 <h3>A hitl ticket</h3>
 <p>A payment-gateway integration ticket changes the surface and has one human puzzle, the HMAC signature, which the agent recommended for me because a mistake would be silent.</p>
 <ol>
-  <li><b>Skeleton</b>: the agent writes the <code>PaymentProvider</code> behaviour and publishes it to r3. I annotate "amount should be a Money struct, not an integer"; it revises, proposes a convention line, and I resolve the review.</li>
+  <li><b>Skeleton</b>: the agent writes the <code>PaymentProvider</code> behaviour and publishes it to r3. I annotate "amount should be a Money struct, not an integer"; it revises, proposes a convention line, and I archive the review.</li>
   <li><b>Build</b>: tdd for the HTTP glue.</li>
   <li><b>Puzzle</b>: failing tests and a <code>TODO(human)</code> for the HMAC. I write it and say "done"; it reruns the tests and reviews.</li>
   <li><b>Check</b>: code-review, then the Gate.</li>
