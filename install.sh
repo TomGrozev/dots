@@ -184,10 +184,6 @@ done
 # the agent's instructions can point at it.
 link_entry "$DOTFILES_DIR/docs/pairing-workflow.html" "$OMP_AGENT_DIR/pairing-workflow.html" "~/.omp/agent/pairing-workflow.html"
 
-# --- Link pi voice STT config ---
-# Authored copy of the pi-voice-stt (Soniox) settings read from ~/.pi/agent/stt.json.
-link_entry "$DOTFILES_DIR/.pi/stt.json" "$HOME/.pi/agent/stt.json" ".pi/agent/stt.json"
-
 # --- Devcontainer: bake config-devcontainer.yml into config.yml ---
 # A PI_CONFIG_FILES env var could select this overlay dynamically for shells that
 # source it - but captain-miao's remote/pooled session spawn never runs a shell at
@@ -245,39 +241,6 @@ if command -v omp &>/dev/null; then
     echo "Installing $plugin plugin for omp..."
     omp install "$plugin"
   done
-fi
-
-# --- Install pi-voice-stt (Soniox STT fork) ---
-# omp's plugin installer has no git-remote mode (npm specs, local paths, or
-# marketplace refs only), so the fork is cloned to a stable path outside the
-# dotfiles tree and linked from there. Linking the dotfiles checkout itself
-# would break if the clone is cleaned up mid-session; ~/.local/share is the
-# permanent home (plugins are referenced from ~/.omp/plugins/node_modules as
-# a symlink). Fork: TomGrozev/pi-voice-stt, branch feat/soniox-provider —
-# upstream PR cgarrot/pi-voice-stt#20 (Soniox cloud STT). When the PR merges
-# and ships in a release, drop this block and add `pi-voice-stt` to OMP_PLUGINS
-# above instead. No npm install needed: the extension has no runtime deps,
-# only peerDependencies resolved from omp's bundled @earendil-works packages.
-PI_VOICE_STT_DIR="$HOME/.local/share/pi-voice-stt"
-PI_VOICE_STT_BRANCH="feat/soniox-provider"
-
-echo ""
-echo "Installing pi-voice-stt (Soniox STT fork)..."
-
-if [ -d "$PI_VOICE_STT_DIR/.git" ]; then
-  echo "  Updating existing pi-voice-stt clone..."
-  git -C "$PI_VOICE_STT_DIR" fetch --quiet origin "$PI_VOICE_STT_BRANCH" &&
-    git -C "$PI_VOICE_STT_DIR" checkout --quiet "$PI_VOICE_STT_BRANCH" &&
-    git -C "$PI_VOICE_STT_DIR" merge --quiet --ff-only "origin/$PI_VOICE_STT_BRANCH"
-else
-  git clone --quiet --branch "$PI_VOICE_STT_BRANCH" \
-    https://github.com/TomGrozev/pi-voice-stt.git "$PI_VOICE_STT_DIR"
-fi
-
-if command -v omp &>/dev/null; then
-  omp plugin link "$PI_VOICE_STT_DIR"
-else
-  echo "  omp not found — cloned to $PI_VOICE_STT_DIR; run 'omp plugin link $PI_VOICE_STT_DIR' once omp is installed"
 fi
 
 # --- Download Zellij WASM plugins ---

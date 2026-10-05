@@ -469,8 +469,6 @@ doubleEscapeAction: rewind
 treeFilterMode: default
 error:
   notify: "on"
-stt:
-  enabled: true
 power:
   sleepPrevention: idle
 hideThinkingBlock: false
