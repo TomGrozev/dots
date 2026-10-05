@@ -3,7 +3,8 @@
  * Only the surface git-bot-identity.ts touches.
  */
 import type { BashToolCallEvent, ExtensionContext, ExecOptions, ExecResult, ToolCallEvent, ToolCallEventResult } from "@oh-my-pi/pi-coding-agent";
-import type { ExtensionCommandContext, ExtensionUIContext, SessionStartEvent, ToolResultEvent } from "@oh-my-pi/pi-coding-agent";
+import type { ExtensionCommandContext, ExtensionUIDialogOptions, ExtensionUIContext, SessionStartEvent, ToolDefinition, ToolResultEvent } from "@oh-my-pi/pi-coding-agent";
+import { z } from "@oh-my-pi/pi-coding-agent";
 import type { logger as PiLogger } from "@oh-my-pi/pi-utils";
 
 /** Same shape as the SDK's ExtensionHandler<ToolCallEvent, ToolCallEventResult>. */
@@ -40,10 +41,18 @@ export class FakeExtensionAPI {
 	toolResultHandlers: ToolResultHandler[] = [];
 	commands: Record<string, RegisteredCommand> = {};
 	sessionStartHandlers: SessionStartHandler[] = [];
+	/** Registered tools, keyed by name (for driving `execute` directly). */
+	tools: Record<string, ToolDefinition> = {};
 	execCalls: { command: string; args: string[] }[] = [];
 	responses: Record<string, FakeExecResult | Error> = execResponses;
 
 	logger = {} as unknown as typeof PiLogger;
+	/** Schema builder the extension uses to author tool parameters. */
+	zod = z;
+
+	registerTool(tool: ToolDefinition): void {
+		this.tools[tool.name] = tool;
+	}
 
 	on(
 		eventName: "tool_call" | (string & {}),
@@ -130,58 +139,73 @@ export function toolResultEvent(toolCallId: string): ToolResultEvent {
 
 /** Scriptable ui surface: canned answers by FIFO queue, notifications recorded. */
 export interface FakeUiSurface {
-	select(title: string, options: unknown[]): Promise<string | undefined>;
+	select(title: string, options: unknown[], dialogOptions?: ExtensionUIDialogOptions): Promise<string | undefined>;
 	input(title: string, placeholder?: string): Promise<string | undefined>;
-	confirm(): Promise<boolean>;
+	confirm(title: string, message: string): Promise<boolean>;
 	notify(message: string, type?: "info" | "warning" | "error"): void;
 }
 
 export interface FakeUiRecord {
 	// options are recorded raw (plain strings or {label, description} objects)
 	// so tests can assert the presence/contents of per-option descriptions.
-	selectCalls: { title: string; options: (string | { label: string; description?: string })[] }[];
+	// dialogOptions (e.g. initialIndex) is recorded so tests can assert the
+	// safe default position of the cursor.
+	selectCalls: { title: string; options: (string | { label: string; description?: string })[]; dialogOptions: ExtensionUIDialogOptions | undefined }[];
 	inputCalls: { title: string; placeholder: string | undefined }[];
+	confirmCalls: { title: string; message: string }[];
 	notifications: { message: string; type: "info" | "warning" | "error" | undefined }[];
 }
 
 /**
  * Build a scriptable fake `ExtensionUIContext` (cast to the full SDK type at the
  * call site) plus a builder for a fake `ExtensionContext`. `script.selects` /
- * `script.inputs` are consumed FIFO; exhausted inputs default to "" (which the
- * wizard treats as keep-the-derived-value for name/email). Notifications and
- * every select/input invocation are recorded for assertions.
+ * `script.inputs` / `script.confirms` are consumed FIFO; exhausted inputs default
+ * to "" (which the wizard treats as keep-the-derived-value for name/email) and
+ * exhausted confirms default to true. Notifications and every select/input/
+ * confirm invocation are recorded for assertions.
  */
-export function makeFakeUi(script: { selects?: (string | undefined)[]; inputs?: (string | undefined)[] } = {}) {
+export function makeFakeUi(
+	script: { selects?: (string | undefined)[]; inputs?: (string | undefined)[]; confirms?: (boolean | undefined)[] } = {},
+) {
 	const selectCalls: FakeUiRecord["selectCalls"] = [];
 	const inputCalls: FakeUiRecord["inputCalls"] = [];
+	const confirmCalls: FakeUiRecord["confirmCalls"] = [];
 	const notifications: FakeUiRecord["notifications"] = [];
 	const selectAnswers = [...(script.selects ?? [])];
 	const inputAnswers = [...(script.inputs ?? [])];
+	const confirmAnswers = [...(script.confirms ?? [])];
 
 	const ui: FakeUiSurface = {
-		async select(title, options) {
+		async select(title, options, dialogOptions) {
 			// Resolve the answer by queue position (the label string, as before); keep
 			// backward compat with plain-string options. Record the raw options so
-			// tests can inspect labels AND descriptions for object items.
-			selectCalls.push({ title, options: [...(options as (string | { label: string; description?: string })[])] });
+			// tests can inspect labels AND descriptions for object items, plus the
+			// dialog options (the initial cursor position / safe default).
+			selectCalls.push({ title, options: [...(options as (string | { label: string; description?: string })[])], dialogOptions });
 			return selectAnswers.shift();
 		},
 		async input(title, placeholder) {
 			inputCalls.push({ title, placeholder });
 			return inputAnswers.shift() ?? "";
 		},
-		async confirm() {
-			return true;
+		async confirm(title, message) {
+			confirmCalls.push({ title, message });
+			return confirmAnswers.shift() ?? true;
 		},
 		notify(message, type) {
 			notifications.push({ message, type });
 		},
 	};
 
-	const ctx = (overrides: { mode?: string; hasUI?: boolean } = {}): Partial<ExtensionContext> =>
-		({ ui, mode: overrides.mode ?? "tui", hasUI: overrides.hasUI ?? true }) as unknown as Partial<ExtensionContext>;
+	const ctx = (overrides: { mode?: string; hasUI?: boolean; cwd?: string } = {}): Partial<ExtensionContext> =>
+		({
+			ui,
+			mode: overrides.mode ?? "tui",
+			hasUI: overrides.hasUI ?? true,
+			cwd: overrides.cwd ?? process.cwd(),
+		}) as unknown as Partial<ExtensionContext>;
 
-	return { ui, selectCalls, inputCalls, notifications, selectAnswers, inputAnswers, ctx };
+	return { ui, selectCalls, inputCalls, confirmCalls, notifications, selectAnswers, inputAnswers, confirmAnswers, ctx };
 }
 
 export type FakeUiHarness = ReturnType<typeof makeFakeUi>;

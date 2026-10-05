@@ -51,7 +51,7 @@ For each, follow HITL.md § Human puzzles.
 **Done when** both review axes are reported and the Gate passes, with its command and output tail shown.
 
 ### 5. Finish
-Run `skill://walkthrough`, passing the ticket reference so the commit or PR cites it. Landing (commit, branch, PR) is the walkthrough's question; this skill writes no git history.
+Run `skill://walkthrough`, passing the ticket reference and the ticket's mode (hitl or afk; ad-hoc counts as hitl). Landing (commit, branch, PR) is the walkthrough's question; this skill writes no git history.
 
 **Done when** the walkthrough's question is answered.
 

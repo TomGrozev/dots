@@ -140,6 +140,25 @@ Bot commits are signed with a bot-owned GPG key located in `~/.config/git-bot-id
 - **Strict Identity**: The bot identity is isolated and never falls back to the human identity for write actions.
 - **Credential Storage**: The PAT is stored in plaintext in `config.json`. Masked entry and a secret-store backend are planned follow-ups.
 
+## Commit Paths
+
+The extension provides two ways to land a commit, chosen by ticket mode:
+
+- **`afk` / `ready-for-agent` tickets** — the agent commits normally. Its `git` invocation goes through the guidance shim, which grants the bot credentials: the bot is the author and committer, signs with the bot's passphrase-less GPG key, and the human is recorded as a `Co-authored-by` trailer (injected by the bot-scoped `prepare-commit-msg` hook).
+- **`hitl` / `ready-for-human` tickets and ad-hoc work** — the human is the author and committer, signing with their own GPG key (e.g. a YubiKey requiring PIN + touch), and the bot becomes the `Co-authored-by` trailer. The agent stages files and writes the conventional-commit message, then calls the **`commit_as_me`** tool.
+
+### `commit_as_me`
+
+Agent-callable tool that commits **as the human**. It:
+
+1. Verifies something is staged (`git diff --cached`); errors if not.
+2. Builds the final message, appending `Co-authored-by: <bot name> <bot email>` unless it is already present (omitted entirely when no bot config exists).
+3. Shows the human a confirmation dialog with the staged `git diff --cached --stat` and the final message. **The dialog is the gate — the agent cannot answer it.**
+4. On approval, runs the **real** `git` (never the shim) with the human's untouched environment — the pristine pre-neutralization snapshot: real `PATH`, the human's own git config, and their signing setup. It passes no signing flags and never disables signing, so the human's `commit.gpgsign`, GPG agent, and pinentry apply. It runs with an inherited stdin so a smart-card PIN/touch prompt keeps its terminal.
+5. Returns the new commit's short hash and subject.
+
+Failures are returned as tool errors with **no commit**: nothing staged, no UI available (headless/subagent), or the human declined. On decline the error carries the exact command to run manually, e.g. `git commit -F <file>`, where `<file>` holds the final message.
+
 ## Development
 
 ### Commands
@@ -155,5 +174,6 @@ Bot commits are signed with a bot-owned GPG key located in `~/.config/git-bot-id
 - `lib/grant-client.ts`: Socket client used by the shim to request credentials.
 - `lib/shim.ts`: The `git`/`gh` shim scripts.
 - `lib/config.ts`: Credential and configuration discovery.
+- `lib/commit-as-me.ts`: The human-identity `commit_as_me` tool.
 - `lib/gpg.ts`: GPG key management and signing.
 - `lib/setup.ts`: Interactive setup wizard and launch prompt.

@@ -26,11 +26,16 @@ Get the change across in the fewest words. Print in chat, in this order, leaving
 
 ### 3. Ask
 One `ask` with four options; the recommended one is the size-based choice:
-- **commit**: one conventional commit (`conventional-commit` skill) on the current branch, citing the ticket. Recommended for small, contained work reviewable in one sitting.
-- **r3 then commit**: publish the change as a `diff` artifact (commands: `skill://r3`) with the walkthrough as its summary, diagram as a mermaid block; revise and reply until the user archives the review, then commit as above.
-- **PR**: a `feat/…`, `fix/…` or `chore/…` branch, one conventional commit, then `gh pr create` with the walkthrough as the body, diagram as a mermaid block. Recommended for multi-file, behavioural, config or infra change. Surface the URL and end the turn.
+- **commit**: land as a commit (see Landing rules), citing the ticket. Recommended for small, contained work reviewable in one sitting.
+- **r3 then commit**: publish the change as a `diff` artifact (commands: `skill://r3`) with the walkthrough as its summary, diagram as a mermaid block; revise and reply until the user archives the review, then land as a commit.
+- **PR**: a `feat/…`, `fix/…` or `chore/…` branch, land as a commit, then `gh pr create` with the walkthrough as the body, diagram as a mermaid block. Recommended for multi-file, behavioural, config or infra change. Surface the URL and end the turn.
 - **leave it**: the change stays uncommitted.
 
 Then, if the ticket just landed was the last open ticket of its spec (check the tracker), the repo is onboarded (`docs/agents/conventions.md` exists) and it is not a fork, end with one line suggesting the user run `calibrate` in a fresh session.
 
 **Done when** the chosen option is carried out, plus the calibrate line when it applies.
+
+## Landing rules
+Commits in Step 3 depend on mode:
+- **afk**: conventional commit (`conventional-commit` skill).
+- **hitl or ad-hoc**: stage files, then call `commit_as_me` with the conventional-commit message. If it errors (user declined/no UI), show the returned `git commit -F <file>` command and wait; never commit yourself.

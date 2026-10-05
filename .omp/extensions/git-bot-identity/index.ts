@@ -69,6 +69,7 @@ import { installShim } from "./lib/shim";
 import { getGrantServer, type GrantResolver } from "./lib/grant-server";
 import { blockGuidance } from "./lib/guidance";
 import { installSetup } from "./lib/setup";
+import { installCommitAsMe } from "./lib/commit-as-me";
 
 export interface CreateOptions {
 	/** Credentials directory override (tests); defaults to ~/.config/git-bot-identity. */
@@ -103,6 +104,11 @@ function pristineEnvSnapshot(): Record<string, string> {
 export interface BotIdentityBind {
 	neutralEnv: Record<string, string>;
 	pristineSpawn: SpawnFn;
+	/** Pre-neutralization env snapshot (real PATH, human config/signing) — used
+	 * by `commit_as_me` to run git as the human, untouched by bot overrides. */
+	pristineEnv: Record<string, string>;
+	/** Bot identity for the `commit_as_me` trailer; null when unconfigured. */
+	bot: { name: string; email: string } | null;
 }
 
 /**
@@ -214,15 +220,24 @@ export async function createDefault(options: CreateOptions = {}): Promise<BotIde
 	const { shimDir } = installShim(credsDir, { git: realGit, gh: realGh, runtime: process.execPath });
 	const neutralEnv = neutralBaseEnv({ shimDir, denyConfigPath, gnupgHome: neutralGnupg, realPath, grantSock: grant.socketPath });
 
-	return { neutralEnv, pristineSpawn };
+	return {
+		neutralEnv,
+		pristineSpawn,
+		pristineEnv,
+		bot: config ? { name: config.name, email: config.email } : null,
+	};
 }
 
 export default async function (pi: ExtensionAPI) {
-	const { neutralEnv, pristineSpawn } = await createDefault();
+	const { neutralEnv, pristineSpawn, pristineEnv, bot } = await createDefault();
 	// Register the interactive setup wizard + on-launch prompt BEFORE the env is
 	// neutralized: the wizard must run through the pristine (`pristineSpawn`)
 	// spawn captured above so its gh/gpg subprocesses are never self-blocked.
 	installSetup(pi, { credsDir: CONFIG_DIR, spawn: pristineSpawn });
+	// Register the human-identity commit tool. It runs git with `pristineEnv`
+	// (real PATH, human config/signing), so it is unaffected by the neutral
+	// overlay installed below.
+	installCommitAsMe(pi, { bot, humanEnv: pristineEnv });
 	// Strip by default: neutralize the omp process env so every child born after
 	// this — the bash subprocess, the persistent eval kernel, subagent shells —
 	// inherits stripped credentials. The shim re-requests creds from the grant
