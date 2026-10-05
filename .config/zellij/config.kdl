@@ -80,14 +80,6 @@ keybinds clear-defaults=true {
             MessagePlugin "autolock" {payload "disable";};
             SwitchToMode "Locked";
         }
-        // Harpoon pane bookmarks.
-        bind "Ctrl y" {
-            LaunchOrFocusPlugin "file:~/.config/zellij/plugins/harpoon.wasm" {
-                floating true
-                move_to_focused_tab true
-            }
-            SwitchToMode "locked"
-        }
 
         bind "Ctrl j" {
             Run "zsh" "-ic" "choice=$(zjsh list -i | fzf --prompt='session> ') && zjsh connect \"$choice\"" {
@@ -314,7 +306,7 @@ plugins {
     }
     autolock location="file:~/.config/zellij/plugins/zellij-autolock.wasm" {
         is_enabled true
-        triggers "nvim|vim|git|fzf|zoxide|atuin|opencode|yazi|ssh|omp|pi"
+        triggers "nvim|vim|git|fzf|zoxide|atuin|opencode|yazi|ssh|omp|pi|miao|miao-server"
         reaction_seconds "0.3"
         print_to_log false
     }
