@@ -117,9 +117,13 @@ export OPENCODE_ENABLE_EXA=1
 export SEARXNG_API_URL=https://search.theg.house
 
 export GPG_TTY=$(tty)
-export SSH_AUTH_SOCK=$(gpgconf --list-dirs agent-ssh-socket)
-gpgconf --launch gpg-agent
-gpg-connect-agent updatestartuptty /bye > /dev/null
+# Over SSH the gpg-agent socket is the forwarded "extra" socket, which runs in
+# restricted mode and rejects updatestartuptty; keep the forwarded SSH agent too.
+if [[ -z $SSH_CONNECTION ]]; then
+  export SSH_AUTH_SOCK=$(gpgconf --list-dirs agent-ssh-socket)
+  gpgconf --launch gpg-agent
+  gpg-connect-agent updatestartuptty /bye > /dev/null
+fi
 
 # export LC_ALL=C   # disabled: the C locale breaks UTF-8 (tmux icons rendered as underscores)
 
