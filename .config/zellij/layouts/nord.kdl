@@ -180,7 +180,7 @@ layout {
 
                 // ── Format zones ──────────────────────────────────
                 format_left   "{mode} #[fg=$nord8,bold]{session}"
-                format_right  "{command_miao} {pipe_zjstatus_hints} #[fg=$nord3]{datetime}"
+                format_right  "{pipe_zjstatus_hints} #[fg=$nord3]{datetime}"
                 format_space  "#[bg=$nord0]"
 
                 // ── Mode indicators ───────────────────────────────
@@ -202,15 +202,6 @@ layout {
 
                 // ── zjstatus-hints pipe ───────────────────────────
                 pipe_zjstatus_hints_format "#[fg=$nord5,italic] {output} "
-
-                // ── captain-miao tally (see scripts/miao-status) ───
-                // Format is bare {stdout}: the script colours its own output
-                // against the nord palette and prints nothing when there is
-                // nothing to report, so the widget disappears.
-                command_miao_command    "sh -c \"$HOME/.config/zellij/scripts/miao-status\""
-                command_miao_format     "{stdout}"
-                command_miao_interval   "3"
-                command_miao_rendermode "dynamic"
 
                 // ── DateTime ──────────────────────────────────────
                 datetime          "#[fg=$nord4] {format}"
