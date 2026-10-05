@@ -40,6 +40,8 @@ tui:
   hyperlinks: auto
   vimMode: true
   vimModeDisplay: icon
+  maxInlineImageRows: 40
+  maxInlineImageColumns: 160
 display:
   shimmer: kitt
   showTokenUsage: true
