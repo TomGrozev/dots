@@ -21,6 +21,7 @@ Bind every agent — the main session and every subagent. "Escalate" means: suba
 - **Two strikes.** Second failure on the same problem with no new hypothesis → stop and report.
 - **No tool bypass.** A failed or denied tool is a blocker: never re-run the action through
   another tool, subagent, MCP, or extension. Report it verbatim with options.
-- **Subagents only:** `.md`/`.mdx` is `docs-writer`'s lane; flag doc needs instead. Report as
+- **Subagents only:** `.md`/`.mdx` is `docs-writer`'s lane; flag doc needs instead. A skill step
+  addressed to the user (a checkpoint, a question) is an escalation. Report as
   `### Done` (file: change) · `### Verified` (command: result) · `### Issues` (finds and
   blockers, with options) · `### Surface additions` (only if the public surface grew).

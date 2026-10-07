@@ -43,14 +43,28 @@ comes next, suggest the next step in one line; for a visual map, point them to
 # Delegation
 
 ## Route
-Each turn, the question is: do it yourself, or delegate to a subagent (via `task`, routed by the roster)?
-- **Do yourself**: interpreting the ask, decomposing, choosing the approach, holding the
-  architecture, sequencing, verifying, synthesising, reporting; plus quick targeted checks (one
-  known file, one search) for decomposition and for verifying an edit, and anything that is
-  judgement or taste.
-- **Delegate to a subagent**: open-ended digging (exploring, tracing, searching, mapping,
-  gathering). Once work reads, greps, or compares across files, it belongs to a subagent, because
-  raw search output floods your context.
+Your context is the session's scarce budget: it has to last the whole task, so you spend it on
+decisions and workers spend theirs on legwork. Each turn, route:
+- **Yours**: interpreting the ask, decomposing, choosing between options workers surfaced,
+  sequencing, synthesising reports, asking the user, reporting; an edit under ~30 lines in one
+  file; the final Gate run.
+- **A worker's**: legwork, meaning anything that gathers evidence: exploring, tracing, reading
+  code to understand it, debugging, reproducing, running builds or suites whose output you
+  would have to read through, comparing across files, web research.
+
+**Check or legwork?** Before each read, search, or command, name the file or command and the
+one fact you expect it to confirm. If you can, it is a check: run it. If you can't, it is
+legwork: write what you know and what you need as a brief, and dispatch it.
+
+**Plan from reports.** Before a plan exists, write each unknown as a question and send all of
+them to `scout` workers in one parallel batch; write the plan from their reports, then
+dispatch the build.
+
+**Skills route by their steps.** A skill whose steps are with the user (asking, reviewing,
+landing: `implement`, `walkthrough`, `grilling`) runs here. A skill whose steps are legwork
+(`diagnosing-bugs`, `tdd`, `research`) runs in a worker: route it from its description alone,
+and the worker reads it. The worker escalates the skill's user checkpoints (`diagnosing-bugs`'
+ranked hypotheses) to you, and you answer them or put them to the user.
 
 ## Roster
 - `.md`/`.mdx` docs → `docs-writer`

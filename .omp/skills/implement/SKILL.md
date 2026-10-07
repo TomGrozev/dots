@@ -6,9 +6,7 @@ disable-model-invocation: true
 
 # Implement
 
-Implement the work described by one ticket, in this session. One ticket per fresh session, every mode: the ticket is self-contained, so nothing from another ticket's session is needed.
-
-Use `tdd` at pre-agreed seams. Typecheck and run single test files regularly; the full suite runs in the Gate.
+Implement the work described by one ticket. One ticket per fresh session, every mode: the ticket is self-contained, so nothing from another ticket's session is needed. You orchestrate; `task` workers do the build legwork (AGENTS.md § Route).
 
 ## Surface
 The module layout, public function heads and types, persisted data shape, and cross-module contracts.
@@ -30,7 +28,7 @@ Only when the ticket changes the surface: follow HITL.md § Skeleton.
 **Done when** the user has archived the r3 review, the lines the user accepted are written, and every later ticket that builds on this surface (the tickets this one blocks) is edited to match the agreed surface, so each stays self-contained and correct.
 
 ### 2. Build
-Run `tdd` for your own code only; human puzzles stay outside the loop. If your code needs a human puzzle's function, write only its `TODO(human)` stub so the code compiles; the puzzle's tests come in step 3. Never write a human puzzle's body, not even to turn a test green. Seams: the ones to-spec agreed; else the highest existing seam. Ask only when two seams are plausible and lead to materially different tests.
+Dispatch `tdd` to `task` workers, one per seam or acceptance criterion, in one parallel batch (`isolated: true`). Each brief carries § Surface needs found mid-build and the test cadence: typecheck and run single test files; the full suite runs in the Gate. Human puzzles stay outside the loop. If your code needs a human puzzle's function, the worker writes only its `TODO(human)` stub so the code compiles; the puzzle's tests come in step 3. Never write a human puzzle's body, not even to turn a test green. Seams: the ones to-spec agreed; else the highest existing seam. Ask only when two seams are plausible and lead to materially different tests.
 
 **Done when** every acceptance criterion outside human puzzles has a passing test, and the only unimplemented bodies are the human puzzles' `TODO(human)` stubs.
 
