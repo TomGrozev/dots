@@ -86,6 +86,50 @@ else
   git clone --quiet --depth=1 "https://github.com/romkatv/powerlevel10k.git" "$p10k_dir"
 fi
 
+# --- Remove targets dropped from the dotfiles ---
+# A commit that removes a dotfile or an install step leaves the previously
+# installed copy behind: symlinks dangle (their source is gone) and non-symlink
+# artifacts (git clones, plugin links) linger. Clean these before re-linking so
+# removals propagate to existing installs, not only to fresh ones.
+echo ""
+echo "Removing stale targets..."
+
+# (a) Symlinks in the managed roots that point into the repo but whose source no
+# longer exists. Any entry dropped from the arrays below self-cleans here.
+for root in "$HOME" "$HOME/.config" "$OMP_AGENT_DIR" "$LOCAL_BIN"; do
+  find "$root" -maxdepth 1 -type l 2>/dev/null | while read -r link; do
+    case "$(readlink "$link")" in
+    "$DOTFILES_DIR"/*)
+      if [ ! -e "$link" ]; then
+        echo "  Removing stale link $link (source gone)"
+        rm -f "$link"
+      fi
+      ;;
+    esac
+  done
+done
+
+# (b) Paths created by install steps that have since been removed from this
+# script. When you delete an install block, add the paths it created here.
+obsolete_paths=(
+  "$HOME/.pi/agent/stt.json"                     # pi-voice-stt Soniox STT config (removed 6f153196)
+  "$HOME/.local/share/pi-voice-stt"              # pi-voice-stt git clone
+  "$HOME/.omp/plugins/node_modules/pi-voice-stt" # pi-voice-stt omp plugin link
+)
+# Deregister the plugin first so omp prunes its own state (node_modules link +
+# omp-plugins.lock.json); the filesystem removals below are the fallback.
+if command -v omp &>/dev/null && [ -e "$HOME/.omp/plugins/node_modules/pi-voice-stt" ]; then
+  omp plugin uninstall pi-voice-stt &>/dev/null || true
+fi
+for path in "${obsolete_paths[@]}"; do
+  if [ -e "$path" ] || [ -L "$path" ]; then
+    echo "  Removing obsolete $path"
+    rm -rf "$path"
+  fi
+done
+# Prune directories the removals above emptied.
+rmdir "$HOME/.pi/agent" "$HOME/.pi" 2>/dev/null || true
+
 # --- Symlink dotfiles ---
 echo ""
 echo "Creating symlinks..."
