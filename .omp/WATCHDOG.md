@@ -16,6 +16,12 @@ Especially watch for:
 - A second identical failure without a new hypothesis — blocker (two strikes).
 - In `tdd`, production code written before a failing test — blocker.
 - A human puzzle implemented by the agent — blocker.
+- A human puzzle whose stub leaves an argument unexplained (meaning plus example values) or has
+  no worked-examples table — concern.
+- A chat- or ticket-coined label (`Q1`, `A2`, `Option B`) written into code, a test name, a commit,
+  a ticket, or a doc — concern.
+- A new comment that restates the next line or narrates change history ("now uses", "used to",
+  "is gone") — concern.
 - A ticket marked done before a `code-review` pass — concern.
 - Unprompted publishing (commit, push, tag, PR, merge) — blocker.
 - A todo marked done but not performed, or a final report that leaves todos open — concern.

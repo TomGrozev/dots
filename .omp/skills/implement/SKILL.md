@@ -41,7 +41,8 @@ For each, follow HITL.md § Human puzzles.
 1. Run `code-review` with its inputs supplied, so it has nothing to ask:
    - fixed point: the start commit;
    - diff command: `git add -N . && git diff <start>` (the work is uncommitted);
-   - spec: the ticket, its spec's user stories, and the skeleton.
+   - spec: the ticket, its spec's user stories, and the skeleton;
+   - standards: the repo's documented standards, plus the Agent Rules' **Durable names** and **Comments carry the why** (`~/.omp/agent/RULES.md`), so the Standards reviewer checks every new name and comment with eyes that did not write them.
 
    The Spec reviewer receives only those and the diff, never your reasoning. Fix what's real; the rest goes to the walkthrough as "where I'd want your eyes".
 2. Run the Gate: the command in `docs/agents/gate.md`; if absent, the stack pack's default gate, else the repo's test + lint commands, and suggest `onboard`. Make it pass by fixing the code; tests and lint rules stay as they are, and hooks stay on.

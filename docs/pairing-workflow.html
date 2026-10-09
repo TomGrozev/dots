@@ -97,7 +97,7 @@ flowchart TD
   S -- no --> B
   SK --> B["2 · Build<br/>tdd on the agent's own code only;<br/>my puzzles stay outside the tdd loop<br/>(at most an empty TODO(human) stub if its code needs one)"]:::auto
   B --> P{"Any human puzzles?"}
-  P -- yes --> PZ["3 · my puzzles ⏸<br/>all its failing tests at once + a TODO(human) stub;<br/>I write it, agent reruns tests and reviews"]:::wait
+  P -- yes --> PZ["3 · my puzzles ⏸<br/>all its failing tests at once + a TODO(human) stub<br/>explaining each argument, with worked examples;<br/>I write it, agent reruns tests and reviews"]:::wait
   P -- no --> C
   PZ --> C["4 · Check<br/>code-review, then the Gate"]:::auto
   C --> W["5 · walkthrough"]:::auto

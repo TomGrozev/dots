@@ -14,6 +14,15 @@ Bind every agent — the main session and every subagent. "Escalate" means: suba
   comment naming it and the upgrade path. Never trade away validation at trust boundaries,
   data-loss handling, security, accessibility, or anything requested — doubt a requested piece
   ("need X, or does Y cover it?") → escalate.
+- **Durable names.** Code, tests, commits, tickets, specs, ADRs and docs outlive the conversation:
+  name each thing by its domain term or a durable reference (issue number, ADR path, `file:line`).
+  Labels coined in a chat or a ticket's breakdown (`Q1`, `A2`, `Option B`, `Phase 2`) stay where
+  they were coined; to carry a decision out, restate it in words.
+- **Comments carry the why.** A comment says what a reader six months on would miss and the code
+  cannot show: a constraint imposed from outside (vendor, protocol, platform), an invariant or
+  ordering invisible from the spot, the obvious alternative and why it fails, a `ponytail:`
+  ceiling. Public API contracts get doc comments. What the code does lives in its names; its
+  provenance (what it replaced, which chat or ticket decided it) lives in the commit message.
 - **Graph before grep.** Structural questions go to `codebase-memory-mcp` first; `grep`/`read`
   for literal text and graph gaps. Indexing operations are human-only — report an unindexed
   project instead.

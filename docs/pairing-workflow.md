@@ -50,7 +50,7 @@ One ticket per fresh session, afk included.
 0. **Load** the ticket, the spec's user stories, `docs/agents/conventions.md`, `CONTEXT.md`, the ADRs; record the start commit. Without a ticket, it first proposes the surface change and puzzles in one `ask`.
 1. **Skeleton**, only if the surface changes: written in the real files, reviewed by me in r3. It revises until I archive the review, restructures included. What my annotations teach gets filed by kind: domain terms in `CONTEXT.md`, general rules in `conventions.md`, real tradeoffs in ADRs. Later tickets that assumed the old surface get updated.
 2. **Build** with `tdd`, everything except my puzzles, which stay outside the tdd loop (at most an empty `TODO(human)` stub if its code needs one).
-3. **My puzzles**: all its failing tests at once and a `TODO(human)` stub with the context and tradeoffs. I write it and say "done"; it reruns the tests and reviews my code as a pair.
+3. **My puzzles**: all its failing tests at once and a `TODO(human)` stub written for me reading it cold: each argument explained with example values, the return value, a worked-examples table (one row per test), and the context and tradeoffs. I write it and say "done"; it reruns the tests and reviews my code as a pair.
 4. **Check**: `code-review` (Standards and Spec reviewers; the Spec one sees only the ticket, stories, skeleton and diff), then the Gate with its output.
 5. **walkthrough**.
 
