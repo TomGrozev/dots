@@ -1707,6 +1707,10 @@
   # really need it.
   typeset -g POWERLEVEL9K_DISABLE_HOT_RELOAD=true
 
+  # Emit OSC 133 prompt marks so Zellij can jump between prompts ([ / ] in scroll
+  # mode) and copy the last command's output (c in scroll mode).
+  typeset -g POWERLEVEL9K_TERM_SHELL_INTEGRATION=true
+
   # If p10k is already loaded, reload configuration.
   # This works even with POWERLEVEL9K_DISABLE_HOT_RELOAD=true.
   (( ! $+functions[p10k] )) || p10k reload
