@@ -3,7 +3,7 @@ providers:
 modelRoles:
   slow: anthropic/claude-opus-5-5:auto
   plan: anthropic/claude-opus-5-5:auto
-  task: neuralwatt/deepseek-v4.1-flash-flex:auto
+  task: neuralwatt/deepseek-v4.1-flash:auto
   smol: neuralwatt/deepseek-v4.1-flash:low
   tiny: neuralwatt/qwen3.6-35b-fast:off
   writer: neuralwatt/glm-5.3-flash:low
