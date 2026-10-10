@@ -28,9 +28,18 @@ export const CONFIG_FILE = "config.json";
  */
 export type SpawnFn = (cmd: string[], env?: Record<string, string>) => Promise<{ exitCode: number; stdout: string; stderr: string }>;
 
-/** Real Bun.spawn wrapper (production default). */
-async function defaultSpawn(cmd: string[], env?: Record<string, string>): Promise<{ exitCode: number; stdout: string; stderr: string }> {
-	const proc = Bun.spawn(cmd, { env: { ...process.env, ...env }, stdout: "pipe", stderr: "pipe", stdin: "ignore" });
+/**
+ * The one real Bun.spawn wrapper (production default for every caller).
+ * `env` overrides are layered over `base`: the process env for the bot's own
+ * git/gpg calls, or the extension's pristine env where the neutral overlay must
+ * not self-block it. stdin is ignored so no child can block on input.
+ */
+export async function spawnCollect(
+	cmd: string[],
+	env?: Record<string, string>,
+	base: Record<string, string | undefined> = process.env,
+): Promise<{ exitCode: number; stdout: string; stderr: string }> {
+	const proc = Bun.spawn(cmd, { env: { ...base, ...env }, stdout: "pipe", stderr: "pipe", stdin: "ignore" });
 	const [stdout, stderr] = await Promise.all([new Response(proc.stdout).text(), new Response(proc.stderr).text()]);
 	return { exitCode: await proc.exited, stdout, stderr };
 }
@@ -43,7 +52,7 @@ async function gitGlobalGet(spawn: SpawnFn, key: string): Promise<string | undef
 	return value;
 }
 
-export interface BotConfig {
+interface BotConfig {
 	/** Agent account display name; used for author/committer. */
 	name: string;
 	/** Agent account email (the GPG key UID email for Verified). */
@@ -87,7 +96,7 @@ export function expandTilde(path: string): string {
 }
 
 /** Result of reading config.json: the parsed config, or why there is none. */
-export type ConfigRead =
+type ConfigRead =
 	| { ok: true; config: BotConfig }
 	| { ok: false; kind: "absent" }
 	| { ok: false; kind: "invalid"; reason: string };
@@ -97,7 +106,7 @@ export type ConfigRead =
  * absent-vs-unusable distinction (and the parse error text), so the reload path
  * can refuse a stale grant with a reason that names the problem.
  */
-export function readBotConfig(dir: string = CONFIG_DIR): ConfigRead {
+function readBotConfig(dir: string = CONFIG_DIR): ConfigRead {
 	let raw: string;
 	try {
 		raw = readFileSync(join(dir, CONFIG_FILE), "utf8");
@@ -177,7 +186,7 @@ export function sameConfigStamp(a: ConfigStamp | null, b: ConfigStamp | null): b
 }
 
 /** Cheap change key for config.json; null when the file is absent. */
-export function statBotConfig(dir: string = CONFIG_DIR): ConfigStamp | null {
+function statBotConfig(dir: string = CONFIG_DIR): ConfigStamp | null {
 	try {
 		const st = statSync(join(dir, CONFIG_FILE));
 		return { mtimeMs: st.mtimeMs, size: st.size };
@@ -195,7 +204,7 @@ export function statBotConfig(dir: string = CONFIG_DIR): ConfigStamp | null {
  */
 export async function resolveHumanIdentity(
 	config: { humanName?: string; humanNoreply?: string },
-	spawn: SpawnFn = defaultSpawn,
+	spawn: SpawnFn = spawnCollect,
 ): Promise<{ name: string; email: string }> {
 	const name = config.humanName?.trim() || (await gitGlobalGet(spawn, "user.name"));
 	const email = config.humanNoreply?.trim() || (await gitGlobalGet(spawn, "user.email"));
@@ -213,7 +222,7 @@ export async function resolveHumanIdentity(
  * when the file is present but unusable, so the caller refuses with that reason
  * instead of serving a grant from an older config.
  */
-export interface BotConfigSnapshot {
+interface BotConfigSnapshot {
 	stamp: ConfigStamp | null;
 	config: BotConfig | null;
 	identity: { name: string; email: string } | null;
@@ -221,7 +230,7 @@ export interface BotConfigSnapshot {
 	identityWarning: string | null;
 }
 
-export interface BotConfigCache {
+interface BotConfigCache {
 	/** Re-stat; re-read and re-resolve only when mtime/size changed. */
 	refresh(): Promise<BotConfigSnapshot>;
 }
@@ -243,7 +252,7 @@ const ABSENT_SNAPSHOT: BotConfigSnapshot = {
  * unparseable one yields `config: null` + `invalidReason` — both refuse, never
  * a stale grant. A change also re-resolves the human identity.
  */
-export function createBotConfigCache(dir: string = CONFIG_DIR, spawn: SpawnFn = defaultSpawn): BotConfigCache {
+export function createBotConfigCache(dir: string = CONFIG_DIR, spawn: SpawnFn = spawnCollect): BotConfigCache {
 	let cached: BotConfigSnapshot | null = null;
 	return {
 		async refresh(): Promise<BotConfigSnapshot> {

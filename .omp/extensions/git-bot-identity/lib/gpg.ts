@@ -12,19 +12,12 @@
 
 import { mkdirSync, rmSync } from "node:fs";
 import { join } from "node:path";
-import type { SpawnFn } from "./config";
+import { spawnCollect, type SpawnFn } from "./config";
 
 const LOCK_DIR = ".keylock";
 /** Poll interval + upper bound on waiting for concurrent generation. */
 const POLL_MS = 100;
 const LOCK_WAIT_MS = 30_000;
-
-/** Real gpg wrapper injecting GNUPGHOME (production default). */
-async function defaultGpgSpawn(cmd: string[], env?: Record<string, string>): Promise<{ exitCode: number; stdout: string; stderr: string }> {
-	const proc = Bun.spawn(cmd, { env: { ...process.env, ...env }, stdout: "pipe", stderr: "pipe", stdin: "ignore" });
-	const [stdout, stderr] = await Promise.all([new Response(proc.stdout).text(), new Response(proc.stderr).text()]);
-	return { exitCode: await proc.exited, stdout, stderr };
-}
 
 /** Parse the first secret-key fingerprint from `--with-colons` output. */
 async function findSecretKey(spawn: SpawnFn, env: Record<string, string>): Promise<string | undefined> {
@@ -49,7 +42,7 @@ async function findSecretKey(spawn: SpawnFn, env: Record<string, string>): Promi
  * equal config.email so the signature matches the committer for Verified.
  * `spawn` is injectable for tests (real gpg by default).
  */
-export async function ensureBotKey(dir: string, email: string, spawn: SpawnFn = defaultGpgSpawn): Promise<{ keyId: string }> {
+export async function ensureBotKey(dir: string, email: string, spawn: SpawnFn = spawnCollect): Promise<{ keyId: string }> {
 	const gnupgDir = join(dir, "gnupg");
 	mkdirSync(gnupgDir, { recursive: true, mode: 0o700 });
 	const env = { GNUPGHOME: gnupgDir };
@@ -109,7 +102,7 @@ export async function ensureBotKey(dir: string, email: string, spawn: SpawnFn = 
  * keyring with no secret key throws, and the caller blocks the write.
  * `spawn` is injectable for tests (real gpg by default).
  */
-export async function importBotKey(dir: string, keyFile: string, spawn: SpawnFn = defaultGpgSpawn): Promise<{ keyId: string }> {
+export async function importBotKey(dir: string, keyFile: string, spawn: SpawnFn = spawnCollect): Promise<{ keyId: string }> {
 	const gnupgDir = join(dir, "gnupg");
 	mkdirSync(gnupgDir, { recursive: true, mode: 0o700 });
 	const env = { GNUPGHOME: gnupgDir };
@@ -132,7 +125,7 @@ export async function importBotKey(dir: string, keyFile: string, spawn: SpawnFn 
  * blocks rather than persisting a truncated or absent secret.
  * `spawn` is injectable for tests (real gpg by default).
  */
-export async function exportBotSecretKey(dir: string, keyId: string, spawn: SpawnFn = defaultGpgSpawn): Promise<string> {
+export async function exportBotSecretKey(dir: string, keyId: string, spawn: SpawnFn = spawnCollect): Promise<string> {
 	const gnupgDir = join(dir, "gnupg");
 	const env = { GNUPGHOME: gnupgDir };
 

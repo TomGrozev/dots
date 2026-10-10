@@ -40,14 +40,14 @@ const DIR_MODE = 0o700;
 const FILE_MODE = 0o600;
 
 /** Shape of the wizard's injectable dependencies (tests never shell out). */
-export interface SetupDeps {
+interface SetupDeps {
 	ui: ExtensionUIContext;
 	spawn: SpawnFn;
 	credsDir: string;
 }
 
 /** Structural surface of ExtensionAPI the setup wiring needs (kept narrow for tests). */
-export interface SetupHookApi {
+interface SetupHookApi {
 	registerCommand(
 		name: string,
 		options: { description?: string; handler: (args: string, ctx: ExtensionCommandContext) => Promise<void> },
@@ -62,12 +62,14 @@ function maskToken(token: string): string {
 }
 
 /**
- * Normalize a GPG fingerprint for comparison: drop whitespace and any leading
- * `0x`, upper-case. GitHub's `public_key_fingerprint` is uppercase hex with no
- * `0x`; local key IDs may carry either, so compare on the normalized form only.
+ * Normalize a GPG fingerprint for comparison: drop whitespace and a single
+ * leading `0x`, upper-case. GitHub's `public_key_fingerprint` is uppercase hex
+ * with no `0x`; local key IDs may carry either, so compare on the normalized
+ * form only. Only the leading `0x` may be stripped — `0` is a valid hex digit
+ * and fingerprints routinely contain it, so an internal zero must survive.
  */
 function normalizeFingerprint(fp: string): string {
-	return fp.replace(/[\s0x]/gi, "").toUpperCase();
+	return fp.replace(/\s+/g, "").replace(/^0x/i, "").toUpperCase();
 }
 
 /**
@@ -157,7 +159,7 @@ export async function runSetup(deps: SetupDeps): Promise<boolean> {
 
 	// ── shared sub-steps (used by both fresh setup and per-item reconfigure) ──
 
-	/** Step 3 (hard gate): validate the PAT against the GitHub API and keep it. */
+	/** Hard gate: validate the PAT against the GitHub API before keeping it. */
 	async function fetchUser(token: string): Promise<Record<string, unknown> | null> {
 		const { exitCode, stdout } = await spawn(["gh", "api", "user"], { GH_TOKEN: token });
 		if (exitCode !== 0) return null;
@@ -168,7 +170,7 @@ export async function runSetup(deps: SetupDeps): Promise<boolean> {
 		}
 	}
 
-	/** Step 2+3: prompt for a PAT, validate it. Empty/cancel or invalid → false. */
+	/** Prompt for a PAT and validate it. Empty/cancel or invalid → false. */
 	async function rotatePat(): Promise<boolean> {
 		// Masked-PAT entry is deliberately out of scope for v1: the token is
 		// visible while typing and the dialog clears on submit — say so up front.
@@ -190,7 +192,7 @@ export async function runSetup(deps: SetupDeps): Promise<boolean> {
 	}
 
 	/**
-	 * Step 4: derive the identity from the validated user (name from `name`/`login`,
+	 * Derive the identity from the validated user (name from `name`/`login`,
 	 * the id-based noreply email), then let the human override each. The email is
 	 * load-bearing — it must equal the GPG key UID email for the Verified badge.
 	 */
@@ -264,7 +266,7 @@ export async function runSetup(deps: SetupDeps): Promise<boolean> {
 		return imported.keyId;
 	}
 
-	/** Step 7 (soft): register the key's public half on GitHub; never aborts. */
+	/** Register the key's public half on GitHub; soft — never aborts. */
 	async function registerPublicKey(keyId: string, login: string, expectEmail: string): Promise<void> {
 		const exportRes = await spawn(["gpg", "--armor", "--export", keyId], { GNUPGHOME: gnupgHome });
 		if (exportRes.exitCode !== 0 || exportRes.stdout.trim() === "") {
@@ -346,12 +348,12 @@ export async function runSetup(deps: SetupDeps): Promise<boolean> {
 	}
 
 	/**
-	 * Step 5+6: choose a signing method, resolve the key, then HARD-gate with a
+	 * Choose a signing method, resolve the key, then HARD-gate with a
 	 * real signing smoke test using the resolved key inside the bot keyring.
 	 * On success also SOFT-registers the public half. Returns false to fail-closed.
 	 */
 	/**
-	 * Step 6: with the key resolved into the bot keyring, ask where the secret
+	 * With the key resolved into the bot keyring, ask where the secret
 	 * should live — an armored FILE in the bot home (portable across hosts/CI)
 	 * or ONLY in the isolated bot keyring (no extra secret file on disk).
 	 * Applies the choice to `acc` and the filesystem, cleaning up any stale or
@@ -552,7 +554,7 @@ export async function runSetup(deps: SetupDeps): Promise<boolean> {
 		if (!(await changeSigning())) return false;
 	}
 
-	// Step 8: persist as pretty JSON, 0600. Warn if we tightened a looser file.
+	// Persist as pretty JSON, 0600. Warn if we tightened a looser file.
 	if (!acc.name || !acc.email || !acc.token) {
 		ui.notify("git-bot-identity setup incomplete — nothing written.", "error");
 		return false;

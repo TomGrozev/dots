@@ -10,7 +10,7 @@
  * local config rather than passing any signing flags of its own.
  */
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { ExtensionContext } from "@oh-my-pi/pi-coding-agent";
@@ -54,6 +54,11 @@ function headFields(): { authorName: string; authorEmail: string; committerName:
 function commitCount(): number {
 	const { out } = git(["rev-list", "--count", "HEAD"]);
 	return out.trim() === "" ? 0 : Number(out.trim());
+}
+
+/** Basenames of `commit-as-me-*.txt` message files currently in the OS tmpdir. */
+function tempMessageFiles(): Set<string> {
+	return new Set(readdirSync(tmpdir()).filter(name => name.startsWith("commit-as-me-") && name.endsWith(".txt")));
 }
 
 function stage(file: string, content: string): void {
@@ -335,5 +340,36 @@ describe("commit_as_me", () => {
 		await expect(tool.execute("call-1", { message: "feat: no ui" }, undefined, undefined, ctx)).rejects.toThrow(/no UI/);
 		expect(commitCount()).toBe(0);
 		expect(ui.selectCalls.length).toBe(0);
+	});
+
+	test("failed commit: the temp message file is cleaned up, not leaked", async () => {
+		stage("a.txt", "hello\n");
+
+		// Force `git commit` to fail while `diff --cached`/`config` still work, by
+		// putting a shim earlier on PATH that intercepts only the `commit`
+		// subcommand and defers everything else to the real git.
+		const basePath = humanEnv.PATH;
+		if (basePath === undefined) throw new Error("test setup: humanEnv.PATH is unset");
+		const realGit = Bun.which("git", { PATH: basePath });
+		if (!realGit) throw new Error("real git not found on PATH");
+		const bin = join(root, "fakebin");
+		mkdirSync(bin, { recursive: true });
+		const shim = join(bin, "git");
+		writeFileSync(shim, `#!/bin/sh\nif [ "$1" = "commit" ]; then\n\techo "fatal: simulated commit failure" >&2\n\texit 1\nfi\nexec "${realGit}" "$@"\n`);
+		chmodSync(shim, 0o755);
+		humanEnv.PATH = `${bin}:${basePath}`;
+
+		const before = tempMessageFiles();
+		const { tool } = makeTool(BOT);
+		const ui = makeFakeUi({ selects: [APPROVE] });
+		const ctx = ui.ctx({ cwd: repo }) as ExtensionContext;
+
+		await expect(tool.execute("call-1", { message: "feat: will fail" }, undefined, undefined, ctx)).rejects.toThrow(
+			/simulated commit failure/,
+		);
+		expect(commitCount()).toBe(0);
+
+		const leaked = [...tempMessageFiles()].filter(name => !before.has(name));
+		expect(leaked).toEqual([]);
 	});
 });

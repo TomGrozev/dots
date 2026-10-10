@@ -14,11 +14,10 @@ import {
 	removeShimState,
 	sweepStaleShimState,
 } from "../lib/shim";
-import { evalGuidance } from "../lib/guidance";
 import { getGrantServer, stopGrantServer, type GrantMode } from "../lib/grant-server";
 
 const MARKER = "FAKE_BINARY_RAN";
-// A distinctive phrase from evalGuidance that must appear on a blocked write.
+// A distinctive phrase from the block guidance that must appear on a blocked write.
 const BLOCK_PHRASE = "do not route around this";
 
 let dir: string;
@@ -671,8 +670,3 @@ async function readUntil(stream: ReadableStream<Uint8Array> | null, marker: stri
 	reader.releaseLock();
 }
 
-describe("evalGuidance", () => {
-	test("contains the guidance markers used by the shim", () => {
-		expect(evalGuidance()).toContain(BLOCK_PHRASE);
-	});
-});

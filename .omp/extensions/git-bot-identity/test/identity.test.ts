@@ -44,6 +44,15 @@ function writeCreds(overrides: Record<string, unknown> = {}) {
 	writeFileSync(join(credsDir, "config.json"), JSON.stringify({ ...BASE, ...overrides }));
 }
 
+/** The ordered command-line-scope config pairs buildBotEnv emits. */
+function configPairs(env: Record<string, string>): Array<[string, string]> {
+	const count = Number(env.GIT_CONFIG_COUNT);
+	return Array.from({ length: count }, (_, i) => [
+		env[`GIT_CONFIG_KEY_${i}`] as string,
+		env[`GIT_CONFIG_VALUE_${i}`] as string,
+	]);
+}
+
 /** Fake gpg: the bot keyring already holds a secret key, so ensureBotKey never
  * shells out to a real gpg or generates anything. */
 function fakeGpgSpawn(): SpawnFn {
@@ -63,7 +72,10 @@ describe("grant resolver (read)", () => {
 		expect(reply.ok).toBe(true);
 		const env = reply.env as Record<string, string>;
 		expect(env.GH_TOKEN).toBe("github_pat_identitytoken");
-		expect(env.GIT_CONFIG_KEY_0).toBe("url.https://x-access-token:github_pat_identitytoken@github.com/.insteadOf");
+		expect(configPairs(env)).toContainEqual([
+			"url.https://x-access-token:github_pat_identitytoken@github.com/.insteadOf",
+			"git@github.com:",
+		]);
 		expect(env.GIT_AUTHOR_NAME).toBe("MyProject Agent");
 		// PATH restored to the pristine (pre-neutralization) value so the shim
 		// execs the real git/gh and children resolve real binaries.
@@ -72,9 +84,9 @@ describe("grant resolver (read)", () => {
 		];
 		expect(env.PATH).toBe(pristine?.PATH);
 		// No signing for a read (no gpg key resolution).
-		const gitconfig = readFileSync(join(botDirTemp, "gitconfig"), "utf8");
-		expect(gitconfig).not.toContain("gpgsign");
-		expect(gitconfig).not.toContain("signingkey");
+		const keys = configPairs(env).map(([key]) => key);
+		expect(keys).not.toContain("commit.gpgsign");
+		expect(keys).not.toContain("user.signingkey");
 	});
 
 	test("read with no config: refused with the block reason", async () => {
@@ -96,9 +108,9 @@ describe("grant resolver (write)", () => {
 		expect(env.GIT_AUTHOR_EMAIL).toBe("12345678+myproject-agent@users.noreply.github.com");
 		expect(env.GNUPGHOME).toBe(join(botDirTemp, "gnupg"));
 		expect(env.GIT_BOT_COAUTHOR).toBe("Co-authored-by: TomGrozev <1491414+TomGrozev@users.noreply.github.com>");
-		const gitconfig = readFileSync(join(botDirTemp, "gitconfig"), "utf8");
-		expect(gitconfig).toContain("signingkey = ABCDEF1234567890");
-		expect(gitconfig).toContain("gpgsign = true");
+		const pairs = configPairs(env);
+		expect(pairs).toContainEqual(["user.signingkey", "ABCDEF1234567890"]);
+		expect(pairs).toContainEqual(["commit.gpgsign", "true"]);
 		expect(existsSync(join(botDirTemp, "hooks", "prepare-commit-msg"))).toBe(true);
 	});
 

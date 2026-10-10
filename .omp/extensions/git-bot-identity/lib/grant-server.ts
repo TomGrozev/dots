@@ -27,11 +27,6 @@
 import { chmodSync, mkdirSync, rmSync } from "node:fs";
 import { join } from "node:path";
 
-/** Env var carrying the unix-socket path to every shell (neutral overlay). */
-export const GRANT_SOCK_ENV = "GBI_GRANT_SOCK";
-/** Env var carrying the requested class to the grant client. */
-export const GRANT_MODE_ENV = "GBI_GRANT_MODE";
-
 /** The two credential classes the shim can request. */
 export type GrantMode = "read" | "write";
 
@@ -42,7 +37,7 @@ export type GrantDecision = { ok: true; env: Record<string, string> } | { ok: fa
 export type GrantResolver = (mode: GrantMode) => GrantDecision | Promise<GrantDecision>;
 
 /** The in-process grant server for one creds dir. */
-export interface GrantServer {
+interface GrantServer {
 	/** Absolute unix-socket path every shell reaches via `GBI_GRANT_SOCK`. */
 	readonly socketPath: string;
 	/** Install the resolver used for subsequent requests. Later binds overwrite

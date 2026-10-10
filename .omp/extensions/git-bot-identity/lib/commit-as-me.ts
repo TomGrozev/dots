@@ -44,12 +44,12 @@ import type { AgentToolResult, ExtensionAPI, ExtensionContext } from "@oh-my-pi/
 import type { GrantDecision } from "./grant-server";
 
 /** The bot identity used for the `Co-authored-by` trailer. */
-export interface CommitAsMeBot {
+interface CommitAsMeBot {
 	name: string;
 	email: string;
 }
 
-export interface CommitAsMeDeps {
+interface CommitAsMeDeps {
 	/** Bot identity for the trailer, read on demand so a config edit is visible
 	 * without a rebind; null when unconfigured → commit without it. */
 	getBot: () => Promise<CommitAsMeBot | null>;
@@ -83,7 +83,7 @@ export interface CommitAsMeHookApi {
  * the bot is unconfigured (then commit with the message as given). The message
  * is returned newline-terminated.
  */
-export function withBotTrailer(message: string, bot: CommitAsMeBot | null): string {
+function withBotTrailer(message: string, bot: CommitAsMeBot | null): string {
 	const body = message.replace(/\s+$/, "");
 	if (!bot) return `${body}\n`;
 	const trailer = `Co-authored-by: ${bot.name} <${bot.email}>`;
@@ -98,7 +98,7 @@ export function withBotTrailer(message: string, bot: CommitAsMeBot | null): stri
  * (it adds the human trailer only when the message has no `Co-authored-by`).
  * Returned newline-terminated.
  */
-export function withoutBotTrailer(message: string, bot: CommitAsMeBot | null): string {
+function withoutBotTrailer(message: string, bot: CommitAsMeBot | null): string {
 	const body = message.replace(/\s+$/, "");
 	if (!bot) return `${body}\n`;
 	const trailer = `Co-authored-by: ${bot.name} <${bot.email}>`;
@@ -146,6 +146,20 @@ function writeMessageFile(message: string): string {
 }
 
 /**
+ * Write the message to a temp file, run `git commit -F`'s caller-supplied run
+ * against it, and always delete the file — including when the run throws or the
+ * commit exits non-zero, so a failed commit never leaks a `commit-as-me-*.txt`.
+ */
+async function withMessageFile<T>(message: string, run: (file: string) => Promise<T>): Promise<T> {
+	const file = writeMessageFile(message);
+	try {
+		return await run(file);
+	} finally {
+		rmSync(file, { force: true });
+	}
+}
+
+/**
  * Read the human's configured git identity from the pristine env, so the gate
  * can name exactly whose name/signature the commit will carry.
  */
@@ -170,7 +184,7 @@ async function readHead(repo: string, env: Record<string, string>, identity: "hu
  * bot hook's human trailer). Throws on every failure (the harness surfaces it
  * as a tool error) — never commits without approval.
  */
-export async function runCommitAsMe(
+async function runCommitAsMe(
 	params: { message: string; cwd?: string | undefined },
 	ctx: ExtensionContext,
 	deps: CommitAsMeDeps,
@@ -260,11 +274,11 @@ export async function runCommitAsMe(
 		if (!granted.ok) {
 			throw new Error(`commit_as_me: cannot commit as the bot — ${granted.reason}`);
 		}
-		const botFile = writeMessageFile(botMessage);
 		// Non-interactive: the bot key is passphrase-less, so no pinentry; a
 		// signing failure must fail closed, not prompt.
-		const commit = await runGit(repo, ["commit", "-F", botFile], { ...env, ...granted.env });
-		rmSync(botFile, { force: true });
+		const commit = await withMessageFile(botMessage, file =>
+			runGit(repo, ["commit", "-F", file], { ...env, ...granted.env }),
+		);
 		if (commit.code !== 0) {
 			throw new Error(commit.stderr.trim() || commit.stdout.trim() || `commit_as_me: git commit exited ${commit.code}`);
 		}
@@ -273,12 +287,10 @@ export async function runCommitAsMe(
 
 	// Real git, human env, interactive stdin for pinentry; no signing flags and
 	// nothing that disables the human's own commit.gpgsign.
-	const messageFile = writeMessageFile(humanMessage);
-	const commit = await runGit(repo, ["commit", "-F", messageFile], env, true);
+	const commit = await withMessageFile(humanMessage, file => runGit(repo, ["commit", "-F", file], env, true));
 	if (commit.code !== 0) {
 		throw new Error(commit.stderr.trim() || commit.stdout.trim() || `commit_as_me: git commit exited ${commit.code}`);
 	}
-	rmSync(messageFile, { force: true });
 	return await readHead(repo, env, "human");
 }
 

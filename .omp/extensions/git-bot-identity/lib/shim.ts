@@ -92,7 +92,7 @@ export const GH_READ_NAMESPACES = ["pr", "issue", "run", "release", "repo", "wor
 /** Read-only gh verbs inside a GH_READ_NAMESPACES namespace. */
 export const GH_READ_VERBS = ["view", "list", "status", "diff", "checks"];
 
-export interface ShimRealBinaries {
+interface ShimRealBinaries {
 	git: string;
 	gh: string;
 	/**
@@ -104,7 +104,7 @@ export interface ShimRealBinaries {
 	runtime: string;
 }
 
-export interface ShimInstall {
+interface ShimInstall {
 	/** Absolute path to the directory holding the generated git/gh wrappers. */
 	shimDir: string;
 	/** Absolute path to the checked-in grant-client script the shim runs. */
@@ -384,7 +384,7 @@ export function removeShimState(shimDir: string, socketPath: string): void {
 	rmSync(socketPath, { force: true });
 }
 
-export interface ShimCleanup {
+interface ShimCleanup {
 	shimDir: string;
 	socketPath: string;
 }

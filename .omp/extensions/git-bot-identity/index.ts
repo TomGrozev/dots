@@ -65,7 +65,7 @@
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import type { ExtensionAPI } from "@oh-my-pi/pi-coding-agent";
-import { createBotConfigCache, sameConfigStamp, CONFIG_DIR, type ConfigStamp, type SpawnFn } from "./lib/config";
+import { createBotConfigCache, sameConfigStamp, spawnCollect, CONFIG_DIR, type ConfigStamp, type SpawnFn } from "./lib/config";
 import { ensureBotKey, importBotKey } from "./lib/gpg";
 import { buildBotEnv, installCoauthorHook, type BotEnvConfig } from "./lib/env";
 import { neutralBaseEnv, writeDenyConfig } from "./lib/neutralize";
@@ -75,7 +75,7 @@ import { blockGuidance } from "./lib/guidance";
 import { installSetup } from "./lib/setup";
 import { installCommitAsMe } from "./lib/commit-as-me";
 
-export interface CreateOptions {
+interface CreateOptions {
 	/** Credentials directory override (tests); defaults to ~/.config/git-bot-identity. */
 	credsDir?: string;
 	/** Subprocess override (tests); used for git config reads and gpg key setup. */
@@ -105,7 +105,7 @@ function pristineEnvSnapshot(): Record<string, string> {
 
 /** Bind result: the deny overlay to apply to `process.env`, plus the
  * pristine-env spawn the extension's own reads must use. */
-export interface BotIdentityBind {
+interface BotIdentityBind {
 	neutralEnv: Record<string, string>;
 	pristineSpawn: SpawnFn;
 	/** Pre-neutralization env snapshot (real PATH, human config/signing) — used
@@ -166,11 +166,7 @@ export async function createDefault(options: CreateOptions = {}): Promise<BotIde
 	delete pristineEnv.GBI_GRANT_SOCK;
 	// A pristine-env spawn for the extension's OWN reads (human identity, gpg
 	// key setup), so they are never self-blocked by the neutral overlay.
-	const pristineSpawn: SpawnFn = async (cmd, env) => {
-		const proc = Bun.spawn(cmd, { env: { ...pristineEnv, ...env }, stdout: "pipe", stderr: "pipe", stdin: "ignore" });
-		const [stdout, stderr] = await Promise.all([new Response(proc.stdout).text(), new Response(proc.stderr).text()]);
-		return { exitCode: await proc.exited, stdout, stderr };
-	};
+	const pristineSpawn: SpawnFn = (cmd, env) => spawnCollect(cmd, env, pristineEnv);
 	const spawn = options.spawn ?? pristineSpawn;
 
 	// Live config cache: grant requests re-stat config.json and reload only when

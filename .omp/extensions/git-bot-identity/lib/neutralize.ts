@@ -41,7 +41,7 @@ export function denyConfigContent(): string {
 }
 
 /** Paths the neutral overlay is built around. */
-export interface NeutralPaths {
+interface NeutralPaths {
 	/** Directory holding the UX shim; prepended to PATH. */
 	shimDir: string;
 	/** Path to the deny config file wired in as GIT_CONFIG_GLOBAL. */
@@ -51,7 +51,8 @@ export interface NeutralPaths {
 	/** Original PATH value the shim dir is prepended onto. */
 	realPath: string;
 	/** Unix-socket path of the in-process grant server (see lib/grant-server.ts).
-	 * Carried to every shell so the shim can redeem a ticket without any file. */
+	 * Carried to every shell so the shim can ask the server for a grant — the
+	 * answer (bot creds) travels only over the socket, never a file on disk. */
 	grantSock: string;
 }
 

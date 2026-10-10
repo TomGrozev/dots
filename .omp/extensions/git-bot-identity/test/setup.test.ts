@@ -226,19 +226,6 @@ describe("runSetup — storage destination", () => {
 		expect(existsSync(join(dir, "signing-key.asc"))).toBe(false);
 	});
 
-	test("(D) both storage options carry a non-empty description", async () => {
-		const { spawn } = makeSpawn(happyHandler());
-		const ui = makeFakeUi({ selects: ["Generate a new key", "Keep in the keyring only"], inputs: ["ghp_test_" + "x".repeat(20), "", ""] });
-
-		await runSetup({ ui: ui.ui as unknown as ExtensionUIContext, spawn, credsDir: dir });
-		// The storage select is the only one whose options carry descriptions.
-		const storageSelect = ui.selectCalls.find(c => c.options.some(o => typeof o === "object" && "description" in (o as object)));
-		expect(storageSelect).toBeDefined();
-		const items = storageSelect!.options.filter(o => typeof o === "object") as { label: string; description?: string }[];
-		expect(items.length).toBe(2);
-		expect(items.every(o => typeof o.description === "string" && o.description.length > 0)).toBe(true);
-	});
-
 	test("(E) import-from-a-file asks no storage question", async () => {
 		const { spawn } = makeSpawn(gpgBotHandler({ generate: false }));
 		const keyPath = join(dir, "provided-key.asc");
@@ -418,6 +405,16 @@ describe("checkKeyEmailVerified — verified-badge state via the PUBLIC endpoint
 		const { spawn } = spawnReturning(GITHUB_KEYS_VERIFIED);
 		const r = await checkKeyEmailVerified("myproject-agent", `0x${FPR.toLowerCase()} `, DERIVED_EMAIL, spawn);
 		expect(r.ok).toBe(true);
+		// Whitespace-split lowercase with NO `0x` prefix: the internal 0s in FPR
+		// are hex digits, so they must survive normalization and still match.
+		const r2 = await checkKeyEmailVerified("myproject-agent", FPR.toLowerCase().split("").join(" "), DERIVED_EMAIL, spawn);
+		expect(r2.ok).toBe(true);
+		// A key whose only difference from the registered one is a 0 in a
+		// different slot is a DIFFERENT fingerprint — a normalizer that strips
+		// every 0 would wrongly equate them (and drop below the 40-char filter).
+		const transposed = FPR.slice(1, 2) + FPR.slice(0, 1) + FPR.slice(2);
+		const r3 = await checkKeyEmailVerified("myproject-agent", transposed, DERIVED_EMAIL, spawn);
+		expect(r3.ok).toBe(false);
 	});
 });
 

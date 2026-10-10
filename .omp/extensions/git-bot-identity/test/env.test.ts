@@ -27,6 +27,15 @@ const CONFIG: BotEnvConfig = {
 	token: "github_pat_testtoken",
 };
 
+/** The ordered command-line-scope config pairs buildBotEnv emits. */
+function configPairs(env: Record<string, string>): Array<[string, string]> {
+	const count = Number(env.GIT_CONFIG_COUNT);
+	return Array.from({ length: count }, (_, i) => [
+		env[`GIT_CONFIG_KEY_${i}`] as string,
+		env[`GIT_CONFIG_VALUE_${i}`] as string,
+	]);
+}
+
 describe("buildBotEnv", () => {
 	test("sets author/committer to the agent account with human co-author trailer", () => {
 		const env = buildBotEnv(CONFIG);
@@ -40,45 +49,48 @@ describe("buildBotEnv", () => {
 	test("co-author trailer is delivered via prepare-commit-msg hook, not env", () => {
 		const env = buildBotEnv(CONFIG);
 		expect(env.GIT_BOT_COAUTHOR).toBe("Co-authored-by: TomGrozev <1491414+TomGrozev@users.noreply.github.com>");
-		expect(env.GIT_CONFIG_VALUE_2).toContain("hooks");
+		const hooksPath = configPairs(env).find(([key]) => key === "core.hooksPath");
+		expect(hooksPath?.[1]).toContain("hooks");
 	});
 
-	test("grep of the env shows routing to bot-scoped git config and hooks path", () => {
+	test("routing to bot-scoped git config and hooks path rides the command-line scope", () => {
 		const env = buildBotEnv(CONFIG);
-		expect(env.GIT_CONFIG_GLOBAL).toMatch(/gitconfig$/);
-		expect(env.GIT_CONFIG_COUNT).toBe("3");
-		expect(env.GIT_CONFIG_KEY_0).toBe("url.https://x-access-token:github_pat_testtoken@github.com/.insteadOf");
-		expect(env.GIT_CONFIG_VALUE_0).toBe("git@github.com:");
-		expect(env.GIT_CONFIG_KEY_1).toBe("user.name");
-		expect(env.GIT_CONFIG_KEY_2).toBe("core.hooksPath");
+		expect(env.GIT_CONFIG_GLOBAL?.endsWith("deny-gitconfig")).toBe(true);
+		const pairs = configPairs(env);
+		expect(pairs).toContainEqual(["user.name", CONFIG.name]);
+		expect(pairs).toContainEqual(["user.email", CONFIG.email]);
+		expect(pairs).toContainEqual([
+			"url.https://x-access-token:github_pat_testtoken@github.com/.insteadOf",
+			"git@github.com:",
+		]);
+		expect(pairs).toContainEqual([
+			"url.https://x-access-token:github_pat_testtoken@github.com/.insteadOf",
+			"ssh://git@github.com/",
+		]);
+		expect(pairs.map(([key]) => key)).toContain("core.hooksPath");
+		expect(env.GIT_CONFIG_COUNT).toBe(String(pairs.length));
 	});
 
 	test("without signingKey: no gpgsign and no signingkey anywhere", () => {
 		const env = buildBotEnv(CONFIG);
-		// No gpgsign/signingkey in the env values…
+		const keys = configPairs(env).map(([key]) => key);
+		expect(keys).not.toContain("user.signingkey");
+		expect(keys).not.toContain("commit.gpgsign");
 		expect(Object.values(env).join("\n")).not.toMatch(/gpgsign|signingkey/i);
-		// …nor in the generated global config.
-		const gitconfig = readFileSync(join(botConfigDir(), "gitconfig"), "utf8");
-		expect(gitconfig).not.toMatch(/gpgsign|signingkey/i);
 	});
 
-	test("with signingKey: generated config signs commits with the bot's key", () => {
+	test("with signingKey: command-line config signs commits with the bot's key", () => {
 		const env = buildBotEnv({ ...CONFIG, signingKey: "ABCDEF1234567890" });
-		const gitconfig = readFileSync(join(botConfigDir(), "gitconfig"), "utf8");
-		expect(gitconfig).toContain("signingkey = ABCDEF1234567890");
-		expect(gitconfig).toContain("[commit]");
-		expect(gitconfig).toContain("gpgsign = true");
+		const pairs = configPairs(env);
+		expect(pairs).toContainEqual(["user.signingkey", "ABCDEF1234567890"]);
+		expect(pairs).toContainEqual(["commit.gpgsign", "true"]);
 		// Guardrail: signing is only ever enabled, never disabled.
 		expect(Object.values(env).join("\n")).not.toContain("gpgsign = false");
-		expect(gitconfig).not.toContain("gpgsign = false");
-		// Command-line scope stays at 3 (hooks only); signing lives in global config.
-		expect(env.GIT_CONFIG_COUNT).toBe("3");
 	});
 
-	test("no [gpg] program section is emitted; bot signs via GNUPGHOME", () => {
+	test("no gpg program is emitted; bot signs via GNUPGHOME", () => {
 		const env = buildBotEnv({ ...CONFIG, signingKey: "ABCDEF1234567890" });
-		const gitconfig = readFileSync(join(botConfigDir(), "gitconfig"), "utf8");
-		expect(gitconfig).not.toContain("[gpg]");
+		expect(configPairs(env).map(([key]) => key)).not.toContain("gpg.program");
 		expect(env.GNUPGHOME).toBe(join(botConfigDir(), "gnupg"));
 	});
 
