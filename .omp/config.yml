@@ -3,17 +3,18 @@ providers:
 modelRoles:
   slow: anthropic/claude-opus-5-5:auto
   plan: anthropic/claude-opus-5-5:auto
-  task: neuralwatt/deepseek-v4.1-flash:auto
-  smol: neuralwatt/deepseek-v4-flash:low
+  task: neuralwatt/deepseek-v4.1-flash-flex:auto
+  smol: neuralwatt/deepseek-v4.1-flash:low
   tiny: neuralwatt/qwen3.6-35b-fast:off
-  writer: neuralwatt/gemma-4-31b:low
-  review: anthropic/claude-opus-5-5:high
-  designer: neuralwatt/glm-5.3-flash:auto
+  writer: neuralwatt/glm-5.3-flash:low
+  review: anthropic/claude-opus-5-5:medium
+  designer: anthropic/claude-opus-5-5:auto
   commit: neuralwatt/qwen3.6-35b-fast:off
   advisor: neuralwatt/glm-5.3-flash:low
-  vision: neuralwatt/gemma-4-31b:low
+  vision: neuralwatt/gemma-4-31b:off
   default: neuralwatt/deepseek-v4.1-flash:auto
-  memory: neuralwatt/deepseek-v4-flash-flex:low
+  memory: neuralwatt/deepseek-v4.1-flash-flex:low
+  judge: neuralwatt/clef-flash
   web: web/exa
 cycleOrder:
   - smol
@@ -398,40 +399,38 @@ retry:
   modelFallback: true
   fallbackChains:
     default:
-      - neuralwatt/glm-5.3-flash:auto
-      - neuralwatt/deepseek-v4-flash:auto
-      - neuralwatt/qwen-3.8-27b:auto
-      - anthropic/claude-sonnet-5:auto
+      - neuralwatt/glm-5.3-flash:high
+      - neuralwatt/mimo-v2.6-pro:auto
     slow:
-      - neuralwatt/glm-5.3:auto
-      - neuralwatt/kimi-k3:auto
+      - neuralwatt/mimo-v2.6-pro:high
+      - neuralwatt/glm-5.3:high
     plan:
-      - neuralwatt/glm-5.3:auto
-      - neuralwatt/kimi-k3:auto
+      - neuralwatt/mimo-v2.6-pro:high
+      - neuralwatt/glm-5.3:high
     task:
-      - neuralwatt/glm-5.3-flash:auto
-      - neuralwatt/deepseek-v4-flash:auto
-      - neuralwatt/qwen-3.8-27b:auto
+      - neuralwatt/glm-5.3-flash:high
+      - neuralwatt/mimo-v2.6-pro:auto
     smol:
-      - neuralwatt/gemma-4-31b:low
-      - neuralwatt/qwen3.6-35b:low
+      - neuralwatt/glm-5.3-flash:low
+      - neuralwatt/qwen3.6-35b:high
     tiny:
       - neuralwatt/gemma-4-31b:low
     writer:
-      - neuralwatt/deepseek-v4-flash:low
+      - neuralwatt/deepseek-v4.1-flash:low
     review:
+      - neuralwatt/mimo-v2.6-pro:high
       - neuralwatt/glm-5.3:high
-      - neuralwatt/kimi-k3:high
     designer:
-      - neuralwatt/deepseek-v4.1-flash:auto
-      - neuralwatt/gemma-4-31b:low
+      - neuralwatt/mimo-v2.6-pro:high
+      - neuralwatt/glm-5.3:high
     commit:
       - neuralwatt/gemma-4-31b:low
     advisor:
-      - neuralwatt/deepseek-v4-flash:high
-    vision:
       - neuralwatt/deepseek-v4.1-flash:low
-      - anthropic/claude-sonnet-5:auto
+    vision:
+      - neuralwatt/qwen-3.8-27b:low
+    judge:
+      - "@tiny"
     web:
       - web/public
   usageAwareFallback: false
@@ -479,7 +478,5 @@ power:
   sleepPrevention: idle
 hideThinkingBlock: false
 personality: pragmatic
-thinkingBudgets:
-  xhigh: 16384
 isolation:
   backend: auto
