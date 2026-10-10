@@ -40,7 +40,7 @@ Give each ticket its **blocking edges**: the other tickets that must complete be
 
 **Wide refactors are the exception to vertical slicing.** A **wide refactor** is one mechanical change (rename a column, retype a shared symbol) whose **blast radius** fans across the whole codebase, so a single edit breaks thousands of call sites at once and no vertical slice can land green. Don't force it into a tracer bullet; sequence it as **expand–contract**. First expand: add the new form beside the old so nothing breaks. Then migrate the call sites over in batches sized by blast radius (per package, per directory), each batch its own ticket blocked by the expand, keeping CI green batch to batch because the old form still exists. Finally contract: delete the old form once no caller remains, in a ticket blocked by every migrate batch. When even the batches can't stay green alone, keep the sequence but let them share an integration branch that all block a final integrate-and-verify ticket; green is promised only there.
 
-**Puzzles and mode.** For each ticket, name every puzzle: a piece of its internals where the thinking is the work (an algorithm, a state machine, an edge-case policy, ordering/concurrency, a non-obvious query). A ticket that is pure plumbing has none. Each puzzle is a **human puzzle** (the user writes its code) or an **agent puzzle** (the agent writes it). The ticket's **mode** follows: **hitl** when it changes the surface (module layout, public heads and types, persisted data shape, cross-module contracts) or has a human puzzle; otherwise **afk**.
+**Human tasks and mode.** For each ticket, decide whether it is the first instance of a pattern a later ticket repeats (the first handler, the first migration, the first component). If so, recommend an **exemplar**: a human task, because agents copy what they see and one exemplar shapes every later instance. Say why in the session; the user may add or drop any. Later tickets that repeat the pattern say in their "What to build" that they follow the exemplar from ticket <NN>. The ticket's **mode** follows: **hitl** when it has an exemplar or changes the load-bearing surface (the term is defined in `implement` § Surface); otherwise **afk**: afk is the default. Cut the human touch into its own small ticket so the tickets around it stay afk: the first provider adapter is a small hitl ticket carrying the exemplar, and the other providers are afk tickets blocked by it. Shape the graph so hitl tickets block afk ones. When an afk ticket must come before a hitl one, say so in the quiz, since it splits the spec run.
 
 ### 4. Quiz the user
 
@@ -49,7 +49,7 @@ Present the proposed breakdown as a numbered list. For each ticket, show:
 - **Title**: short descriptive name
 - **Blocked by**: which other tickets (if any) must complete first
 - **What it delivers**: the end-to-end behaviour this ticket makes work
-- **Mode** and **Puzzles** (each marked human or agent)
+- **Mode** and **Human** (each entry: `exemplar: <pattern>`)
 
 Ask the user:
 
@@ -57,7 +57,7 @@ Ask the user:
 - Are the blocking edges correct: does each ticket only depend on tickets that genuinely gate it?
 - Should any tickets be merged or split further?
 
-For each puzzle, say in the session why you marked it human or agent. Recommend human when a mistake would be silent, costly, or hard to undo, and say plainly when you are unsure. The user may claim any puzzle. This reasoning stays in the conversation; tickets record only `(human)` or `(agent)`.
+For each **hitl** ticket, say in the session why it needs the human touch: the exemplar it carries, or the load-bearing surface it changes (the term is defined in `implement` § Surface).
 
 Iterate until the user approves the breakdown.
 
@@ -82,8 +82,8 @@ Do NOT close or modify any parent issue.
 
 **Mode:** hitl | afk
 
-**Puzzles:**
-- <puzzle> (human | agent)
+**Human:**
+- exemplar: <pattern, in domain terms>
 
 or "None".
 
@@ -117,9 +117,9 @@ The end-to-end behaviour this ticket makes work, from the user's perspective, no
 
 hitl | afk
 
-## Puzzles
+## Human
 
-- <puzzle> (human | agent)
+- exemplar: <pattern, in domain terms>
 
 or "None".
 

@@ -15,9 +15,12 @@ Especially watch for:
 - A test deleted, skipped, or weakened to make a change pass: blocker.
 - A second identical failure without a new hypothesis: blocker (two strikes).
 - In `tdd`, production code written before a failing test: blocker.
-- A human puzzle implemented by the agent: blocker.
-- A human puzzle whose stub leaves an argument unexplained (meaning plus example values) or has
-  no worked-examples table: concern.
+- The agent writing a ticket's exemplar, the first instance of a pattern that the ticket's
+  `Human` list reserves for the user to hand-write (`implement` HITL.md § Exemplar): blocker.
+- A ticket marked hitl with neither an exemplar nor a load-bearing surface change (mode rule: `to-tickets` § Human tasks and mode; term: `implement` § Surface): concern.
+- A hitl ticket finished without a diff review: concern.
+- The agent editing code the user wrote (an exemplar, or a tidy after the diff review) without
+  being asked: concern.
 - A chat- or ticket-coined label (`Q1`, `A2`, `Option B`) written into code, a test name, a commit,
   a ticket, or a doc: concern.
 - A new comment that restates the next line or narrates change history ("now uses", "used to",

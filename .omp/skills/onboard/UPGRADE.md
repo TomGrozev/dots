@@ -15,8 +15,8 @@ Tickets means open local tickets (`.scratch/*/issues/*.md`) and open tracker iss
 | The agent file has a `## Conventions` section | Move its lines to `CODING_STANDARDS.md`; delete the section. |
 | The repo has `docs/agents/gate.md` | Move its command into a `## Gate` section of the agent file (`CLAUDE.md` if it exists, else `AGENTS.md`; in a fork, `.omp/AGENTS.md`); delete the file. |
 | The `## Agent skills` block doesn't point at `docs/agents/` | Point it there. |
-| A ticket's puzzles carry an old style: `ping-pong`, `strong-style`, `solo` | Rewrite as a `Puzzles` list. `ping-pong` (the user wrote the body) → `(human)`; `strong-style` (the user picked the approach, the agent typed it) and `solo` → `(agent)`. Tell the user which strong-style puzzles became agent puzzles, so they can reclaim any as human. |
-| A ticket lacks `Mode` or `Puzzles` | Add them: hitl when it changes the surface or has a human puzzle, otherwise afk; `None` when it has no puzzles. |
+| A ticket carries a `Puzzles` field, in any style: `ping-pong`, `strong-style`, `solo`, `(human)`, `(agent)` | Remove the field. Add `Human`: an exemplar when the ticket is the first instance of a pattern a later ticket repeats, else `None`. Recompute the mode (hitl when it has an exemplar or changes the load-bearing surface, else afk; mode rule: `to-tickets` § Human tasks and mode). Tell the user which former human puzzles were dropped, so they can mark one as an exemplar or plan a tidy. |
+| A ticket lacks `Mode` or `Human` | Add them: hitl when it has an exemplar or changes the load-bearing surface, otherwise afk (mode rule: `to-tickets` § Human tasks and mode); `None` when it has no Human entry. |
 | A ticket's mode and label disagree | Relabel: hitl → `ready-for-human`, afk → `ready-for-agent`. |
 | Repo docs mention the retired `pair` skill or "pairing context" | List each as a manual action; the user's docs are theirs to rewrite. |
 

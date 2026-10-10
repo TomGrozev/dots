@@ -13,8 +13,8 @@ I pick the entry point; nothing routes automatically.
 | A plan or decision, no docs | `grill-me` |
 | A bug | `diagnosing-bugs` → fix + regression test → `walkthrough` |
 | A small, clear ask | just ask → `walkthrough` |
-| Ad-hoc surface work, no ticket | `implement` (it proposes surface and puzzles first) |
-| A spec whose tickets are all agent-driven (afk) | `implement-spec` (runs the whole spec on one integration branch; only when every ticket is afk, else `implement` per ticket) |
+| Ad-hoc surface work, no ticket | `implement` (it proposes the surface change and any exemplar first) |
+| A spec with tickets left after the hitl ones | `implement-spec` (runs the remaining afk tickets on one integration branch, opening a PR; I first run each hitl ticket with `implement`, and it must not start while a hitl ticket is open; its PR is where I review and tidy) |
 | New repo for this workflow | `onboard` (runs `setup-matt-pocock-skills` first) |
 | Workflow changed or older repo setup | `onboard` (upgrades it) |
 | Checking drift and rework | `calibrate` |
@@ -28,35 +28,40 @@ The agent asks me before anything hard to reverse or potentially harmful:
 3. changing persisted data, a public contract, or an external system (deploys, messages, paid services);
 4. anything involving secrets or credentials.
 
-`implement` adds two stops of its own: a surface change (I review the skeleton) and a human puzzle (I write it). Everything else it decides, states the assumption, and lists in the walkthrough for my veto. Questions come batched in one `ask`.
+`implement` stops for me three times: the skeleton review (a load-bearing surface change), the exemplar (I write the first instance of a pattern), and the diff review on hitl tickets. Everything else it decides, states the assumption, and lists in the walkthrough for my veto. Questions come batched in one `ask`.
 
 ## Terms
 
 - **Surface**: module layout, public function heads and types, persisted data shape, cross-module contracts.
+- **Load-bearing surface**: the persisted data shapes, and the contracts other modules or outside callers rely on. Changing it is hard to reverse, so a mistake is costly. The rest of the surface (module layout, internal heads and types) is surface but not load-bearing: it goes afk, and I review it in the PR.
 - **Skeleton**: the surface written as real code, bodies not implemented.
-- **Puzzle**: a piece of a ticket's internals where the thinking is the work; pure plumbing has none.
-- **Human puzzle**: the user writes its code.
-- **Agent puzzle**: the agent writes it and explains its approach.
-- **hitl / afk**: hitl when a ticket changes the surface or has a human puzzle; otherwise afk. On a tracker: `ready-for-human` / `ready-for-agent`.
+- **Human task**: work on a ticket that I do in the code, as senior to the agent's junior. Four kinds:
+  - **exemplar**: the ticket introduces a pattern a later ticket repeats (first handler, first migration, first component); I hand-write the first instance, code plus its test, because one exemplar shapes every later instance the agent copies.
+  - **diff review**: on every hitl ticket, after the build and the agent's own code-review, I read the built diff in r3 in reading order and annotate; the agent revises until I archive it.
+  - **tidy**: offered after every diff review; where taste matters, I refactor or delete anything myself, and the agent reruns the tests and reviews as a pair, editing my code only when asked.
+  - **take the pen**: on demand, any mode; when the agent fails twice on the same problem with no new hypothesis, it hands me the repro and the ruled-out hypotheses, and I write it or give a steer.
+- **hitl / afk**: afk by default; hitl when the ticket has an exemplar or changes the load-bearing surface. On a tracker: `ready-for-human` / `ready-for-agent`.
 - **Gate**: the repo's one check command, in the agent file's `## Gate` section.
 - **Stack pack**: `rule://stack-<name>`, what is true of every repo in a stack (e.g. `stack-elixir`, `stack-typescript`).
 
 ## to-tickets
 
-Upstream `to-tickets`, plus: each ticket lists its puzzles, each marked `(human)` (I write it) or `(agent)` (the agent writes it), and its mode follows from that and from whether it changes the surface. Slices are also sized so I can review each in one sitting (about 300 changed non-test lines). While proposing, the agent tells me in the session why it marked each puzzle human or agent, recommending human where a mistake would be silent, costly or hard to undo, and says when it is unsure. I can claim any puzzle. That reasoning isn't written into the tickets. I approve the batch once.
+Upstream `to-tickets`, plus: each ticket lists its Human tasks (the exemplars, whose patterns the ticket introduces) and afk is the default; a ticket is hitl only when it has an exemplar or changes the load-bearing surface, and the agent tells me in the session why each hitl ticket needs the human touch. I cut the human touch into its own small ticket so the tickets around it stay afk (e.g. the first provider adapter is a small hitl ticket carrying the exemplar; the other providers are afk tickets blocked by it), shaping the graph so hitl tickets block afk ones; when an afk ticket must come before a hitl one, the agent says so in the quiz, since it splits the spec run. Slices are also sized so I can review each in one sitting (about 300 changed non-test lines). While proposing, the agent tells me in the session why it recommends an exemplar for each: a ticket is the first instance of a pattern a later ticket repeats, so my hand-written first instance shapes every later one it copies. I can add or drop any. That reasoning isn't written into the tickets. I approve the batch once.
 
 ## implement
 
-One ticket per fresh session, afk included.
+One ticket per fresh session, afk included. On a spec I run each hitl ticket with `implement` first; once every hitl ticket is done, I run `implement-spec` for the remaining afk tickets: it builds every open ticket, so it runs only when no hitl ticket is open, and its PR is where I review and tidy.
 
-0. **Load** the ticket, the spec's user stories, `CODING_STANDARDS.md`, `GLOSSARY.md`, the ADRs; record the start commit and state the ticket's title back to me. Without a ticket, it first proposes the surface change and puzzles in one `ask`.
-1. **Skeleton**, only if the surface changes: written in the real files, reviewed by me in r3. It revises until I archive the review, restructures included. What my annotations teach gets filed by kind: domain terms in `GLOSSARY.md`, general rules in `CODING_STANDARDS.md`, real tradeoffs in ADRs. Later tickets that assumed the old surface get updated.
-2. **Build** with `tdd`, everything except my puzzles, which stay outside the tdd loop (at most an empty `TODO(human)` stub if its code needs one).
-3. **My puzzles**: all its failing tests at once and a `TODO(human)` stub written for me reading it cold: each argument explained with example values, the return value, a worked-examples table (one row per test), and the context and tradeoffs. I write it and say "done"; it reruns the tests and reviews my code as a pair.
-4. **Check**: `code-review` (Standards and Spec reviewers; the Spec one sees only the ticket, stories, skeleton and diff), then the Gate with its output.
-5. **walkthrough**.
+0. **Load** the ticket, the spec's user stories, `CODING_STANDARDS.md`, `GLOSSARY.md`, the ADRs; record the start commit and state the ticket's title back to me. Without a ticket, it first proposes the surface change and any exemplar in one `ask`. Hitl runs the skeleton, exemplar and diff-review stops below; afk skips them.
+1. **Skeleton**, only if the change is load-bearing: written in the real files, reviewed by me in r3. It revises until I archive the review, restructures included. What my annotations teach gets filed by kind: domain terms in `GLOSSARY.md`, general rules in `CODING_STANDARDS.md`, real tradeoffs in ADRs. Later tickets that assumed the old surface get updated.
+2. **Exemplar**, only if the ticket has one: it writes a `TODO(human)` stub where the pattern starts (its doc comment naming the pattern, the skeleton heads it fills, and the later tickets that copy it). I write the code and its test and say "done"; it reruns the tests and reviews my code as a pair, editing only when asked, and proposes a `CODING_STANDARDS.md` line naming the exemplar as the pattern's reference (written only if I accept). Done when the exemplar is green and reviewed.
+3. **Build** with `tdd`: all logic, copying the exemplar wherever the pattern repeats. If it fails twice on the same problem with no new hypothesis, it hands me the repro and the ruled-out hypotheses, and I take the pen or give a steer. Done when every acceptance criterion has a passing test and no unimplemented bodies remain.
+4. **Self-review**: `code-review` (Standards and Spec reviewers; the Spec one sees only the ticket, stories, skeleton and diff). It fixes what's real; the rest goes to the walkthrough as "where I'd want your eyes".
+5. **Diff review**, hitl only: it publishes the diff to r3 against the start commit with a short tour in reading order, and revises from my annotations until I archive it. Then it offers a **tidy**: where taste matters, I can refactor or delete anything myself; it reruns the tests and reviews as a pair.
+6. **Gate**, run last so it covers my tidy.
+7. **walkthrough**.
 
-If the build needs a new data shape or contract, it stops, asks, and records an ADR. Any other public addition it makes and lists for veto.
+If the build needs a new data shape or contract, it stops, asks, and records an ADR. The exemplar is the user's to write, and the pattern to copy. Any other public addition it makes and lists for veto.
 
 ## walkthrough
 
@@ -64,7 +69,7 @@ Every task that changes files ends here. In chat, in as few words as it can, the
 1. what changed and why, naming the mechanism I should be able to explain back;
 2. one large diagram, when a flow or structure changed;
 3. up to three places it wants my eyes, with `file:line`;
-4. decisions for my veto;
+4. decisions for my veto, including the approach behind each non-obvious piece of logic;
 5. the Gate line.
 
 Then one question: **commit** · **r3 then commit** · **PR** · **leave it**, recommending commit for small, contained work and a branch + PR for larger or cross-cutting work. When I pick PR, it reads `skill://pr` to write the PR body.
@@ -98,12 +103,15 @@ In a fork, these live under `.omp/` (`.omp/GLOSSARY.md`, `.omp/CODING_STANDARDS.
 "Fix the typo in the missing-user API error." The agent edits the string and runs the Gate, then gives the walkthrough: one sentence on the fix and the Gate line; no other part applies. It asks commit · r3 then commit · PR · leave it, recommending commit. I pick commit.
 
 ### Three afk tickets
-`to-tickets` splits an internal logging utility into three tickets, none touching the surface, no puzzles. Each runs in its own fresh session: load → build → check → walkthrough, where the agent lists an assumption for veto (log level as a string; async flushing; JSON output) and I pick commit.
+`to-tickets` splits an internal logging utility into three tickets, none touching the surface, no human tasks. Each runs in its own fresh session: load → build → check → walkthrough, where the agent lists an assumption for veto (log level as a string; async flushing; JSON output) and I pick commit.
 
 ### A hitl ticket
-A payment-gateway integration ticket changes the surface and has one human puzzle, the HMAC signature, which the agent recommended for me because a mistake would be silent.
+A payment-gateway integration: `to-tickets` cuts the human touch into a small first-provider ticket, hitl because the `PaymentProvider` behaviour is a contract other modules rely on (skeleton) and it carries the exemplar adapter; the other providers are afk tickets blocked by it.
 1. **Skeleton**: the agent writes the `PaymentProvider` behaviour and publishes it to r3. I annotate "amount should be a Money struct, not an integer"; it revises, proposes a convention line, and I archive the review.
-2. **Build**: tdd for the HTTP glue.
-3. **Puzzle**: failing tests and a `TODO(human)` for the HMAC. I write it and say "done"; it reruns the tests and reviews.
-4. **Check**: code-review, then the Gate.
-5. **walkthrough**: what and why (signature verification), a diagram of the payment flow, where it wants my eyes. It recommends PR; I pick PR.
+2. **Exemplar**: I write the first provider adapter and its test; the agent reruns the tests and reviews.
+3. **Build**: tdd for the HTTP glue, following the exemplar.
+4. **Self-review**: code-review; real findings fixed, the rest goes to the walkthrough.
+5. **Diff review**: I read the built diff in r3 in reading order and annotate; the agent revises until I archive it, then offers a tidy. I tidy one function myself and say "done"; it reruns the tests and reviews.
+6. **Gate**, then **walkthrough**. I pick commit.
+
+With the hitl ticket done, `implement-spec` builds the afk provider tickets afterwards, copying the exemplar on one integration branch and opening a PR, where I review and tidy.

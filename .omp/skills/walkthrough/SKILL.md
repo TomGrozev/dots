@@ -19,7 +19,7 @@ Get the change across in the fewest words. Print in chat, in this order, leaving
 1. **What and why**: one or two sentences. Name the mechanism the user should be able to explain without the AI; skip that for a typo, config value or rename.
 2. **Diagram**: one large diagram when the change alters a flow, a state or a structure (AGENTS.md § Talking to the user).
 3. **Where I'd want your eyes**: up to 3 points, each a `file:line` and one line: code-review findings left open and the parts you are least sure of.
-4. **For veto**: one line each: surface additions made mid-build, the approach behind each agent puzzle, edits to later tickets, assumptions, proposed conventions.
+4. **For veto**: one line each: surface additions made mid-build, the approach behind each non-obvious piece of logic, edits to later tickets, assumptions, proposed conventions.
 5. **Gate**: the command and its pass line.
 
 **Done when** every non-empty part is printed.

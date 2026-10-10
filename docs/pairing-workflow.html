@@ -46,7 +46,7 @@ flowchart TD
   SMALL["A small, clear ask"]:::you --> JUST["just ask"]:::auto
   JUST --> WK
   ADHOC["Ad-hoc surface work, no ticket"]:::you --> IMP
-  SPEC["A spec whose tickets are all agent-driven (afk)"]:::you --> IS["implement-spec<br/>(whole spec, one integration branch,<br/>instead of implement per ticket;<br/>only when every ticket is afk)"]:::you
+  SPEC["A spec with tickets left after the hitl ones"]:::you --> IS["implement-spec<br/>(remaining afk tickets, one integration branch, opens a PR;<br/>I first run each hitl ticket with implement;<br/>must not start while a hitl ticket is open;<br/>its PR is where I review and tidy)"]:::you
   NEW["New repo for this workflow"]:::you --> OB["onboard<br/>(runs setup-matt-pocock-skills first)"]:::you
   OLD["Workflow changed or older repo setup"]:::you --> OB2["onboard<br/>(upgrades it)"]:::you
   DRIFT["Checking drift and rework"]:::you --> CAL["calibrate"]:::you
@@ -66,26 +66,25 @@ flowchart TD
   <li>changing persisted data, a public contract, or an external system (deploys, messages, paid services);</li>
   <li>anything involving secrets or credentials.</li>
 </ol>
-<p><code>implement</code> adds two stops of its own: a surface change (I review the skeleton) and a human puzzle (I write it). Everything else it decides, states the assumption, and lists in the walkthrough for my veto. Questions come batched in one <code>ask</code>.</p>
+<p><code>implement</code> stops for me three times: the skeleton review (a load-bearing surface change), the exemplar (I write the first instance of a pattern), and the diff review on hitl tickets. Everything else it decides, states the assumption, and lists in the walkthrough for my veto. Questions come batched in one <code>ask</code>.</p>
 
 <h2>Terms</h2>
 <table>
   <tr><th>Term</th><th>Meaning</th></tr>
   <tr><td>Surface</td><td>Module layout, public function heads and types, persisted data shape, cross-module contracts.</td></tr>
+  <tr><td>Load-bearing surface</td><td>The persisted data shapes, and the contracts other modules or outside callers rely on. Changing it is hard to reverse, so a mistake is costly. The rest of the surface (module layout, internal heads and types) is surface but not load-bearing: it goes afk, and I review it in the PR.</td></tr>
   <tr><td>Skeleton</td><td>The surface written as real code, bodies not implemented.</td></tr>
-  <tr><td>Puzzle</td><td>A piece of a ticket's internals where the thinking is the work; pure plumbing has none.</td></tr>
-  <tr><td>Human puzzle</td><td>The user writes its code.</td></tr>
-  <tr><td>Agent puzzle</td><td>The agent writes it and explains its approach.</td></tr>
-  <tr><td><code>hitl</code> / <code>afk</code></td><td>hitl when a ticket changes the surface or has a human puzzle; otherwise afk. On a tracker: <code>ready-for-human</code> / <code>ready-for-agent</code>.</td></tr>
+  <tr><td>Human task</td><td>Work on a ticket that I do in the code, as senior to the agent's junior. Four kinds: <b>exemplar</b>: the ticket introduces a pattern a later ticket repeats; I hand-write the first instance, code plus its test, because one exemplar shapes every later instance the agent copies. <b>diff review</b>: on every hitl ticket, after the build and the agent's own code-review, I read the built diff in r3 in reading order and annotate; the agent revises until I archive it. <b>tidy</b>: offered after every diff review; where taste matters, I refactor or delete anything myself, and the agent reruns the tests and reviews as a pair, editing my code only when asked. <b>take the pen</b>: on demand, any mode; when the agent fails twice on the same problem with no new hypothesis, it hands me the repro and the ruled-out hypotheses, and I write it or give a steer.</td></tr>
+  <tr><td><code>hitl</code> / <code>afk</code></td><td>afk by default; hitl when the ticket has an exemplar or changes the load-bearing surface. On a tracker: <code>ready-for-human</code> / <code>ready-for-agent</code>.</td></tr>
   <tr><td>Gate</td><td>The repo's one check command, in the agent file's <code>## Gate</code> section.</td></tr>
   <tr><td>Stack pack</td><td><code>rule://stack-&lt;name&gt;</code>, what is true of every repo in a stack (e.g. <code>stack-elixir</code>, <code>stack-typescript</code>).</td></tr>
 </table>
 
 <h2>to-tickets</h2>
-<p>Upstream <code>to-tickets</code>, plus: each ticket lists its puzzles, each marked <code>(human)</code> (I write it) or <code>(agent)</code> (the agent writes it), and its mode follows from that and from whether it changes the surface. Slices are also sized so I can review each in one sitting (about 300 changed non-test lines). While proposing, the agent tells me in the session why it marked each puzzle human or agent, recommending human where a mistake would be silent, costly or hard to undo, and says when it is unsure. I can claim any puzzle. That reasoning isn't written into the tickets. I approve the batch once.</p>
+<p>Upstream <code>to-tickets</code>, plus: each ticket lists its Human tasks (the exemplars, whose patterns the ticket introduces) and afk is the default; a ticket is hitl only when it has an exemplar or changes the load-bearing surface, and the agent tells me in the session why each hitl ticket needs the human touch. I cut the human touch into its own small ticket so the tickets around it stay afk (e.g. the first provider adapter is a small hitl ticket carrying the exemplar; the other providers are afk tickets blocked by it), shaping the graph so hitl tickets block afk ones; when an afk ticket must come before a hitl one, the agent says so in the quiz, since it splits the spec run. Slices are also sized so I can review each in one sitting (about 300 changed non-test lines). While proposing, the agent tells me in the session why it recommends an exemplar for each: a ticket is the first instance of a pattern a later ticket repeats, so my hand-written first instance shapes every later one it copies. I can add or drop any. That reasoning isn't written into the tickets. I approve the batch once.</p>
 
 <h2>implement</h2>
-<p>One ticket per fresh session, afk included.</p>
+<p>One ticket per fresh session, afk included. On a spec I run each hitl ticket with <code>implement</code> first; once every hitl ticket is done, I run <code>implement-spec</code> for the remaining afk tickets: it builds every open ticket, so it runs only when no hitl ticket is open, and its PR is where I review and tidy.</p>
 
 <pre class="mermaid">
 flowchart TD
@@ -94,18 +93,22 @@ flowchart TD
   classDef wait fill:#fde68a,color:#111,stroke:#b45309
 
   L["0 · Load<br/>ticket, spec's user stories, CODING_STANDARDS.md,<br/>GLOSSARY.md, ADRs · record the start commit"]:::auto
-  L --> S{"Does the surface change?"}
+  L --> S{"Load-bearing surface change?"}
   S -- yes --> SK["1 · Skeleton ⏸<br/>written in the real files,<br/>reviewed by me in r3"]:::wait
-  S -- no --> B
-  SK --> B["2 · Build<br/>tdd on the agent's own code only;<br/>my puzzles stay outside the tdd loop<br/>(at most an empty TODO(human) stub if its code needs one)"]:::auto
-  B --> P{"Any human puzzles?"}
-  P -- yes --> PZ["3 · my puzzles ⏸<br/>all its failing tests at once + a TODO(human) stub<br/>explaining each argument, with worked examples;<br/>I write it, agent reruns tests and reviews"]:::wait
-  P -- no --> C
-  PZ --> C["4 · Check<br/>code-review, then the Gate"]:::auto
-  C --> W["5 · walkthrough"]:::auto
+  S -- no --> E
+  SK --> E{"Does the ticket have an exemplar?"}
+  E -- yes --> EX["2 · Exemplar ⏸<br/>TODO(human) stub naming the pattern;<br/>I write the code and its test;<br/>agent reruns tests and reviews as a pair"]:::wait
+  E -- no --> B
+  EX --> B["3 · Build<br/>tdd, all logic, copying the exemplar;<br/>two failures on one problem → I take the pen"]:::auto
+  B --> C["4 · Self-review<br/>code-review; fix what's real,<br/>rest to the walkthrough"]:::auto
+  C --> H{"hitl ticket?"}
+  H -- yes --> DR["5 · Diff review + tidy offer ⏸<br/>diff in r3 with a tour in reading order;<br/>I annotate, it revises until I archive;<br/>then I can tidy anything myself"]:::wait
+  H -- no --> G
+  DR --> G["6 · Gate<br/>run last, covers my tidy"]:::auto
+  G --> W["7 · walkthrough"]:::auto
 </pre>
 
-<p><b>Step 0 without a ticket:</b> it first proposes the surface change and puzzles in one <code>ask</code>. <b>Skeleton review:</b> it revises until I archive the review, restructures included; what my annotations teach gets filed by kind (domain terms in <code>GLOSSARY.md</code>, general rules in <code>CODING_STANDARDS.md</code>, real tradeoffs in ADRs), and later tickets that assumed the old surface get updated. <b>During the build:</b> if it needs a new data shape or contract, it stops, asks, and records an ADR; any other public addition it makes and lists for veto.</p>
+<p><b>Step 0 without a ticket:</b> it first proposes the surface change and any exemplar in one <code>ask</code>. <b>Skeleton review:</b> it revises until I archive the review, restructures included; what my annotations teach gets filed by kind (domain terms in <code>GLOSSARY.md</code>, general rules in <code>CODING_STANDARDS.md</code>, real tradeoffs in ADRs), and later tickets that assumed the old surface get updated. <b>During the build:</b> if it needs a new data shape or contract, it stops, asks, and records an ADR; any other public addition it makes and lists for veto.</p>
 
 <h2>walkthrough</h2>
 <p>Every task that changes files ends here. In chat, in as few words as it can, the agent gives (empty parts left out):</p>
@@ -113,7 +116,7 @@ flowchart TD
   <li>what changed and why, naming the mechanism I should be able to explain back;</li>
   <li>one large diagram, when a flow or structure changed;</li>
   <li>up to three places it wants my eyes, with <code>file:line</code>;</li>
-  <li>decisions for my veto;</li>
+  <li>decisions for my veto, including the approach behind each non-obvious piece of logic;</li>
   <li>the Gate line.</li>
 </ol>
 <p>Then one question: <b>commit</b> · <b>r3 then commit</b> · <b>PR</b> · <b>leave it</b>, recommending commit for small, contained work and a branch + PR for larger or cross-cutting work. When I pick PR, it reads <code>skill://pr</code> to write the PR body. When the ticket was the last open one in its spec, in an onboarded repo that isn't a fork, it also suggests running <code>calibrate</code> in a fresh session.</p>
@@ -143,17 +146,19 @@ flowchart TD
 <p>"Fix the typo in the missing-user API error." The agent edits the string and runs the Gate, then gives the walkthrough: one sentence on the fix and the Gate line; no other part applies. It asks commit · r3 then commit · PR · leave it, recommending commit. I pick commit.</p>
 
 <h3>Three afk tickets</h3>
-<p><code>to-tickets</code> splits an internal logging utility into three tickets, none touching the surface, no puzzles. Each runs in its own fresh session: load → build → check → walkthrough, where the agent lists an assumption for veto (log level as a string; async flushing; JSON output) and I pick commit.</p>
+<p><code>to-tickets</code> splits an internal logging utility into three tickets, none touching the surface, no human tasks. Each runs in its own fresh session: load → build → check → walkthrough, where the agent lists an assumption for veto (log level as a string; async flushing; JSON output) and I pick commit.</p>
 
 <h3>A hitl ticket</h3>
-<p>A payment-gateway integration ticket changes the surface and has one human puzzle, the HMAC signature, which the agent recommended for me because a mistake would be silent.</p>
+<p>A payment-gateway integration: <code>to-tickets</code> cuts the human touch into a small first-provider ticket, hitl because the <code>PaymentProvider</code> behaviour is a contract other modules rely on (skeleton) and it carries the exemplar adapter; the other providers are afk tickets blocked by it.</p>
 <ol>
   <li><b>Skeleton</b>: the agent writes the <code>PaymentProvider</code> behaviour and publishes it to r3. I annotate "amount should be a Money struct, not an integer"; it revises, proposes a convention line, and I archive the review.</li>
-  <li><b>Build</b>: tdd for the HTTP glue.</li>
-  <li><b>Puzzle</b>: failing tests and a <code>TODO(human)</code> for the HMAC. I write it and say "done"; it reruns the tests and reviews.</li>
-  <li><b>Check</b>: code-review, then the Gate.</li>
-  <li><b>walkthrough</b>: what and why (signature verification), a diagram of the payment flow, where it wants my eyes. It recommends PR; I pick PR.</li>
+  <li><b>Exemplar</b>: I write the first provider adapter and its test; the agent reruns the tests and reviews.</li>
+  <li><b>Build</b>: tdd for the HTTP glue, following the exemplar.</li>
+  <li><b>Self-review</b>: code-review; real findings fixed, the rest goes to the walkthrough.</li>
+  <li><b>Diff review</b>: I read the built diff in r3 in reading order and annotate; the agent revises until I archive it, then offers a tidy. I tidy one function myself and say "done"; it reruns the tests and reviews.</li>
+  <li><b>Gate</b>, then <b>walkthrough</b>. I pick commit.</li>
 </ol>
+<p>With the hitl ticket done, <code>implement-spec</code> builds the afk provider tickets afterwards, copying the exemplar on one integration branch and opening a PR, where I review and tidy.</p>
 
 <script type="module">
   import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";

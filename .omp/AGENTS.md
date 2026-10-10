@@ -17,8 +17,7 @@ Agent Rules (`.omp/RULES.md`), which bind you and every subagent.
 3. changing persisted data, a public contract, or an external system (deploys, messages, paid services);
 4. anything involving secrets or credentials.
 
-Workflow skills add their own stops: `implement` stops for surface changes (skeleton review)
-and human puzzles. Everything else: decide, state the assumption, and list it in the
+Workflow skills add their own stops: `implement` stops for load-bearing surface changes (skeleton review; term: `implement` § Surface), the exemplar, and the diff review on hitl tickets. Everything else: decide, state the assumption, and list it in the
 walkthrough for veto. Batch questions into one `ask`.
 
 Every task that changes files ends with `skill://walkthrough`. When the user is unsure what
