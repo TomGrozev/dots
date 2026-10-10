@@ -29,6 +29,9 @@ statusLine:
   transparent: true
   compactThinkingLevel: true
   showHookStatus: false
+  preset: custom
+  leftSegments: [pi, vim, model, mode, collab, stream, path, git, pr, context_pct, cost]
+  rightSegments: [session_name, status]
   sessionAccent: true
 terminal:
   showProgress: true

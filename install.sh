@@ -277,7 +277,11 @@ echo "  Linked ~/.cc-safety-net/policy.json"
 # git push --force, etc.) and secret-file reads (~/.ssh/*, .env, ~/.aws, …). Strict
 # preset: set CC_SAFETY_NET_LEVEL=strict in the environment (e.g. .zshenv) — check the
 # cc-safety-net docs for the canonical pinning method before adding it.
-OMP_PLUGINS=(cc-safety-net @mikefreno/omp-neuralwatt)
+# neuralwatt: our fork (TomGrozev/fork-pi-neuralwatt) of @aliou/pi-neuralwatt — the
+# feat/omp-support branch carries the omp adaptations (sub-bar status line, host
+# compat). Pin branch + URL so a fresh install lands on the fork, not the published
+# @mikefreno/omp-neuralwatt port, which lags upstream.
+OMP_PLUGINS=(cc-safety-net "https://github.com/TomGrozev/fork-pi-neuralwatt#feat/omp-support")
 
 if command -v omp &>/dev/null; then
   for plugin in "${OMP_PLUGINS[@]}"; do
