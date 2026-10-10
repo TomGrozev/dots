@@ -12,8 +12,10 @@
  *
  * Credentials are NEVER written to disk by this module: the resolved env travels
  * only over the socket and through the caller's shell. The socket is per-pid
- * (`grant-<pid>.sock`) and 0600 inside a 0700 dir, so no other user can connect;
- * a stale socket from a dead process is unlinked before listen.
+ * (`grant-<pid>.sock`) and 0600 inside a 0700 dir, so no other user can connect.
+ * A bind unlinks only this pid's own leftover socket (a crashed run of the same
+ * pid); sockets and shim dirs left by OTHER dead pids are swept at startup by
+ * lib/shim.ts `sweepStaleShimState`, never touched here.
  *
  * One server per creds dir per process, shared across binds (omp re-imports the
  * extension per session/subagent) through a `Symbol.for` globalThis registry,
@@ -98,8 +100,9 @@ async function handleRequest(line: string, resolver: GrantResolver): Promise<Gra
 function startGrantServer(credsDir: string, resolver: GrantResolver): GrantServer {
 	mkdirSync(credsDir, { recursive: true, mode: 0o700 });
 	const socketPath = join(credsDir, `grant-${process.pid}.sock`);
-	// A leftover socket from a crashed run of this pid can never be live; unlink
-	// so bind succeeds. Never touch another pid's socket.
+	// A leftover socket from a crashed run of THIS pid can never be live; unlink
+	// so bind succeeds. Another pid's socket is never touched here — dead pids'
+	// state is swept at startup by sweepStaleShimState (lib/shim.ts).
 	rmSync(socketPath, { force: true });
 
 	let currentResolver = resolver;

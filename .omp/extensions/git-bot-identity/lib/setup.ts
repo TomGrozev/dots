@@ -512,7 +512,7 @@ export async function runSetup(deps: SetupDeps): Promise<boolean> {
 	}
 	// ── top-level flow ────────────────────────────────────────────────────────
 
-	const existing = await loadBotConfig(credsDir, spawn);
+	const existing = loadBotConfig(credsDir);
 
 	if (existing) {
 		// Reconfigure: seed the current values (redacted — never print a full
@@ -591,8 +591,8 @@ export async function runSetup(deps: SetupDeps): Promise<boolean> {
  * Exported so tests can drive it directly.
  */
 export async function notifyIfUnconfigured(deps: SetupDeps): Promise<void> {
-	const { ui, spawn, credsDir } = deps;
-	const config = await loadBotConfig(credsDir, spawn);
+	const { ui, credsDir } = deps;
+	const config = loadBotConfig(credsDir);
 	if (config !== null) return;
 	ui.notify("git-bot-identity isn't configured — run /git-bot-setup to set up the agent account.", "warning");
 }

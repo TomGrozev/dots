@@ -16,6 +16,7 @@ import { join } from "node:path";
 import { createDefault } from "../index";
 import { redeem } from "./grant-probe";
 import { stopGrantServer } from "../lib/grant-server";
+import { shimDirFor } from "../lib/shim";
 import type { SpawnFn } from "../lib/config";
 
 /** Same registry key the extension uses to hold its process-wide snapshot. */
@@ -120,7 +121,7 @@ describe("pristine env across binds", () => {
 		const bind2 = await createDefault({ credsDir });
 		// Overlay unchanged: same deny config, no shim dir prepended twice.
 		expect(bind2.neutralEnv.GIT_CONFIG_GLOBAL).toBe(join(credsDir, "deny-gitconfig"));
-		expect(bind2.neutralEnv.PATH).toBe(`${join(credsDir, "shim")}:${stubPath}`);
+		expect(bind2.neutralEnv.PATH).toBe(`${shimDirFor(credsDir)}:${stubPath}`);
 
 		// A read is granted the bot transport + resolved human co-author, which
 		// only happens when `identity` is non-null. The grant is redeemed over the
@@ -171,7 +172,7 @@ describe("pristine env across binds", () => {
 		// Give that dir executable git/gh stubs — exactly what `Bun.which` would
 		// resolve to if the snapshot's shim-dir filter were absent — and put the
 		// real dir after it, with its own git/gh.
-		const shimDir = join(credsDir, "shim");
+		const shimDir = shimDirFor(credsDir);
 		mkdirSync(shimDir, { recursive: true });
 		writeStubExe(join(shimDir, "git"));
 		writeStubExe(join(shimDir, "gh"));

@@ -92,7 +92,7 @@ function makeTool(
 	resolveBotWriteEnv: () => Promise<GrantDecision> = REFUSE_BOT,
 ): { api: FakeExtensionAPI; tool: { execute: (...args: unknown[]) => Promise<{ details?: unknown }> } } {
 	const api = new FakeExtensionAPI();
-	installCommitAsMe(api as unknown as CommitAsMeHookApi, { bot, humanEnv, resolveBotWriteEnv });
+	installCommitAsMe(api as unknown as CommitAsMeHookApi, { getBot: async () => bot, humanEnv, resolveBotWriteEnv });
 	const tool = api.tools["commit_as_me"];
 	if (!tool) throw new Error("commit_as_me was not registered");
 	return { api, tool: tool as unknown as { execute: (...args: unknown[]) => Promise<{ details?: unknown }> } };

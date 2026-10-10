@@ -1,8 +1,19 @@
 import { describe, expect, test, beforeEach, afterEach } from "bun:test";
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { GRANT_CLIENT_PATH, installShim } from "../lib/shim";
+import {
+	GH_READ_ALLOWLIST,
+	GH_READ_NAMESPACES,
+	GH_READ_VERBS,
+	GIT_LOCAL_ALLOWLIST,
+	GIT_READ_ALLOWLIST,
+	GRANT_CLIENT_PATH,
+	defaultPidIsAlive,
+	installShim,
+	removeShimState,
+	sweepStaleShimState,
+} from "../lib/shim";
 import { evalGuidance } from "../lib/guidance";
 import { getGrantServer, stopGrantServer, type GrantMode } from "../lib/grant-server";
 
@@ -11,27 +22,32 @@ const MARKER = "FAKE_BINARY_RAN";
 const BLOCK_PHRASE = "do not route around this";
 
 let dir: string;
+// Fake real binaries live OUTSIDE the creds dir: a resolved real git/gh inside
+// it is refused by installShim (it would exec itself).
+let binDir: string;
 
 beforeEach(() => {
 	dir = mkdtempSync(join(tmpdir(), "gbi-shim-"));
+	binDir = mkdtempSync(join(tmpdir(), "gbi-bin-"));
 });
 
 afterEach(() => {
 	stopGrantServer(dir);
 	rmSync(dir, { recursive: true, force: true });
+	rmSync(binDir, { recursive: true, force: true });
 });
 
 /** Write a tiny executable fake binary that prints a marker and echoes its args. */
 function fakeBinary(name: string): string {
-	const p = join(dir, name);
+	const p = join(binDir, name);
 	writeFileSync(p, `#!/bin/sh\nprintf '%s %s\\n' '${MARKER}' "$*"\n`, { mode: 0o755 });
 	return p;
 }
 
 /** A fake binary that prints the credential env it received plus its args — used
- * to prove the shim handed the granted env to the real binary. */
+ * to prove the shim handed the granted env (or the neutral env) to the binary. */
 function fakeTokenBinary(name: string): string {
-	const p = join(dir, name);
+	const p = join(binDir, name);
 	writeFileSync(
 		p,
 		`#!/bin/sh\nprintf 'TOKEN=%s\\n' "\${GH_TOKEN:-unset}"\nprintf 'SIGNING=%s\\n' "\${SIGNING_KEY:-unset}"\nprintf 'ARGS=%s\\n' "$*"\n`,
@@ -73,7 +89,7 @@ async function runSh(command: string, shimDir: string, extraEnv: Record<string, 
  * client still runs to completion.
  */
 function fakeRuntime(recordPath: string): string {
-	const p = join(dir, "fake-runtime");
+	const p = join(binDir, "fake-runtime");
 	writeFileSync(
 		p,
 		`#!/bin/sh
@@ -91,6 +107,20 @@ const READ_WRITE_RESOLVER = (mode: GrantMode) =>
 		? { ok: true as const, env: { GH_TOKEN: "transport-only", SIGNING_KEY: "unset" } }
 		: { ok: true as const, env: { GH_TOKEN: "full-creds", SIGNING_KEY: "ABCDEF1234567890" } };
 
+/** A recording resolver: returns a grant tagged with the requested mode and
+ * keeps every mode it was asked for, so a test can prove a call did (or did
+ * not) contact the grant server. */
+function recordingResolver(): { seen: GrantMode[]; resolver: (mode: GrantMode) => { ok: true; env: Record<string, string> } } {
+	const seen: GrantMode[] = [];
+	return {
+		seen,
+		resolver: mode => {
+			seen.push(mode);
+			return { ok: true as const, env: { GH_TOKEN: `granted-${mode}` } };
+		},
+	};
+}
+
 describe("installShim", () => {
 	test("git read subcommand passes through, forwards args, prints marker", async () => {
 		const fakeGit = fakeBinary("fake-git");
@@ -103,14 +133,42 @@ describe("installShim", () => {
 		expect(res.stdout).toContain("status --short src");
 	});
 
-	test("git write subcommand with no grant channel is blocked with guidance and does not reach the binary", async () => {
+	test("two processes install independent shim dirs (their baked paths never collide)", () => {
+		const a = installShim(dir, { git: fakeBinary("git-a"), gh: fakeBinary("gh-a"), runtime: "/bin/bun-a" }, 10001);
+		const b = installShim(dir, { git: fakeBinary("git-b"), gh: fakeBinary("gh-b"), runtime: "/bin/bun-b" }, 10002);
+		expect(a.shimDir).toBe(join(dir, "shim-10001"));
+		expect(b.shimDir).toBe(join(dir, "shim-10002"));
+
+		const aGit = readFileSync(join(a.shimDir, "git"), "utf8");
+		const bGit = readFileSync(join(b.shimDir, "git"), "utf8");
+		expect(aGit).toContain("/bin/bun-a");
+		expect(bGit).toContain("/bin/bun-b");
+		expect(aGit).not.toContain("/bin/bun-b");
+		expect(bGit).not.toContain("/bin/bun-a");
+
+		// Removing one process's state leaves the other's untouched.
+		removeShimState(a.shimDir, join(dir, "grant-10001.sock"));
+		expect(existsSync(a.shimDir)).toBe(false);
+		expect(existsSync(b.shimDir)).toBe(true);
+	});
+
+	test("refuses a resolved real binary that is inside the creds dir", () => {
+		expect(() => installShim(dir, { git: join(dir, "shim-1", "git"), gh: "gh", runtime: "/bin/bun" })).toThrow(
+			/inside the credentials dir/,
+		);
+		expect(() => installShim(dir, { git: "git", gh: join(dir, "shim", "gh"), runtime: "/bin/bun" })).toThrow(
+			/inside the credentials dir/,
+		);
+	});
+
+	test("git write subcommand with no grant channel is blocked, binary never runs", async () => {
 		const fakeGit = fakeBinary("fake-git");
 		const fakeGh = fakeBinary("fake-gh");
 		const { shimDir } = installShim(dir, { git: fakeGit, gh: fakeGh, runtime: process.execPath });
 
 		const res = await run([join(shimDir, "git"), "push", "origin", "main"]);
 		expect(res.code).toBe(1);
-		expect(res.stderr).toContain(BLOCK_PHRASE);
+		expect(res.stderr).toContain("GBI_GRANT_SOCK is unset");
 		expect(res.stdout).not.toContain(MARKER);
 	});
 
@@ -133,14 +191,14 @@ describe("installShim", () => {
 		}
 	});
 
-	test("gh write subcommand is blocked with guidance; read subcommand passes through", async () => {
+	test("gh write subcommand is blocked; read subcommand passes through", async () => {
 		const fakeGit = fakeBinary("fake-git");
 		const fakeGh = fakeBinary("fake-gh");
 		const { shimDir } = installShim(dir, { git: fakeGit, gh: fakeGh, runtime: process.execPath });
 
 		const blocked = await run([join(shimDir, "gh"), "pr", "create", "--title", "x"]);
 		expect(blocked.code).toBe(1);
-		expect(blocked.stderr).toContain(BLOCK_PHRASE);
+		expect(blocked.stderr).toContain("GBI_GRANT_SOCK is unset");
 		expect(blocked.stdout).not.toContain(MARKER);
 
 		const read = await run([join(shimDir, "gh"), "auth", "status"]);
@@ -162,7 +220,150 @@ describe("installShim", () => {
 
 		const blocked = await run([join(second.shimDir, "git"), "commit", "-m", "x"]);
 		expect(blocked.code).toBe(1);
-		expect(blocked.stderr).toContain(BLOCK_PHRASE);
+		expect(blocked.stderr).toContain("GBI_GRANT_SOCK is unset");
+	});
+});
+
+describe("git class boundaries", () => {
+	test("every local subcommand runs without ever contacting the grant server", async () => {
+		const { seen, resolver } = recordingResolver();
+		const server = getGrantServer(dir, resolver);
+		const { shimDir } = installShim(dir, {
+			git: fakeTokenBinary("fake-git"),
+			gh: fakeBinary("fake-gh"),
+			runtime: process.execPath,
+		});
+		for (const sub of GIT_LOCAL_ALLOWLIST) {
+			const res = await run([join(shimDir, "git"), sub], { GBI_GRANT_SOCK: server.socketPath });
+			expect(res.code).toBe(0);
+			expect(res.stdout).toContain(`ARGS=${sub}`);
+			expect(res.stdout).not.toContain("TOKEN=granted");
+		}
+		expect(seen).toEqual([]);
+	});
+
+	test("remote-touching and commit-creating subcommands still request a grant", async () => {
+		const { seen, resolver } = recordingResolver();
+		const server = getGrantServer(dir, resolver);
+		const { shimDir } = installShim(dir, {
+			git: fakeTokenBinary("fake-git"),
+			gh: fakeBinary("fake-gh"),
+			runtime: process.execPath,
+		});
+		for (const args of [
+			["pull"], ["clone", "x"], ["submodule", "update"], ["push"], ["commit", "-m", "x"], ["tag", "-a", "v1", "-m", "x"],
+			// Commit-creating commands need the bot identity and signing key.
+			["merge", "topic"], ["rebase", "main"], ["cherry-pick", "abc"], ["revert", "abc"], ["am", "p.mbox"], ["notes", "add"], ["stash"],
+		]) {
+			seen.length = 0;
+			const res = await run([join(shimDir, "git"), ...args], { GBI_GRANT_SOCK: server.socketPath });
+			expect(res.code).toBe(0);
+			expect(seen).toEqual(["write"]);
+			expect(res.stdout).toContain("TOKEN=granted-write");
+		}
+	});
+
+	test("read subcommands request the read grant; annotated tag flips to write", async () => {
+		const { seen, resolver } = recordingResolver();
+		const server = getGrantServer(dir, resolver);
+		const { shimDir } = installShim(dir, {
+			git: fakeTokenBinary("fake-git"),
+			gh: fakeBinary("fake-gh"),
+			runtime: process.execPath,
+		});
+		for (const args of [["status"], ["diff"], ["log", "--oneline"], ["fetch"], ["tag"], ["tag", "-l"]]) {
+			seen.length = 0;
+			const res = await run([join(shimDir, "git"), ...args], { GBI_GRANT_SOCK: server.socketPath });
+			expect(seen).toEqual(["read"]);
+			expect(res.stdout).toContain("TOKEN=granted-read");
+		}
+		seen.length = 0;
+		const signed = await run([join(shimDir, "git"), "tag", "-s", "v1", "-m", "x"], { GBI_GRANT_SOCK: server.socketPath });
+		expect(seen).toEqual(["write"]);
+		expect(signed.stdout).toContain("TOKEN=granted-write");
+	});
+
+	test("git --version, -h/--help and an empty subcommand classify as read", async () => {
+		const { seen, resolver } = recordingResolver();
+		const server = getGrantServer(dir, resolver);
+		const { shimDir } = installShim(dir, {
+			git: fakeTokenBinary("fake-git"),
+			gh: fakeBinary("fake-gh"),
+			runtime: process.execPath,
+		});
+		for (const args of [["--version"], ["-h"], ["--help"], []]) {
+			seen.length = 0;
+			await run([join(shimDir, "git"), ...args], { GBI_GRANT_SOCK: server.socketPath });
+			expect(seen).toEqual(["read"]);
+		}
+	});
+});
+
+describe("gh classification", () => {
+	const readCases: string[][] = [
+		["api", "/repos/o/r"],
+		["api", "-X", "GET", "/x"],
+		["api", "--method=GET", "/x"],
+		["api", "--method", "get", "/x"],
+		["api", "/x", "-X", "GET"],
+		["pr", "view", "1"],
+		["pr", "list"],
+		["issue", "status"],
+		["run", "list"],
+		["release", "view", "v1"],
+		["repo", "view"],
+		["repo", "list"],
+		["workflow", "list"],
+		["label", "list"],
+		["search", "repos", "q"],
+		["auth", "status"],
+		["version"],
+		["-R", "o/r", "pr", "view", "1"],
+	];
+	const writeCases: string[][] = [
+		["api", "-X", "POST", "/x"],
+		["api", "--method=POST", "/x"],
+		["api", "-f", "k=v", "/x"],
+		["api", "-F", "f=@body", "/x"],
+		["api", "--field=k=v", "/x"],
+		["api", "--raw-field=k=v", "/x"],
+		["api", "--input", "body.json"],
+		["pr", "create", "--title", "x"],
+		["repo", "clone", "o/r"],
+		["label", "create", "bug"],
+		["codespace", "list"],
+		["workflow", "run", "ci"],
+		["frobnicate"],
+	];
+
+	test("read verbs request read; everything else fails closed to write", async () => {
+		const { seen, resolver } = recordingResolver();
+		const server = getGrantServer(dir, resolver);
+		const { shimDir } = installShim(dir, {
+			git: fakeBinary("fake-git"),
+			gh: fakeTokenBinary("fake-gh"),
+			runtime: process.execPath,
+		});
+		for (const args of readCases) {
+			seen.length = 0;
+			const res = await run([join(shimDir, "gh"), ...args], { GBI_GRANT_SOCK: server.socketPath });
+			expect(seen).toEqual(["read"]);
+			expect(res.stdout).toContain("TOKEN=granted-read");
+		}
+		for (const args of writeCases) {
+			seen.length = 0;
+			const res = await run([join(shimDir, "gh"), ...args], { GBI_GRANT_SOCK: server.socketPath });
+			expect(seen).toEqual(["write"]);
+			expect(res.stdout).toContain("TOKEN=granted-write");
+		}
+	});
+
+	test("the allowlist constants exclude codespace and blanket label", () => {
+		expect(GH_READ_ALLOWLIST).not.toContain("codespace");
+		expect(GH_READ_ALLOWLIST).not.toContain("label");
+		expect(GH_READ_ALLOWLIST).not.toContain("api");
+		expect(GH_READ_NAMESPACES).toContain("label");
+		expect(GH_READ_VERBS).toContain("list");
 	});
 });
 
@@ -221,17 +422,6 @@ describe("shim argv-driven grants (end to end)", () => {
 		expect(res.stdout).toContain("ARGS=status");
 	});
 
-	test("a read with the server unreachable still runs the real binary", async () => {
-		const fakeGit = fakeTokenBinary("fake-git");
-		const fakeGh = fakeBinary("fake-gh");
-		const { shimDir } = installShim(dir, { git: fakeGit, gh: fakeGh, runtime: process.execPath });
-
-		const res = await runSh("git log --oneline", shimDir, { GBI_GRANT_SOCK: join(dir, "no-such.sock") });
-		expect(res.code).toBe(0);
-		expect(res.stdout).not.toContain("TOKEN=transport-only");
-		expect(res.stdout).toContain("ARGS=log --oneline");
-	});
-
 	test("the shim runs the client as BUN_BE_BUN=1 <runtime> exactly once, with the mode and a safe PATH", async () => {
 		const server = getGrantServer(dir, READ_WRITE_RESOLVER);
 		const record = join(dir, "runtime-record");
@@ -270,15 +460,7 @@ describe("shim argv-driven grants (end to end)", () => {
 	});
 
 	test("a granted write unsets the socket, so a nested git call cannot redeem again", async () => {
-		const server = getGrantServer(dir, mode =>
-			mode === "write"
-				? { ok: true, env: { GH_TOKEN: "outer-token-value", PATH: `${dir}/shim:/usr/bin:/bin` } }
-				: { ok: true, env: { GH_TOKEN: "read-token" } },
-		);
-		const record = join(dir, "runtime-record");
-		// The "real" git is itself a script that invokes git through PATH (the
-		// shim is first). This is the shape that recursed into nested omp instances.
-		const fakeGit = join(dir, "fake-git-nested");
+		const fakeGit = join(binDir, "fake-git-nested");
 		writeFileSync(
 			fakeGit,
 			`#!/bin/sh
@@ -289,8 +471,14 @@ printf 'OUTER_DONE\\n'
 `,
 			{ mode: 0o755 },
 		);
+		const record = join(dir, "runtime-record");
 		const runtime = fakeRuntime(record);
 		const { shimDir } = installShim(dir, { git: fakeGit, gh: fakeBinary("fake-gh"), runtime });
+		const server = getGrantServer(dir, mode =>
+			mode === "write"
+				? { ok: true, env: { GH_TOKEN: "outer-token-value", PATH: `${shimDir}:/usr/bin:/bin` } }
+				: { ok: true, env: { GH_TOKEN: "read-token" } },
+		);
 
 		const res = await runSh('git commit -m "x"', shimDir, {
 			GBI_GRANT_SOCK: server.socketPath,
@@ -301,9 +489,9 @@ printf 'OUTER_DONE\\n'
 		// The outer call got the credentials and the socket was unset before exec...
 		expect(res.stdout).toContain("OUTER_TOKEN=outer-token-value");
 		expect(res.stdout).toContain("OUTER_SOCK=unset");
-		// ...so the nested git fell through to the guidance block.
+		// ...so the nested git (now with no socket) is blocked, not granted again.
 		expect(res.stdout).toContain("OUTER_DONE");
-		expect(res.stderr).toContain(BLOCK_PHRASE);
+		expect(res.stderr).toContain("GBI_GRANT_SOCK is unset");
 		expect(res.stdout.match(/OUTER_TOKEN=/g)).toHaveLength(1);
 		expect(readFileSync(record, "utf8").trim().split("\n")).toHaveLength(1);
 	});
@@ -317,19 +505,171 @@ printf 'OUTER_DONE\\n'
 		const { shimDir } = installShim(dir, { git: fakeGit, gh: fakeGh, runtime });
 		const env = { GBI_GRANT_SOCK: server.socketPath, GBI_IN_SHIM: "1", RECORD: record, REAL_BUN: process.execPath };
 
-		// A read still runs (real binary, neutral env), without any runtime.
+		// A read still runs, without any runtime.
 		const read = await runSh("git status", shimDir, env);
 		expect(read.code).toBe(0);
 		expect(read.stdout).not.toContain("TOKEN=transport-only");
 		expect(read.stdout).toContain("ARGS=status");
 
-		// A write is blocked; still no runtime.
+		// A write is blocked with guidance; still no runtime.
 		const write = await runSh("git push origin main", shimDir, env);
 		expect(write.code).toBe(1);
 		expect(write.stderr).toContain(BLOCK_PHRASE);
 		expect(write.stdout).not.toContain("TOKEN=");
+		expect(existsSync(record)).toBe(false);
 	});
 });
+
+describe("no grant channel", () => {
+	test("write with the socket unset says which check failed", async () => {
+		const { shimDir } = installShim(dir, { git: fakeBinary("git"), gh: fakeBinary("gh"), runtime: process.execPath });
+		const res = await run([join(shimDir, "git"), "push", "origin", "main"]);
+		expect(res.code).toBe(1);
+		expect(res.stderr).toContain("grant server unreachable (GBI_GRANT_SOCK is unset)");
+		expect(res.stdout).not.toContain(MARKER);
+	});
+
+	test("write with an unreachable socket reports the server unreachable at its path", async () => {
+		const { shimDir } = installShim(dir, { git: fakeBinary("git"), gh: fakeBinary("gh"), runtime: process.execPath });
+		const sock = join(dir, "missing.sock");
+		const res = await run([join(shimDir, "git"), "push", "origin", "main"], { GBI_GRANT_SOCK: sock });
+		expect(res.code).toBe(1);
+		expect(res.stderr).toContain(`git-bot-identity: grant server unreachable at ${sock}`);
+		expect(res.stdout).not.toContain(MARKER);
+	});
+
+	test("write with a non-executable runtime names the runtime path", async () => {
+		const missingRuntime = join(binDir, "no-runtime");
+		const { shimDir } = installShim(dir, { git: fakeBinary("git"), gh: fakeBinary("gh"), runtime: missingRuntime });
+		const res = await run([join(shimDir, "git"), "push"], { GBI_GRANT_SOCK: join(dir, "s.sock") });
+		expect(res.code).toBe(1);
+		expect(res.stderr).toContain(`grant runtime is not executable at ${missingRuntime}`);
+	});
+
+	test("a read with the server unreachable still runs the real binary", async () => {
+		const fakeGit = fakeTokenBinary("fake-git");
+		const fakeGh = fakeBinary("fake-gh");
+		const { shimDir } = installShim(dir, { git: fakeGit, gh: fakeGh, runtime: process.execPath });
+
+		const res = await runSh("git log --oneline", shimDir, { GBI_GRANT_SOCK: join(dir, "no-such.sock") });
+		expect(res.code).toBe(0);
+		expect(res.stdout).not.toContain("TOKEN=transport-only");
+		expect(res.stdout).toContain("ARGS=log --oneline");
+	});
+});
+
+describe("stale-state sweep", () => {
+	test("removes dead-pid sockets and shim dirs, keeps live ones and the legacy dir another live process may use", () => {
+		mkdirSync(join(dir, "shim-99999"));
+		writeFileSync(join(dir, "grant-99999.sock"), "");
+		mkdirSync(join(dir, "shim-4242"));
+		writeFileSync(join(dir, "grant-4242.sock"), "");
+		mkdirSync(join(dir, "shim"));
+
+		sweepStaleShimState(dir, pid => pid === 4242);
+
+		expect(existsSync(join(dir, "shim-99999"))).toBe(false);
+		expect(existsSync(join(dir, "grant-99999.sock"))).toBe(false);
+		expect(existsSync(join(dir, "shim-4242"))).toBe(true);
+		expect(existsSync(join(dir, "grant-4242.sock"))).toBe(true);
+		expect(existsSync(join(dir, "shim"))).toBe(true);
+	});
+
+	test("drops the legacy shim dir once no other process holds a live socket", () => {
+		writeFileSync(join(dir, "grant-99999.sock"), "");
+		writeFileSync(join(dir, `grant-${process.pid}.sock`), "");
+		mkdirSync(join(dir, "shim"));
+
+		sweepStaleShimState(dir, pid => pid === process.pid);
+
+		expect(existsSync(join(dir, "shim"))).toBe(false);
+		expect(existsSync(join(dir, `grant-${process.pid}.sock`))).toBe(true);
+	});
+
+	test("default liveness keeps this process and rejects an invalid pid", () => {
+		expect(defaultPidIsAlive(process.pid)).toBe(true);
+		expect(defaultPidIsAlive(0)).toBe(false);
+	});
+});
+
+describe("lifecycle cleanup", () => {
+	test("removeShimState removes only its own dir and socket", () => {
+		const mine = join(dir, "shim-11");
+		const other = join(dir, "shim-22");
+		mkdirSync(mine);
+		mkdirSync(other);
+		const sock = join(dir, "grant-11.sock");
+		const otherSock = join(dir, "grant-22.sock");
+		writeFileSync(sock, "");
+		writeFileSync(otherSock, "");
+
+		removeShimState(mine, sock);
+
+		expect(existsSync(mine)).toBe(false);
+		expect(existsSync(sock)).toBe(false);
+		expect(existsSync(other)).toBe(true);
+		expect(existsSync(otherSock)).toBe(true);
+	});
+
+	test("runs on natural exit and re-raises SIGTERM (default disposition preserved)", async () => {
+		const shimTs = join(import.meta.dir, "..", "lib", "shim.ts");
+		const childDir = mkdtempSync(join(tmpdir(), "gbi-life-"));
+		const mkState = (n: string) => {
+			const d = join(childDir, `shim-${n}`);
+			const s = join(childDir, `grant-${n}.sock`);
+			mkdirSync(d);
+			writeFileSync(s, "");
+			return { d, s };
+		};
+		const source = (d: string, s: string, stayAlive: boolean) => `
+import { installShimCleanup } from ${JSON.stringify(shimTs)};
+installShimCleanup({ shimDir: ${JSON.stringify(d)}, socketPath: ${JSON.stringify(s)} });
+${stayAlive ? 'process.stdout.write("READY\\n");\nsetInterval(() => {}, 1000);' : ""}
+`;
+
+		try {
+			// Natural exit: the `exit` handler removes the state.
+			const exitState = mkState("1");
+			const exitScript = join(childDir, "exit-child.ts");
+			writeFileSync(exitScript, source(exitState.d, exitState.s, false));
+			const exitProc = Bun.spawn(["bun", exitScript], { stdout: "ignore", stderr: "ignore" });
+			expect(await exitProc.exited).toBe(0);
+			expect(existsSync(exitState.d)).toBe(false);
+			expect(existsSync(exitState.s)).toBe(false);
+
+			// SIGTERM: the handler cleans up, then the signal is re-raised so the
+			// process dies by the signal rather than being swallowed.
+			const sigState = mkState("2");
+			const sigScript = join(childDir, "sig-child.ts");
+			writeFileSync(sigScript, source(sigState.d, sigState.s, true));
+			const sigProc = Bun.spawn(["bun", sigScript], { stdout: "pipe", stderr: "ignore" });
+			await readUntil(sigProc.stdout, "READY");
+			sigProc.kill("SIGTERM");
+			// Bun's per-test timeout fails the run if the handler ever swallowed the
+			// signal; awaiting the real exit is the deterministic signal.
+			const code = await sigProc.exited;
+			expect(existsSync(sigState.d)).toBe(false);
+			expect(existsSync(sigState.s)).toBe(false);
+			expect(sigProc.signalCode === "SIGTERM" || code === 143).toBe(true);
+		} finally {
+			rmSync(childDir, { recursive: true, force: true });
+		}
+	});
+});
+
+/** Read a stream until `marker` appears (the child signals readiness). */
+async function readUntil(stream: ReadableStream<Uint8Array> | null, marker: string): Promise<void> {
+	if (!stream) return;
+	const reader = stream.getReader();
+	const decoder = new TextDecoder();
+	let buf = "";
+	while (!buf.includes(marker)) {
+		const { value, done } = await reader.read();
+		if (done) break;
+		buf += decoder.decode(value);
+	}
+	reader.releaseLock();
+}
 
 describe("evalGuidance", () => {
 	test("contains the guidance markers used by the shim", () => {

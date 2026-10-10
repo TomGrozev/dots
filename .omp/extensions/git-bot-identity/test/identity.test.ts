@@ -10,7 +10,7 @@ import { join } from "node:path";
 import { createDefault } from "../index";
 import { redeem } from "./grant-probe";
 import { stopGrantServer } from "../lib/grant-server";
-import { GRANT_CLIENT_PATH } from "../lib/shim";
+import { GRANT_CLIENT_PATH, shimDirFor } from "../lib/shim";
 import type { SpawnFn } from "../lib/config";
 
 let credsDir: string;
@@ -136,13 +136,89 @@ describe("createDefault neutral scaffold", () => {
 		expect(neutralEnv.GIT_TERMINAL_PROMPT).toBe("0");
 		expect(neutralEnv.SSH_AUTH_SOCK).toBe("");
 		expect(neutralEnv.GIT_CONFIG_GLOBAL).toBe(join(credsDir, "deny-gitconfig"));
-		expect((neutralEnv.PATH ?? "").startsWith(join(credsDir, "shim") + ":")).toBe(true);
+		const shimDir = shimDirFor(credsDir);
+		expect((neutralEnv.PATH ?? "").startsWith(`${shimDir}:`)).toBe(true);
 		expect(existsSync(join(credsDir, "deny-gitconfig"))).toBe(true);
-		expect(existsSync(join(credsDir, "shim", "git"))).toBe(true);
-		expect(existsSync(join(credsDir, "shim", "gh"))).toBe(true);
+		expect(existsSync(join(shimDir, "git"))).toBe(true);
+		expect(existsSync(join(shimDir, "gh"))).toBe(true);
 		// The grant client is NOT copied into the shim dir; wrappers reference it.
-		expect(existsSync(join(credsDir, "shim", "grant-client.ts"))).toBe(false);
-		expect(readFileSync(join(credsDir, "shim", "git"), "utf8")).toContain(GRANT_CLIENT_PATH);
+		expect(existsSync(join(shimDir, "grant-client.ts"))).toBe(false);
+		expect(readFileSync(join(shimDir, "git"), "utf8")).toContain(GRANT_CLIENT_PATH);
 		expect(readFileSync(join(credsDir, "deny-gitconfig"), "utf8")).toContain("[credential]");
+	});
+});
+
+/**
+ * The config reload contract: a grant request re-stats config.json and picks up
+ * a written/edited/deleted file on the next call — no omp restart — while an
+ * unchanged config is never re-read beyond the stat and never re-runs gpg.
+ */
+describe("grant resolver (config reload)", () => {
+	test("no config at bind: a config written afterwards makes the next write succeed", async () => {
+		const { neutralEnv } = await createDefault({ credsDir, spawn: fakeGpgSpawn() });
+		const sock = neutralEnv.GBI_GRANT_SOCK as string;
+		expect((await redeem(sock, "write")).ok).toBe(false);
+		writeCreds();
+		const reply = await redeem(sock, "write");
+		expect(reply.ok).toBe(true);
+		expect((reply.env as Record<string, string>).GIT_AUTHOR_EMAIL).toBe(BASE.email);
+	});
+
+	test("a rotated token takes effect on the next grant", async () => {
+		writeCreds();
+		const { neutralEnv } = await createDefault({ credsDir, spawn: fakeGpgSpawn() });
+		const sock = neutralEnv.GBI_GRANT_SOCK as string;
+		expect((await redeem(sock, "read")).env?.GH_TOKEN).toBe(BASE.token);
+		writeCreds({ token: "github_pat_rotated" });
+		expect((await redeem(sock, "read")).env?.GH_TOKEN).toBe("github_pat_rotated");
+	});
+
+	test("a deleted config refuses the next write (fail closed)", async () => {
+		writeCreds();
+		const { neutralEnv } = await createDefault({ credsDir, spawn: fakeGpgSpawn() });
+		const sock = neutralEnv.GBI_GRANT_SOCK as string;
+		expect((await redeem(sock, "write")).ok).toBe(true);
+		rmSync(join(credsDir, "config.json"), { force: true });
+		const reply = await redeem(sock, "write");
+		expect(reply.ok).toBe(false);
+		expect(String(reply.reason)).toContain("bot credentials absent");
+	});
+
+	test("a malformed config refuses with the parse reason, never a stale grant", async () => {
+		writeCreds();
+		const { neutralEnv } = await createDefault({ credsDir, spawn: fakeGpgSpawn() });
+		const sock = neutralEnv.GBI_GRANT_SOCK as string;
+		expect((await redeem(sock, "write")).ok).toBe(true);
+		writeFileSync(join(credsDir, "config.json"), "{ this is not json");
+		const reply = await redeem(sock, "write");
+		expect(reply.ok).toBe(false);
+		expect(String(reply.reason)).toContain("config.json is invalid");
+		expect(String(reply.reason)).toContain("JSON");
+	});
+
+	test("an unchanged config does not re-run gpg import on a repeat write", async () => {
+		const keyFile = join(credsDir, "signing-key.asc");
+		writeFileSync(keyFile, "dummy armored key");
+		writeCreds({ signingKeyFile: keyFile });
+		const imports: string[][] = [];
+		const spawn: SpawnFn = async cmd => {
+			if (cmd.includes("--import")) imports.push(cmd);
+			if (cmd.includes("--list-secret-keys")) {
+				return { exitCode: 0, stdout: "sec:u:2048:1:ABCDEF1234567890:20260101::...", stderr: "" };
+			}
+			return { exitCode: 0, stdout: "", stderr: "" };
+		};
+		const { neutralEnv } = await createDefault({ credsDir, spawn });
+		const sock = neutralEnv.GBI_GRANT_SOCK as string;
+		expect((await redeem(sock, "write")).ok).toBe(true);
+		expect((await redeem(sock, "write")).ok).toBe(true);
+		expect(imports.length).toBe(1);
+	});
+
+	test("getBot reflects a config written after bind (no rebind needed)", async () => {
+		const { getBot } = await createDefault({ credsDir, spawn: fakeGpgSpawn() });
+		expect(await getBot()).toBeNull();
+		writeCreds();
+		expect(await getBot()).toEqual({ name: BASE.name, email: BASE.email });
 	});
 });

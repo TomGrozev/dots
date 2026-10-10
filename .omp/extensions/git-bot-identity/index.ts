@@ -51,7 +51,11 @@
  *  PATH from that pristine snapshot, never from an already-overlaid env. The
  *  grant server and its resolver are shared per process per creds dir through
  *  the same `Symbol.for` registry pattern, so re-binds reuse one socket while
- *  the latest bind's resolver answers its requests. The extension's own git/gh
+ *  the latest bind's resolver answers its requests. Each process installs its
+ *  git/gh shim under its own `<credsDir>/shim-<pid>/`, so one process's baked
+ *  paths can never break another's; on exit/SIGINT/SIGTERM that dir and the
+ *  socket are removed, and stale entries from dead pids are swept at startup.
+ *  The extension's own git/gh
  *  reads (human identity lookup, gpg key setup) run through a pristine-env
  *  spawn, so they are never self-blocked. A bind whose identity resolution
  *  throws still returns the overlay and leaves every request refused (distinct
@@ -61,11 +65,11 @@
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import type { ExtensionAPI } from "@oh-my-pi/pi-coding-agent";
-import { loadBotConfig, resolveHumanIdentity, type BotConfig, type SpawnFn, CONFIG_DIR } from "./lib/config";
+import { createBotConfigCache, sameConfigStamp, CONFIG_DIR, type ConfigStamp, type SpawnFn } from "./lib/config";
 import { ensureBotKey, importBotKey } from "./lib/gpg";
 import { buildBotEnv, installCoauthorHook, type BotEnvConfig } from "./lib/env";
 import { neutralBaseEnv, writeDenyConfig } from "./lib/neutralize";
-import { installShim } from "./lib/shim";
+import { installShim, installShimCleanup, isShimPathEntry, shimDirFor, sweepStaleShimState } from "./lib/shim";
 import { getGrantServer, type GrantDecision, type GrantResolver } from "./lib/grant-server";
 import { blockGuidance } from "./lib/guidance";
 import { installSetup } from "./lib/setup";
@@ -107,8 +111,10 @@ export interface BotIdentityBind {
 	/** Pre-neutralization env snapshot (real PATH, human config/signing) — used
 	 * by `commit_as_me` to run git as the human, untouched by bot overrides. */
 	pristineEnv: Record<string, string>;
-	/** Bot identity for the `commit_as_me` trailer; null when unconfigured. */
-	bot: { name: string; email: string } | null;
+	/** The bot identity for `commit_as_me`'s trailer, refreshed from config.json
+	 * on demand; null when unconfigured. A getter (not a load-time snapshot) so a
+	 * config written or edited after bind is visible without a rebind. */
+	getBot: () => Promise<{ name: string; email: string } | null>;
 	/** In-process bot write-class env resolver — the grant server's own resolver,
 	 * reused by `commit_as_me` when the human picks the bot at the dialog. */
 	resolveBotWriteEnv: () => Promise<GrantDecision>;
@@ -135,15 +141,29 @@ export async function createDefault(options: CreateOptions = {}): Promise<BotIde
 	// snapshot. Resolving git through it would point the shared shim's REALBIN
 	// at itself (writes re-enter the shim without a socket and block; reads loop
 	// forever), and the extension's own git reads and commit_as_me would loop too.
-	const shimDir = join(credsDir, "shim");
+	const shimDir = shimDirFor(credsDir);
 	const snapshot = pristineEnvSnapshot();
 	// The real PATH — used both to resolve the real git/gh for the shim and to
-	// restore transport on granted calls.
+	// restore transport on granted calls. Both this process's `shim-<pid>` dir
+	// and any other process's shim dir (and the legacy shared `shim`) are
+	// filtered out.
 	const realPath = (snapshot.PATH ?? "")
 		.split(":")
-		.filter(entry => entry !== shimDir)
+		.filter(entry => !isShimPathEntry(credsDir, entry))
 		.join(":");
+	const denyConfigPath = join(credsDir, "deny-gitconfig");
+	const neutralGnupg = join(credsDir, "neutral-gnupg");
+	// The same inheritance carries the rest of the neutral overlay: with the
+	// deny GIT_CONFIG_GLOBAL the human identity is unreadable (every write is
+	// refused), and the sentinel tokens/GNUPGHOME would leak into commit_as_me.
+	// Drop each overlay key only when it holds the overlay's own value, so a
+	// value the human set themselves survives; the grant socket never belongs.
+	const overlay = neutralBaseEnv({ shimDir, denyConfigPath, gnupgHome: neutralGnupg, realPath: "", grantSock: "" });
 	const pristineEnv: Record<string, string> = { ...snapshot, PATH: realPath };
+	for (const [key, value] of Object.entries(overlay)) {
+		if (key !== "PATH" && pristineEnv[key] === value) delete pristineEnv[key];
+	}
+	delete pristineEnv.GBI_GRANT_SOCK;
 	// A pristine-env spawn for the extension's OWN reads (human identity, gpg
 	// key setup), so they are never self-blocked by the neutral overlay.
 	const pristineSpawn: SpawnFn = async (cmd, env) => {
@@ -153,31 +173,26 @@ export async function createDefault(options: CreateOptions = {}): Promise<BotIde
 	};
 	const spawn = options.spawn ?? pristineSpawn;
 
-	const config: BotConfig | null = await loadBotConfig(credsDir, spawn);
-
-	// Resolve the human's co-author identity (config value → git config) once
-	// at load. A broken identity setup must NOT escape as a load error: the
-	// default export installs the neutral overlay only after this returns, so
-	// throwing here would leave the process env unguarded (fail-open). Instead,
-	// leave `identity` null — which keeps every request refused below — and warn
-	// distinctly on stderr.
-	let identity: { name: string; email: string } | null = null;
-	if (config) {
-		try {
-			identity = await resolveHumanIdentity(config, spawn);
-		} catch (err) {
-			console.warn(
-				`[git-bot-identity] human identity unresolved — all git/gh writes stay blocked: ${err instanceof Error ? err.message : String(err)}`,
-			);
-		}
+	// Live config cache: grant requests re-stat config.json and reload only when
+	// it changed, so /git-bot-setup, a rotated token, or a hand edit takes effect
+	// on the next git/gh call without restarting omp. Warm it once here so
+	// commit_as_me and the initial refusal state reflect the config at bind — and
+	// so a broken identity setup warns distinctly at load. A broken identity must
+	// NOT escape as a load error: the default export installs the neutral overlay
+	// only after this returns, so throwing here would leave the process env
+	// unguarded (fail-open). `identity === null` keeps every request refused.
+	const configCache = createBotConfigCache(credsDir, spawn);
+	const initialConfig = await configCache.refresh();
+	if (initialConfig.identityWarning !== null) {
+		console.warn(
+			`[git-bot-identity] human identity unresolved — all git/gh writes stay blocked: ${initialConfig.identityWarning}`,
+		);
 	}
 
 	// Scaffold the neutral environment (strip by default), unconditionally — the
 	// eval kernel must be credential-neutral whether or not the bot is
 	// configured. The guidance shim resolves the real git/gh via the pristine
 	// PATH; the deny config strips any inherited credential helper.
-	const denyConfigPath = join(credsDir, "deny-gitconfig");
-	const neutralGnupg = join(credsDir, "neutral-gnupg");
 	writeDenyConfig(denyConfigPath);
 	mkdirSync(neutralGnupg, { recursive: true, mode: 0o700 });
 	const realGit = Bun.which("git", { PATH: realPath }) ?? "git";
@@ -190,9 +205,30 @@ export async function createDefault(options: CreateOptions = {}): Promise<BotIde
 	 * signing key in precedence order (config.json signingKeyFile → signingKey →
 	 * generated bot key) and grants full bot credentials, plus the real PATH so
 	 * the shim's exec of the real git/gh resolves the real binaries and children.
+	 *
+	 * Every request refreshes the config cache first: config.json is re-statted
+	 * and reloaded only when it changed, so an edited config or a rotated token
+	 * is picked up on the next call. The resolved signing key id is cached per
+	 * config version, so an unchanged config never re-runs gpg import or
+	 * list-secret-keys.
 	 */
+	let signingCache: { stamp: ConfigStamp; keyId: string } | null = null;
 	const resolver: GrantResolver = async mode => {
-		if (!config || !identity) return { ok: false, reason: blockGuidance("bot credentials absent") };
+		const snapshot = await configCache.refresh();
+		const config = snapshot.config;
+		const identity = snapshot.identity;
+		if (config === null || identity === null) {
+			// Distinguish "never configured" (absent) from a config that exists but
+			// is unusable: the latter must name the parse problem, never serve a
+			// stale grant.
+			const cause =
+				snapshot.invalidReason !== null
+					? `config.json is invalid: ${snapshot.invalidReason}`
+					: snapshot.identityWarning !== null
+						? `human co-author identity unresolved: ${snapshot.identityWarning}`
+						: "bot credentials absent";
+			return { ok: false, reason: blockGuidance(cause) };
+		}
 		const base: BotEnvConfig = {
 			name: config.name,
 			email: config.email,
@@ -205,22 +241,29 @@ export async function createDefault(options: CreateOptions = {}): Promise<BotIde
 		}
 		// Write class: full bot credentials + signing for this call. The human
 		// keyring is never consulted.
-		let signingKey: string;
-		try {
-			if (config.signingKeyFile !== undefined) {
-				const { keyId } = await importBotKey(credsDir, config.signingKeyFile, spawn);
-				signingKey = config.signingKey ?? keyId;
-			} else if (config.signingKey !== undefined) {
-				signingKey = config.signingKey;
-			} else {
-				const { keyId } = await ensureBotKey(credsDir, config.email, spawn);
-				signingKey = keyId;
+		const stamp = snapshot.stamp;
+		let signingKey =
+			stamp !== null && signingCache !== null && sameConfigStamp(signingCache.stamp, stamp)
+				? signingCache.keyId
+				: undefined;
+		if (signingKey === undefined) {
+			try {
+				if (config.signingKeyFile !== undefined) {
+					const { keyId } = await importBotKey(credsDir, config.signingKeyFile, spawn);
+					signingKey = config.signingKey ?? keyId;
+				} else if (config.signingKey !== undefined) {
+					signingKey = config.signingKey;
+				} else {
+					const { keyId } = await ensureBotKey(credsDir, config.email, spawn);
+					signingKey = keyId;
+				}
+			} catch (err) {
+				return {
+					ok: false,
+					reason: blockGuidance(`signing key setup failed: ${err instanceof Error ? err.message : String(err)}`),
+				};
 			}
-		} catch (err) {
-			return {
-				ok: false,
-				reason: blockGuidance(`signing key setup failed: ${err instanceof Error ? err.message : String(err)}`),
-			};
+			if (stamp !== null) signingCache = { stamp, keyId: signingKey };
 		}
 		const envConfig: BotEnvConfig = { ...base, signingKey };
 		installCoauthorHook(envConfig);
@@ -230,20 +273,36 @@ export async function createDefault(options: CreateOptions = {}): Promise<BotIde
 	// One server per process per creds dir, shared across binds. This bind's
 	// resolver becomes the live one.
 	const grant = getGrantServer(credsDir, resolver);
-	installShim(credsDir, { git: realGit, gh: realGh, runtime: process.execPath });
+	// Sweep per-process state left by dead pids (sockets and `shim-<pid>` dirs)
+	// plus the legacy shared `shim/`, BEFORE installing this process's shim — a
+	// crashed predecessor's dir must never be mistaken for ours.
+	sweepStaleShimState(credsDir);
+	try {
+		installShim(credsDir, { git: realGit, gh: realGh, runtime: process.execPath });
+	} catch (err) {
+		// A resolved real git/gh inside the creds dir would make a wrapper exec
+		// itself; refuse to install it. Warn and carry on — the neutral env still
+		// strips credentials, so writes fail closed even without the guidance shim.
+		console.warn(`[git-bot-identity] shim not installed: ${err instanceof Error ? err.message : String(err)}`);
+	}
+	// Remove this process's shim dir and grant socket on exit/SIGINT/SIGTERM.
+	installShimCleanup({ shimDir, socketPath: grant.socketPath });
 	const neutralEnv = neutralBaseEnv({ shimDir, denyConfigPath, gnupgHome: neutralGnupg, realPath, grantSock: grant.socketPath });
 
 	return {
 		neutralEnv,
 		pristineSpawn,
 		pristineEnv,
-		bot: config ? { name: config.name, email: config.email } : null,
+		getBot: async () => {
+			const snapshot = await configCache.refresh();
+			return snapshot.config === null ? null : { name: snapshot.config.name, email: snapshot.config.email };
+		},
 		resolveBotWriteEnv: async () => resolver("write"),
 	};
 }
 
 export default async function (pi: ExtensionAPI) {
-	const { neutralEnv, pristineSpawn, pristineEnv, bot, resolveBotWriteEnv } = await createDefault();
+	const { neutralEnv, pristineSpawn, pristineEnv, getBot, resolveBotWriteEnv } = await createDefault();
 	// Register the interactive setup wizard + on-launch prompt BEFORE the env is
 	// neutralized: the wizard must run through the pristine (`pristineSpawn`)
 	// spawn captured above so its gh/gpg subprocesses are never self-blocked.
@@ -251,7 +310,7 @@ export default async function (pi: ExtensionAPI) {
 	// Register the human-identity commit tool. It runs git with `pristineEnv`
 	// (real PATH, human config/signing), so it is unaffected by the neutral
 	// overlay installed below.
-	installCommitAsMe(pi, { bot, humanEnv: pristineEnv, resolveBotWriteEnv });
+	installCommitAsMe(pi, { getBot, humanEnv: pristineEnv, resolveBotWriteEnv });
 	// Strip by default: neutralize the omp process env so every child born after
 	// this — the bash subprocess, the persistent eval kernel, subagent shells —
 	// inherits stripped credentials. The shim re-requests creds from the grant

@@ -50,8 +50,9 @@ export interface CommitAsMeBot {
 }
 
 export interface CommitAsMeDeps {
-	/** Bot identity for the trailer; null when unconfigured → commit without it. */
-	bot: CommitAsMeBot | null;
+	/** Bot identity for the trailer, read on demand so a config edit is visible
+	 * without a rebind; null when unconfigured → commit without it. */
+	getBot: () => Promise<CommitAsMeBot | null>;
 	/** The human's pristine (pre-neutralization) environment: real PATH, the
 	 * human's own git config/signing, no bot overrides and no shim. */
 	humanEnv: Record<string, string>;
@@ -196,11 +197,13 @@ export async function runCommitAsMe(
 	}
 
 	const stat = (await runGit(repo, ["diff", "--cached", "--stat"], env)).stdout.trimEnd();
+	// Read the bot identity on demand (config may have changed since install).
+	const bot = await deps.getBot();
 	// Human path: the bot is the trailer. Bot path: the human becomes the
 	// trailer (added by the bot commit hook), so the bot must not credit itself
 	// — strip any bot `Co-authored-by` line from the message.
-	const humanMessage = withBotTrailer(params.message, deps.bot);
-	const botMessage = withoutBotTrailer(params.message, deps.bot);
+	const humanMessage = withBotTrailer(params.message, bot);
+	const botMessage = withoutBotTrailer(params.message, bot);
 
 	const human = await readHumanIdentity(repo, env);
 	const humanLabel = `${human.name} <${human.email}>`;
@@ -209,7 +212,7 @@ export async function runCommitAsMe(
 	// Offer the bot row only when a bot identity is configured: without one the
 	// resolver can only refuse, so the honest select omits it. (A configured bot
 	// whose creds/signing fail later still fails closed on selection.)
-	const botLabel = deps.bot ? `Commit as the bot ${deps.bot.name} <${deps.bot.email}>` : null;
+	const botLabel = bot ? `Commit as the bot ${bot.name} <${bot.email}>` : null;
 
 	// Gate with a SELECT, never a yes/no confirm: the cursor starts on Cancel, so
 	// a stray Enter (or Escape/undefined) declines. Committing requires moving to
@@ -229,10 +232,10 @@ export async function runCommitAsMe(
 			description: `Author + committer: ${humanLabel}\nSigned with YOUR GPG key — e.g. a YubiKey (PIN + touch)\n\nStaged changes:\n${stat}\n\nCommit message:\n${humanMessage}`,
 		},
 	];
-	if (botLabel && deps.bot) {
+	if (botLabel && bot) {
 		options.push({
 			label: botLabel,
-			description: `Author + committer: ${deps.bot.name} <${deps.bot.email}>\nSigned with the BOT's passphrase-less GPG key\nCo-authored-by: you (${humanLabel}) — added by the bot commit hook\n\nStaged changes:\n${stat}\n\nCommit message:\n${botMessage}`,
+			description: `Author + committer: ${bot.name} <${bot.email}>\nSigned with the BOT's passphrase-less GPG key\nCo-authored-by: you (${humanLabel}) — added by the bot commit hook\n\nStaged changes:\n${stat}\n\nCommit message:\n${botMessage}`,
 		});
 	}
 	const choice = await ctx.ui.select(
@@ -248,7 +251,7 @@ export async function runCommitAsMe(
 		throw new Error(`User declined commit_as_me; give them the command to run: git commit -F ${messageFile}`);
 	}
 
-	if (approveAsBot && deps.bot) {
+	if (approveAsBot && bot) {
 		// Reuse the grant server's own write-class resolver IN PROCESS (the same
 		// one the shim asks over the socket): bot author/committer, bot signing
 		// key, and the bot-scoped prepare-commit-msg hook that adds the human

@@ -359,7 +359,7 @@ describe("reconfigure — existing config is redacted and editable", () => {
 
 	test("loaded config can be read back via loadBotConfig", async () => {
 		writeFileSync(configPath(), JSON.stringify({ name: "MyProject Agent", email: DERIVED_EMAIL, token: "t", signingKey: FPR }));
-		expect(await loadBotConfig(dir, async () => ({ exitCode: 0, stdout: "", stderr: "" }))).not.toBeNull();
+		expect(loadBotConfig(dir)).not.toBeNull();
 	});
 });
 

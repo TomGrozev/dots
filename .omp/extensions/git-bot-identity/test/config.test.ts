@@ -46,7 +46,7 @@ function writeCreds(overrides: Record<string, unknown> = {}) {
 describe("loadBotConfig", () => {
 	test("returns full config when name/email/token present", async () => {
 		writeCreds();
-		const cfg = await loadBotConfig(dir, fakeSpawn(NO_GIT));
+		const cfg = await loadBotConfig(dir);
 		expect(cfg).not.toBeNull();
 		expect(cfg?.name).toBe("MyProject Agent");
 		expect(cfg?.email).toBe("12345678+myproject-agent@users.noreply.github.com");
@@ -56,26 +56,26 @@ describe("loadBotConfig", () => {
 	});
 
 	test("returns null when the config file is absent", async () => {
-		expect(await loadBotConfig(dir, fakeSpawn(NO_GIT))).toBeNull();
+		expect(await loadBotConfig(dir)).toBeNull();
 	});
 
 	test("returns null when any required field is missing or blank", async () => {
 		writeCreds({ name: undefined });
-		expect(await loadBotConfig(dir, fakeSpawn(NO_GIT))).toBeNull();
+		expect(await loadBotConfig(dir)).toBeNull();
 		writeCreds({ email: "" });
-		expect(await loadBotConfig(dir, fakeSpawn(NO_GIT))).toBeNull();
+		expect(await loadBotConfig(dir)).toBeNull();
 		writeCreds({ token: "   " });
-		expect(await loadBotConfig(dir, fakeSpawn(NO_GIT))).toBeNull();
+		expect(await loadBotConfig(dir)).toBeNull();
 	});
 
 	test("returns null on malformed JSON (never throws)", async () => {
 		writeFileSync(join(dir, CONFIG_FILE), "{not json");
-		expect(await loadBotConfig(dir, fakeSpawn(NO_GIT))).toBeNull();
+		expect(await loadBotConfig(dir)).toBeNull();
 	});
 
 	test("loads fine when humanName/humanNoreply are omitted (identity falls back to git later)", async () => {
 		writeCreds({ humanName: undefined, humanNoreply: undefined });
-		const cfg = await loadBotConfig(dir, fakeSpawn(NO_GIT));
+		const cfg = await loadBotConfig(dir);
 		expect(cfg).not.toBeNull();
 		expect(cfg?.humanName).toBeUndefined();
 		expect(cfg?.humanNoreply).toBeUndefined();
@@ -83,12 +83,12 @@ describe("loadBotConfig", () => {
 
 	test("still fails closed when a required key is missing even with a signingKey override", async () => {
 		writeCreds({ token: undefined, signingKey: "ABCDEF1234567890" });
-		expect(await loadBotConfig(dir, fakeSpawn(NO_GIT))).toBeNull();
+		expect(await loadBotConfig(dir)).toBeNull();
 	});
 
 	test("reads signingKey from config.json override (bot's own key id)", async () => {
 		writeCreds({ signingKey: "ABCDEF1234567890" });
-		const cfg = await loadBotConfig(dir, fakeSpawn(NO_GIT));
+		const cfg = await loadBotConfig(dir);
 		expect(cfg?.signingKey).toBe("ABCDEF1234567890");
 	});
 
@@ -96,44 +96,44 @@ describe("loadBotConfig", () => {
 		// Even if the human's global git config carries a signing key, loadBotConfig
 		// must not pick it up — the bot signs with its own key, not the human's.
 		writeCreds();
-		const cfg = await loadBotConfig(dir, fakeSpawn({ "user.signingkey": "8649CEF3514FE780" }));
+		const cfg = loadBotConfig(dir);
 		expect(cfg?.signingKey).toBeUndefined();
 	});
 
 	test("human signing key from git config never leaks into the loaded config", async () => {
 		writeCreds({ signingKey: "ABCDEF1234567890" });
-		const cfg = await loadBotConfig(dir, fakeSpawn({ "user.signingkey": "8649CEF3514FE780" }));
+		const cfg = loadBotConfig(dir);
 		expect(cfg).not.toBeNull();
 		expect(JSON.stringify(cfg)).not.toContain("8649CEF3514FE780");
 	});
 
 	test("omits signingKey when config.json omits it", async () => {
 		writeCreds();
-		const cfg = await loadBotConfig(dir, fakeSpawn(NO_GIT));
+		const cfg = await loadBotConfig(dir);
 		expect(cfg?.signingKey).toBeUndefined();
 	});
 
 	test("reads signingKeyFile from config.json (the mounted-secret multi-host path)", async () => {
 		writeCreds({ signingKeyFile: "/run/secrets/bot-signing-key.asc" });
-		const cfg = await loadBotConfig(dir, fakeSpawn(NO_GIT));
+		const cfg = await loadBotConfig(dir);
 		expect(cfg?.signingKeyFile).toBe("/run/secrets/bot-signing-key.asc");
 	});
 
 	test("omits signingKeyFile when config.json omits it", async () => {
 		writeCreds();
-		const cfg = await loadBotConfig(dir, fakeSpawn(NO_GIT));
+		const cfg = await loadBotConfig(dir);
 		expect(cfg?.signingKeyFile).toBeUndefined();
 	});
 
 	test("expands a tilde-prefixed signingKeyFile against the home dir", async () => {
 		writeCreds({ signingKeyFile: "~/.config/git-bot-identity/signing-key.asc" });
-		const cfg = await loadBotConfig(dir, fakeSpawn(NO_GIT));
+		const cfg = await loadBotConfig(dir);
 		expect(cfg?.signingKeyFile).toBe(join(homedir(), ".config/git-bot-identity/signing-key.asc"));
 	});
 
 	test("leaves an absolute signingKeyFile untouched", async () => {
 		writeCreds({ signingKeyFile: "/run/secrets/bot-signing-key.asc" });
-		const cfg = await loadBotConfig(dir, fakeSpawn(NO_GIT));
+		const cfg = await loadBotConfig(dir);
 		expect(cfg?.signingKeyFile).toBe("/run/secrets/bot-signing-key.asc");
 	});
 

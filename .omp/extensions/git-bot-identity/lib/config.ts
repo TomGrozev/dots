@@ -12,7 +12,7 @@
  * read from the human's git config — it is the bot's own key (see
  * lib/gpg.ts), optionally overridden by a `signingKey` field in config.json.
  */
-import { readFileSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 
@@ -86,53 +86,104 @@ export function expandTilde(path: string): string {
 	return path;
 }
 
+/** Result of reading config.json: the parsed config, or why there is none. */
+export type ConfigRead =
+	| { ok: true; config: BotConfig }
+	| { ok: false; kind: "absent" }
+	| { ok: false; kind: "invalid"; reason: string };
+
+/**
+ * Read and parse config.json in one shot. Unlike `loadBotConfig`, this keeps the
+ * absent-vs-unusable distinction (and the parse error text), so the reload path
+ * can refuse a stale grant with a reason that names the problem.
+ */
+export function readBotConfig(dir: string = CONFIG_DIR): ConfigRead {
+	let raw: string;
+	try {
+		raw = readFileSync(join(dir, CONFIG_FILE), "utf8");
+	} catch {
+		return { ok: false, kind: "absent" };
+	}
+	let parsed: unknown;
+	try {
+		parsed = JSON.parse(raw);
+	} catch (err) {
+		return { ok: false, kind: "invalid", reason: `not valid JSON: ${err instanceof Error ? err.message : String(err)}` };
+	}
+	if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
+		return { ok: false, kind: "invalid", reason: "expected a JSON object" };
+	}
+	const record = parsed as Record<string, unknown>;
+	for (const key of REQUIRED_KEYS) {
+		const value = record[key];
+		if (typeof value !== "string" || value.trim() === "") {
+			return { ok: false, kind: "invalid", reason: `missing required field "${key}"` };
+		}
+	}
+
+	const config: BotConfig = {
+		name: record["name"] as string,
+		email: record["email"] as string,
+		token: record["token"] as string,
+	};
+	const humanName = optionalString(record, "humanName");
+	if (humanName !== undefined) config.humanName = humanName;
+	const humanNoreply = optionalString(record, "humanNoreply");
+	if (humanNoreply !== undefined) config.humanNoreply = humanNoreply;
+
+	// Bot's own signing key override (its key id). This is NOT read from the
+	// human's git config — the human keyring is never consulted for signing.
+	const signingKey = optionalString(record, "signingKey");
+	if (signingKey !== undefined) config.signingKey = signingKey;
+
+	// Path to a secret key to import into the bot keyring — the multi-host path:
+	// one key, mounted on every host, one public key registered on GitHub.
+	const signingKeyFile = optionalString(record, "signingKeyFile");
+	// Expand a tilde-prefixed signingKeyFile so every consumer gets a usable
+	// absolute path (gpg is not a shell and never expands `~`).
+	if (signingKeyFile !== undefined) config.signingKeyFile = expandTilde(signingKeyFile);
+
+	return { ok: true, config };
+}
+
 /**
  * Load bot credentials from `dir` (readonly injection point; production calls
  * use CONFIG_DIR). Returns null when anything required is missing/malformed —
  * decided by the caller to fail closed. Optional fields (humanName,
  * humanNoreply, signingKey) are attached only when present.
+ *
+ * Presence is all the setup wizard and launch nudge need, so absent and
+ * unusable both collapse to null here; the reload path uses `readBotConfig`
+ * directly to keep the distinction (and the parse reason).
  */
-export async function loadBotConfig(dir: string = CONFIG_DIR, spawn: SpawnFn = defaultSpawn): Promise<BotConfig | null> {
-	let raw: string;
+export function loadBotConfig(dir: string = CONFIG_DIR): BotConfig | null {
+	const read = readBotConfig(dir);
+	return read.ok ? read.config : null;
+}
+
+/**
+ * A config.json change key: mtime + byte size. Both, because mtime can repeat
+ * within a filesystem timestamp quantum and size alone misses a same-size edit.
+ */
+export interface ConfigStamp {
+	mtimeMs: number;
+	size: number;
+}
+
+/** True when two stamps describe the same file version (both absent = same). */
+export function sameConfigStamp(a: ConfigStamp | null, b: ConfigStamp | null): boolean {
+	if (a === null || b === null) return a === b;
+	return a.mtimeMs === b.mtimeMs && a.size === b.size;
+}
+
+/** Cheap change key for config.json; null when the file is absent. */
+export function statBotConfig(dir: string = CONFIG_DIR): ConfigStamp | null {
 	try {
-		raw = readFileSync(join(dir, CONFIG_FILE), "utf8");
+		const st = statSync(join(dir, CONFIG_FILE));
+		return { mtimeMs: st.mtimeMs, size: st.size };
 	} catch {
 		return null;
 	}
-	let parsed: Record<string, unknown>;
-	try {
-		parsed = JSON.parse(raw) as Record<string, unknown>;
-	} catch {
-		return null;
-	}
-	for (const key of REQUIRED_KEYS) {
-		const value = parsed[key];
-		if (typeof value !== "string" || value.trim() === "") return null;
-	}
-
-	const config: BotConfig = {
-		name: parsed["name"] as string,
-		email: parsed["email"] as string,
-		token: parsed["token"] as string,
-	};
-	const humanName = optionalString(parsed, "humanName");
-	if (humanName !== undefined) config.humanName = humanName;
-	const humanNoreply = optionalString(parsed, "humanNoreply");
-	if (humanNoreply !== undefined) config.humanNoreply = humanNoreply;
-
-	// Bot's own signing key override (its key id). This is NOT read from the
-	// human's git config — the human keyring is never consulted for signing.
-	const signingKey = optionalString(parsed, "signingKey");
-	if (signingKey !== undefined) config.signingKey = signingKey;
-
-	// Path to a secret key to import into the bot keyring — the multi-host path:
-	// one key, mounted on every host, one public key registered on GitHub.
-	const signingKeyFile = optionalString(parsed, "signingKeyFile");
-	// Expand a tilde-prefixed signingKeyFile so every consumer gets a usable
-	// absolute path (gpg is not a shell and never expands `~`).
-	if (signingKeyFile !== undefined) config.signingKeyFile = expandTilde(signingKeyFile);
-
-	return config;
 }
 
 /**
@@ -154,4 +205,75 @@ export async function resolveHumanIdentity(
 		);
 	}
 	return { name, email };
+}
+
+/**
+ * The last-seen config.json plus everything derived from it. `config` is null
+ * when the file is absent or unusable; `invalidReason` names the parse problem
+ * when the file is present but unusable, so the caller refuses with that reason
+ * instead of serving a grant from an older config.
+ */
+export interface BotConfigSnapshot {
+	stamp: ConfigStamp | null;
+	config: BotConfig | null;
+	identity: { name: string; email: string } | null;
+	invalidReason: string | null;
+	identityWarning: string | null;
+}
+
+export interface BotConfigCache {
+	/** Re-stat; re-read and re-resolve only when mtime/size changed. */
+	refresh(): Promise<BotConfigSnapshot>;
+}
+
+const ABSENT_SNAPSHOT: BotConfigSnapshot = {
+	stamp: null,
+	config: null,
+	identity: null,
+	invalidReason: null,
+	identityWarning: null,
+};
+
+/**
+ * Config cache for the reload path: each grant request re-stats config.json and
+ * re-reads it only when mtime/size changed, so a config written by
+ * /git-bot-setup, a rotated token, or a hand edit takes effect on the next
+ * git/gh call without restarting omp. Nothing changed ⇒ the stat is the only
+ * filesystem access. A deleted config yields the absent snapshot; an
+ * unparseable one yields `config: null` + `invalidReason` — both refuse, never
+ * a stale grant. A change also re-resolves the human identity.
+ */
+export function createBotConfigCache(dir: string = CONFIG_DIR, spawn: SpawnFn = defaultSpawn): BotConfigCache {
+	let cached: BotConfigSnapshot | null = null;
+	return {
+		async refresh(): Promise<BotConfigSnapshot> {
+			const stamp = statBotConfig(dir);
+			if (cached !== null && sameConfigStamp(cached.stamp, stamp)) return cached;
+			cached = await readSnapshot(dir, stamp, spawn);
+			return cached;
+		},
+	};
+}
+
+async function readSnapshot(dir: string, stamp: ConfigStamp | null, spawn: SpawnFn): Promise<BotConfigSnapshot> {
+	if (stamp === null) return ABSENT_SNAPSHOT;
+	const read = readBotConfig(dir);
+	if (!read.ok) {
+		// The file vanished between the stat and the read: report it absent so the
+		// next refresh re-stats and picks it up when it returns.
+		if (read.kind === "absent") return ABSENT_SNAPSHOT;
+		return { stamp, config: null, identity: null, invalidReason: read.reason, identityWarning: null };
+	}
+	try {
+		const identity = await resolveHumanIdentity(read.config, spawn);
+		return { stamp, config: read.config, identity, invalidReason: null, identityWarning: null };
+	} catch (err) {
+		return {
+			stamp,
+			config: read.config,
+			identity: null,
+			invalidReason: null,
+			identityWarning: err instanceof Error ? err.message : String(err),
+		};
+	}
 }

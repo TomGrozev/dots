@@ -120,11 +120,23 @@ The extension employs a block-by-default credential model. Security is derived f
   - Disabling interactive prompts (`GIT_TERMINAL_PROMPT=0`) and SSH transport (`GIT_SSH_COMMAND=false`).
   - Redirecting `GIT_CONFIG_GLOBAL` to a dedicated, credential-less deny configuration.
   - Prefixing `PATH` with a directory containing guidance shims for `git` and `gh`.
-- **Dynamic Re-grant**: Credentials from `config.json` are re-granted via a per-process unix socket server (`<credsDir>/grant-<pid>.sock`, 0600) whose path is exposed via `GBI_GRANT_SOCK`. The `git`/`gh` shim classifies its own `argv`: allowlisted read subcommands send `GET read`, and all others send `GET write` to the socket. The grant server resolves these requests: `read` returns the bot transport environment, and `write` returns full bot credentials plus signing keys and the co-author hook. Because the shim handles classification, any session process (bash, eval, or subprocesses) that can reach the socket can obtain bot credentials.
-- **Fail-Closed Behavior**: If a `read` request fails (e.g. server unreachable), the shim runs the real binary with the neutral environment. If a `write` request fails (e.g. missing configuration), the shim prints the server's reason and exits with code 1.
-- **Loop Protection**: The shim runs with `GBI_IN_SHIM=1` and a `PATH` without the shim directory. To prevent recursive loops, the shim never requests credentials from the socket if `GBI_IN_SHIM` is already set.
-- **Boundary Limits**: This model is not hermetic. It does not prevent code from fetching secrets via alternative means (e.g., direct macOS keychain access via other tools, hardcoded tokens, or raw HTTPS calls to the API). Only launch-level credential isolation closes these gaps.
+  - **Inheritance Filtering**: An `omp` process started from an agent shell does not inherit the neutral overlay as its pristine environment. To prevent loops (where a shim's `REALBIN` points to itself), all shim directories—including the per-process `shim-<pid>` and the legacy shared `shim`—are filtered out of the pristine `PATH` snapshot. Overlay keys are also dropped if they match the neutralization values.
+- **Dynamic Re-grant**: Credentials from `config.json` are re-granted via a per-process unix socket server (`<credsDir>/grant-<pid>.sock`, 0600) whose path is exposed via `GBI_GRANT_SOCK`. To avoid path collisions, each process installs its wrappers in a private directory: `<credsDir>/shim-<pid>/`. On process exit, `SIGINT`, or `SIGTERM`, the process removes this directory and its associated socket. At startup, the extension sweeps the credentials directory to remove state left by dead PIDs; the legacy shared `shim/` directory is removed only after no other live process holds an active grant socket.
 
+
+### Command classification
+
+The shim classifies its own `argv` to determine the required grant level:
+
+- **Local**: Subcommands that never contact a remote and never author a commit (`add`, `restore`, `switch`, `checkout`, `reset`, `mv`, `rm`, `init`, `clean`, `worktree`, `apply`, `update-index`, `read-tree`, `write-tree`, `gc`, `prune`, `maintenance`, `sparse-checkout`, `bisect`) run under the neutral env with no grant request. Commands that can reach a remote (`pull`, `clone`, `submodule`, `push`) or that need the bot identity and signing key (`commit`, `commit-tree`, annotated/signed `tag`) are write.
+- **Read**: Allowlisted read subcommands (e.g. `git log`, `git show`, `gh pr view`, `gh repo list`) send `GET read` to the socket. `gh api` is read-only for GET requests without body/field flags. `-R/--repo` takes a value and is consumed as such.
+- **Write**: All other commands—including commit-creating ones (`commit`, `merge`, `rebase`, `cherry-pick`, `revert`, `stash`, `am`, `notes`) and `gh` write verbs—send `GET write`.
+- **Aliases**: Git aliases always fail closed (treated as write).
+- **Limit**: Real git prepends its exec-path to `PATH` for hooks and `rebase --exec`; a bare nested `git` there runs real git under the neutral env with no credentials and fails closed.
+
+- **Config reload**: `config.json` is re-statted on every `git`/`gh` call and re-read only when its mtime or size changed, so a config written by `/git-bot-setup`, a rotated token, or a hand edit takes effect on the next call — no omp restart. A deleted or unparseable config refuses (fail-closed, with the parse reason); an unchanged config is never re-read beyond the stat. The resolved signing-key id is cached per config version, so an unchanged config never re-runs `gpg --import`/`--list-secret-keys`.
+- **Fail-Closed Behavior**: If a `read` request fails (e.g. server unreachable), the shim runs the real binary with the neutral environment. If a `write` request fails, the shim prints the server's reason (or "grant server unreachable at <sock>" if the socket is dead) and exits with code 1. The grant client uses a 5s timeout; the no-channel branch names the failing check.
+- **Boundary Limits**: This model is not hermetic. It does not prevent code from fetching secrets via alternative means (e.g., direct macOS keychain access via other tools, hardcoded tokens, or raw HTTPS calls to the API). Only launch-level credential isolation closes these gaps.
 ## GPG Signing
 
 Bot commits are signed with a bot-owned GPG key located in `~/.config/git-bot-identity/gnupg/`.
@@ -143,9 +155,8 @@ Bot commits are signed with a bot-owned GPG key located in `~/.config/git-bot-id
 ## Commit Paths
 
 The extension provides two ways to land a commit, chosen by ticket mode:
-
+- **`hitl` / `ready-for-human` tickets and ad-hoc work** — the human is the author and committer, signing with their own GPG key (e.g. a YubiKey requiring PIN + touch), and the bot becomes the `Co-authored-by` trailer. The agent stages files and writes the conventional-commit message, then calls the **`commit_as_me`** tool — where the human can instead pick **Commit as the bot** to land it through the normal bot path. Staging with `git add` is a local operation and does not require bot credentials.
 - **`afk` / `ready-for-agent` tickets** — the agent commits normally. Its `git` invocation goes through the guidance shim, which grants the bot credentials: the bot is the author and committer, signs with the bot's passphrase-less GPG key, and the human is recorded as a `Co-authored-by` trailer (injected by the bot-scoped `prepare-commit-msg` hook).
-- **`hitl` / `ready-for-human` tickets and ad-hoc work** — the human is the author and committer, signing with their own GPG key (e.g. a YubiKey requiring PIN + touch), and the bot becomes the `Co-authored-by` trailer. The agent stages files and writes the conventional-commit message, then calls the **`commit_as_me`** tool — where the human can instead pick **Commit as the bot** to land it through the normal bot path. Staging with `git add` currently requires bot credentials because the shim classifies it as a write.
 
 ### `commit_as_me`
 
@@ -154,7 +165,7 @@ Agent-callable tool that commits the staged changes under **one of two identitie
 1. Verifies something is staged (`git diff --cached`); errors if not.
 2. Shows the human a select with three rows — **Cancel** (the default cursor row, so a stray Enter/Escape declines), **Commit as <human>**, and, when a bot account is configured, **Commit as the bot <name> <email>**. Each row states the author/committer and signing key and shows the staged `git diff --cached --stat` and the message. **The dialog is the gate — the agent cannot answer it.**
 3. On **Commit as <human>**, builds the final message (appending `Co-authored-by: <bot name> <bot email>` unless already present; omitted when no bot config) and runs the **real** `git` (never the shim) with the human's pristine pre-neutralization environment: real `PATH`, the human's own git config and signing. It passes no signing flags and never disables signing, so `commit.gpgsign`, the GPG agent and pinentry apply; it inherits stdin so a smart-card PIN/touch prompt keeps its terminal.
-4. On **Commit as the bot**, commits the same staged changes through the extension's normal bot write path — bot author/committer, the bot's own GPG key, and the human as `Co-authored-by` (added by the bot `prepare-commit-msg` hook). The bot self-trailer is stripped from the message first. The write-class env is resolved **in process** by the grant server's own resolver, never via the shim; if resolution fails (no/invalid config) the commit fails closed with the reason.
+4. On **Commit as the bot**, commits the same staged changes through the extension's normal bot write path — bot author/committer, the bot's own GPG key, and the human as `Co-authored-by` (added by the bot `prepare-commit-msg` hook). The bot self-trailer is stripped from the message first. The write-class env is resolved **in process** by the grant server's own resolver, never via the shim; if resolution fails (no/invalid config) the commit fails closed with the reason. The bot identity shown in the dialog is read from the live config on demand, so a config edited after the session started is reflected without a rebind.
 5. Returns the new commit's short hash and subject, and the identity that committed.
 
 Failures are returned as tool errors with **no commit**: nothing staged, no UI available (headless/subagent), the human declined, or the bot path could not resolve credentials. On decline the error carries the exact command to run manually, e.g. `git commit -F <file>`, where `<file>` holds the final message.
