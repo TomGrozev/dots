@@ -9,7 +9,7 @@ model: neuralwatt/qwen3.6-35b-fast
 
 Read-only codebase exploration.
 
-Read `CONTEXT.md` first if present — use its domain terminology in your findings.
+Read `GLOSSARY.md` first if present — use its domain terminology in your findings.
 
 ## Codebase Memory
 

@@ -7,7 +7,7 @@ interruptMode: never
 
 # Stack pack: Phoenix
 
-Rules for Phoenix apps and libraries with a Phoenix web layer. Generic Elixir rules live in `stack-elixir`; repo-specific rules in `docs/agents/conventions.md`.
+Rules for Phoenix apps and libraries with a Phoenix web layer. Generic Elixir rules live in `stack-elixir`; repo-specific rules in `CODING_STANDARDS.md`.
 
 ## Contexts are the boundary
 
@@ -40,4 +40,4 @@ Rules for Phoenix apps and libraries with a Phoenix web layer. Generic Elixir ru
 
 ## Default gate
 
-Phoenix 1.8 generates a `precommit` alias (`compile --warnings-as-errors`, `deps.unlock --unused`, `format`, `test`); extend it with `credo --strict` as in `stack-elixir`, and record it as the repo's Gate in `docs/agents/gate.md` (`skill://onboard`).
+Phoenix 1.8 generates a `precommit` alias (`compile --warnings-as-errors`, `deps.unlock --unused`, `format`, `test`); extend it with `credo --strict` as in `stack-elixir`, and record it as the repo's Gate in the agent file's `## Gate` section (`skill://onboard`).

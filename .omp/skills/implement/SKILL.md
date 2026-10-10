@@ -14,7 +14,7 @@ The module layout, public function heads and types, persisted data shape, and cr
 ## Steps
 
 ### 0. Load
-Read the ticket (the argument: a tracker reference or a local ticket path), its spec's user stories, `docs/agents/conventions.md`, `CONTEXT.md`, and the ADRs in the area. Record the start commit: `git rev-parse HEAD`.
+Read the ticket (the argument: a tracker reference or a local ticket path) and state its title back to the user in one line. Then read its spec's user stories, `CODING_STANDARDS.md`, `GLOSSARY.md`, and the ADRs in the area. Record the start commit: `git rev-parse HEAD`.
 
 - **Ad-hoc** (no ticket): to-tickets never ran, so propose here, in one `ask`: the surface change (if any), and each puzzle marked as human or agent with a one-line reason, saying plainly where you are unsure.
 - **hitl** (the ticket or the ad-hoc proposal changes the surface or has a human puzzle): steps 1 and 3 run, each from its section of [HITL.md](HITL.md).
@@ -28,7 +28,7 @@ Only when the ticket changes the surface: follow HITL.md § Skeleton.
 **Done when** the user has archived the r3 review, the lines the user accepted are written, and every later ticket that builds on this surface (the tickets this one blocks) is edited to match the agreed surface, so each stays self-contained and correct.
 
 ### 2. Build
-Dispatch `tdd` to `task` workers, one per seam or acceptance criterion, in one parallel batch (`isolated: true`). Each brief carries § Surface needs found mid-build and the test cadence: typecheck and run single test files; the full suite runs in the Gate. Human puzzles stay outside the loop. If your code needs a human puzzle's function, the worker writes only its `TODO(human)` stub so the code compiles; the puzzle's tests come in step 3. Never write a human puzzle's body, not even to turn a test green. Seams: the ones to-spec agreed; else the highest existing seam. Ask only when two seams are plausible and lead to materially different tests.
+Dispatch `task` workers, one per seam or acceptance criterion, in one parallel batch (`isolated: true`). Each worker reads `skill://tdd` and builds its seam to it. Each brief carries § Surface needs found mid-build and the test cadence: typecheck and run single test files; the full suite runs in the Gate. Human puzzles stay outside the loop. If your code needs a human puzzle's function, the worker writes only its `TODO(human)` stub so the code compiles; the puzzle's tests come in step 3. Never write a human puzzle's body, not even to turn a test green. Seams: the ones to-spec agreed; else the highest existing seam. Ask only when two seams are plausible and lead to materially different tests.
 
 **Done when** every acceptance criterion outside human puzzles has a passing test, and the only unimplemented bodies are the human puzzles' `TODO(human)` stubs.
 
@@ -38,19 +38,19 @@ For each, follow HITL.md § Human puzzles.
 **Done when** every human puzzle passes its tests and has been reviewed.
 
 ### 4. Check
-1. Run `code-review` with its inputs supplied, so it has nothing to ask:
+1. Read `skill://code-review` and run it with its inputs supplied, so it has nothing to ask:
    - fixed point: the start commit;
    - diff command: `git add -N . && git diff <start>` (the work is uncommitted);
    - spec: the ticket, its spec's user stories, and the skeleton;
    - standards: the repo's documented standards, plus the Agent Rules' **Durable names** and **Comments carry the why** (`~/.omp/agent/RULES.md`), so the Standards reviewer checks every new name and comment with eyes that did not write them.
 
    The Spec reviewer receives only those and the diff, never your reasoning. Fix what's real; the rest goes to the walkthrough as "where I'd want your eyes".
-2. Run the Gate: the command in `docs/agents/gate.md`; if absent, the stack pack's default gate, else the repo's test + lint commands, and suggest `onboard`. Make it pass by fixing the code; tests and lint rules stay as they are, and hooks stay on.
+2. Run the Gate: the command in the agent file's `## Gate` section; if absent, the stack pack's default gate, else the repo's test + lint commands, and suggest `onboard`. Make it pass by fixing the code; tests and lint rules stay as they are, and hooks stay on.
 
 **Done when** both review axes are reported and the Gate passes, with its command and output tail shown.
 
 ### 5. Finish
-Run `skill://walkthrough`, passing the ticket reference and the ticket's mode (hitl or afk; ad-hoc counts as hitl). Landing (commit, branch, PR) is the walkthrough's question; this skill writes no git history.
+Read `skill://walkthrough`, passing the ticket reference and the ticket's mode (hitl or afk; ad-hoc counts as hitl). Landing (commit, branch, PR) is the walkthrough's question; this skill writes no git history.
 
 **Done when** the walkthrough's question is answered.
 

@@ -1,14 +1,14 @@
 ---
-description: How and when to use codebase-memory-mcp's knowledge graph instead of reading files one by one or grepping blind — decision matrix, workflows, evidence tiers, tool reference.
+description: How and when to use codebase-memory-mcp's knowledge graph instead of reading files one by one or grepping blind (decision matrix, workflows, evidence tiers, tool reference).
 ---
 
-# Codebase memory — knowledge graph tools
+# Codebase memory: knowledge graph tools
 
 Graph tools return precise structural results in ~500 tokens vs ~80K for grep. Prefer them
 for structure, callers, and architecture; fall back to `read`/`grep` for literal text,
 non-code content, or gaps the graph doesn't cover.
 
-If your tool list has no `mcp__codebase_memory_mcp_*` entries, this doesn't apply to you —
+If your tool list has no `mcp__codebase_memory_mcp_*` entries, this doesn't apply to you:
 work from the evidence you were given plus `read`/`grep`.
 
 ## Decision matrix
@@ -27,16 +27,16 @@ work from the evidence you were given plus `read`/`grep`.
 
 ## Exploration workflow
 
-1. `list_projects` — confirm the project is indexed (don't index it yourself; see RULES.md).
-2. `get_graph_schema` — understand node/edge types.
-3. `search_graph(label="Function", name_pattern=".*Pattern.*")` — find code.
-4. `get_code_snippet(qualified_name="project.path.FuncName")` — read source.
+1. `list_projects`: confirm the project is indexed (don't index it yourself; see RULES.md).
+2. `get_graph_schema`: understand node/edge types.
+3. `search_graph(label="Function", name_pattern=".*Pattern.*")`: find code.
+4. `get_code_snippet(qualified_name="project.path.FuncName")`: read source.
 
 ## Tracing workflow
 
-1. `search_graph(name_pattern=".*FuncName.*")` — discover the exact name.
-2. `trace_path(function_name="FuncName", direction="both", depth=3)` — trace it.
-3. `detect_changes()` — map a git diff to affected symbols.
+1. `search_graph(name_pattern=".*FuncName.*")`: discover the exact name.
+2. `trace_path(function_name="FuncName", direction="both", depth=3)`: trace it.
+3. `detect_changes()`: map a git diff to affected symbols.
 
 ## Evidence tiers
 
@@ -44,11 +44,11 @@ work from the evidence you were given plus `read`/`grep`.
   absence, exhaustive, dead-code, or complete-impact claims from this tier.
 - **Verify (default):** task-directed searches, the relevant trace directions, exact snippets
   for material claims, and all relevant result pages.
-- **Auditor (exhaustive):** bounded-scope full verification — current graph generation,
+- **Auditor (exhaustive):** bounded-scope full verification: current graph generation,
   complete pagination, both call directions, plus explicit unresolved limitations.
 - **Every tier:** once candidate paths are known, call `check_index_coverage` with every
   evidence path (add the relevant scopes too for negative/exhaustive claims). A clean result
-  means no recorded gap, not proof of completeness — for partial, skipped, excluded, stale,
+  means no recorded gap, not proof of completeness: for partial, skipped, excluded, stale,
   pending, or unknown coverage, read/grep the reported ranges instead of trusting the graph.
 
 ## Quality analysis
@@ -80,10 +80,10 @@ MATCH (a)-[r:CALLS]->(b) WHERE a.name = 'main' RETURN b.name
 
 ## Gotchas
 
-1. `search_graph(relationship="HTTP_CALLS")` filters nodes by degree — use `query_graph` with
+1. `search_graph(relationship="HTTP_CALLS")` filters nodes by degree: use `query_graph` with
    Cypher to see actual edges.
-2. `query_graph` has a 100k row ceiling — add a Cypher `LIMIT` for broad queries, or use
+2. `query_graph` has a 100k row ceiling: add a Cypher `LIMIT` for broad queries, or use
    `search_graph` pagination.
-3. `trace_path` needs exact names — run `search_graph(name_pattern=...)` first.
-4. `direction="outbound"` misses cross-service callers — use `direction="both"`.
-5. `search_graph` results default to 50 per page — check `has_more` and use `offset`.
+3. `trace_path` needs exact names: run `search_graph(name_pattern=...)` first.
+4. `direction="outbound"` misses cross-service callers: use `direction="both"`.
+5. `search_graph` results default to 50 per page: check `has_more` and use `offset`.

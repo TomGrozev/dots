@@ -4,14 +4,16 @@ Read when onboard runs on a repo that already has agent setup. Each row is a leg
 
 ## Signals and migrations
 
-In `fork`, read the paths through [FORK.md](FORK.md): the agent file is `.omp/AGENTS.md`, and `docs/agents/` is `.omp/docs/agents/`.
+In `fork`, read the paths through [FORK.md](FORK.md): the agent file is `.omp/AGENTS.md`, and every repo doc below lives under `.omp/`. Moves there are plain `mv`, since `.omp/` is untracked.
 
 Tickets means open local tickets (`.scratch/*/issues/*.md`) and open tracker issues labelled `ready-for-agent` or `ready-for-human`.
 
 | Signal | Migration |
 |---|---|
-| The agent file has a `## Conventions` section | Move its lines to `docs/agents/conventions.md`; delete the section. |
-| The agent file has a `## Gate` section | Move the command to `docs/agents/gate.md`; delete the section. |
+| The repo has `CONTEXT.md` or `CONTEXT-MAP.md` at the root (or a per-context `CONTEXT.md`) | `git mv` it to `GLOSSARY.md` (`GLOSSARY-MAP.md`, per-context `GLOSSARY.md`); no content change. |
+| The repo has `docs/agents/conventions.md` | `git mv` it to `CODING_STANDARDS.md` at the root; no content change: upstream defines no format for this file, and `code-review` reads it as prose, so the one-line rules carry over as they are. |
+| The agent file has a `## Conventions` section | Move its lines to `CODING_STANDARDS.md`; delete the section. |
+| The repo has `docs/agents/gate.md` | Move its command into a `## Gate` section of the agent file (`CLAUDE.md` if it exists, else `AGENTS.md`; in a fork, `.omp/AGENTS.md`); delete the file. |
 | The `## Agent skills` block doesn't point at `docs/agents/` | Point it there. |
 | A ticket's puzzles carry an old style: `ping-pong`, `strong-style`, `solo` | Rewrite as a `Puzzles` list. `ping-pong` (the user wrote the body) → `(human)`; `strong-style` (the user picked the approach, the agent typed it) and `solo` → `(agent)`. Tell the user which strong-style puzzles became agent puzzles, so they can reclaim any as human. |
 | A ticket lacks `Mode` or `Puzzles` | Add them: hitl when it changes the surface or has a human puzzle, otherwise afk; `None` when it has no puzzles. |

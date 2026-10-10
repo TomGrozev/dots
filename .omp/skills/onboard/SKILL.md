@@ -1,6 +1,6 @@
 ---
 name: onboard
-description: "Set a repo up for the pairing workflow, any language: detects the mode (existing, new, fork), runs setup-matt-pocock-skills (issue tracker, labels, domain docs) if needed, detects the stack, extracts conventions to docs/agents/conventions.md, installs linter/formatter/boundary guardrails, and records the Gate in docs/agents/gate.md. Re-run to add missing pieces or upgrade an older setup."
+description: "Set a repo up for the pairing workflow, any language: detects the mode (existing, new, fork), runs setup-matt-pocock-skills (issue tracker, labels, domain docs) if needed, detects the stack, extracts conventions to CODING_STANDARDS.md, installs linter/formatter/boundary guardrails, and records the Gate in the agent file's `## Gate` section. Re-run to add missing pieces or upgrade an older setup."
 disable-model-invocation: true
 ---
 
@@ -8,30 +8,30 @@ disable-model-invocation: true
 
 Run once per repo, when the user asks. The result is a repo where every skill has what it needs: an issue tracker for `to-spec`/`to-tickets`/`wayfinder`, conventions and a Gate for `implement`. It proposes; the user decides. Re-running fills in only what is missing.
 
-Prefer turning a convention into a check over adding another line to `docs/agents/conventions.md`.
+Prefer turning a convention into a check over adding another line to `CODING_STANDARDS.md`.
 
 ## Context location
 
 Where onboarding writes is the single source of truth for the repo's agent rules.
 
-- **Normal (`existing`/`new`)** — the repo's agent file (`CLAUDE.md` if it exists, else `AGENTS.md`) carries the `## Agent skills` block. Conventions live in `docs/agents/conventions.md`, the Gate in `docs/agents/gate.md`, ADRs in the repo's ADR directory, and the calibration log in `docs/agents/calibration.md`.
-- **`fork`** — see [FORK.md](FORK.md).
+- **Normal (`existing`/`new`)**: the repo's agent file (`CLAUDE.md` if it exists, else `AGENTS.md`) carries the `## Agent skills` block. Coding standards live in `CODING_STANDARDS.md` at the repo root, the Gate in the agent file's `## Gate` section, ADRs in the repo's ADR directory, and the calibration log in `docs/agents/calibration.md`.
+- **`fork`**: see [FORK.md](FORK.md).
 
 What goes where:
-- `CONTEXT.md`: the domain's terms (the words).
+- `GLOSSARY.md`: the domain's terms (the words).
 - ADRs: decisions with real tradeoffs, and why; hard to reverse.
-- `docs/agents/conventions.md`: how code is written here, as one-line rules.
+- `CODING_STANDARDS.md`: how code is written here, as one-line rules.
 
-An onboarded repo is one where `docs/agents/conventions.md` exists.
+An onboarded repo is one where `CODING_STANDARDS.md` exists.
 Re-running onboard on a repo that already has agent setup reads [UPGRADE.md](UPGRADE.md) first.
 
 ## Mode detection
 
 Detect the mode first, then confirm it with the `ask` tool, marking the detected mode `(Recommended)`. Write nothing until the mode is settled:
 
-- **`fork`** — contributing to someone else's repo. Signals: `gh repo view --json isFork,parent` reports a fork; or an `upstream` remote exists; or you have no push rights to `origin`. Nothing but the change itself may reach the eventual PR.
-- **`new`** — greenfield. Signals: no history (or near-empty) and no source.
-- **`existing`** — everything else.
+- **`fork`**: contributing to someone else's repo. Signals: `gh repo view --json isFork,parent` reports a fork; or an `upstream` remote exists; or you have no push rights to `origin`. Nothing but the change itself may reach the eventual PR.
+- **`new`**: greenfield. Signals: no history (or near-empty) and no source.
+- **`existing`**: everything else.
 
 ## Steps
 
@@ -41,33 +41,33 @@ Detect the mode first, then confirm it with the `ask` tool, marking the detected
     **Done when** you are reading the freshly fetched remote default branch (in `fork`, upstream's too).
 3. **Detect the stack** from manifest files (`mix.exs` → elixir, `package.json`/`tsconfig.json` → typescript, `pyproject.toml` → python, `Cargo.toml` → rust, `go.mod` → go; several may apply). In `new`, take the stack from the scaffold, or ask once if the scaffold is ambiguous. Load the stack pack if one exists (below).
     **Done when** the stack list is stated and every existing stack pack for it is loaded.
-4. **Extract conventions** (`existing` and `fork`): dispatch a `scout` over the code, ADRs, `CONTEXT.md`, and existing lint/CI config. Look in these categories: code-shape naming, module/directory layout, public-API shape, error-handling shape, data access, config, test style/placement, logging. (Note: domain terms belong in `CONTEXT.md`). A pattern counts as a convention only when it is the clear majority (~3+ occurrences); skip anything the linter or formatter already enforces. Return each candidate as a one-line positive rule with 1–2 `file:line` examples and tagged repo-specific or stack-generic, capped at ~15, highest-impact first. Also list every place where the code does the same thing two different ways, with both examples. The user approves, edits, or drops each; write approved lines to `docs/agents/conventions.md`.
-    **Done when** every candidate is approved, edited or dropped, and the approved lines are in `docs/agents/conventions.md`.
+4. **Extract conventions** (`existing` and `fork`): dispatch a `scout` over the code, ADRs, `GLOSSARY.md`, and existing lint/CI config. Look in these categories: code-shape naming, module/directory layout, public-API shape, error-handling shape, data access, config, test style/placement, logging. (Note: domain terms belong in `GLOSSARY.md`). A pattern counts as a convention only when it is the clear majority (~3+ occurrences); skip anything the linter or formatter already enforces. Return each candidate as a one-line positive rule with 1–2 `file:line` examples and tagged repo-specific or stack-generic, capped at ~15, highest-impact first. Also list every place where the code does the same thing two different ways, with both examples. The user approves, edits, …
+    **Done when** every candidate is approved, edited or dropped, and the approved lines are in `CODING_STANDARDS.md`.
 5. **Guardrails** (`existing`/`new`): propose the applicable guardrails now, not after repeat offences:
    - **Linter** at strict settings, in CI.
    - **Formatter check**, in CI.
    - **Module boundary enforcement** (only when the stack pack names a tool): other modules may only call a module's public surface. Use the pack's tool; if no pack names one, skip this guardrail.
    Run each applicable one once. If existing code violates it, offer a menu: fix now, a ticket per cluster, or start lax and ratchet up. In `fork`, change no guardrails, hooks, or config.
     **Done when** each applicable guardrail has run once and the user has picked a path for any violations (in `fork`: skipped, said so).
-6. **Gate** — one repo-owned command, recorded in `docs/agents/gate.md`. The repo's pre-commit hook runs that same command as a backstop, so hooks stay on (no `--no-verify`). `implement` and `walkthrough` still run it explicitly, because the work is uncommitted when reviewed and the output is the evidence.
+6. **Gate**: one repo-owned command, recorded as the agent file's `## Gate` section (its own section, not inside `## Agent skills`; setup-matt-pocock-skills owns that block). The repo's pre-commit hook runs that same command as a backstop, so hooks stay on (no `--no-verify`). `implement` and `walkthrough` still run it explicitly, because the work is uncommitted when reviewed and the output is the evidence.
    - Detect existing pre-commit tooling: `.pre-commit-config.yaml`, lefthook, husky, `.git/hooks/pre-commit`, a `mix precommit` alias, package scripts.
    - If a precommit command exists, Gate = it; extend it with any missing lint/format/boundary checks (`existing`/`new` only).
    - Else create a repo-owned command idiomatic for the stack (a Makefile target, a `just`/npm `precommit` script, a `mix precommit` alias) and wire the pre-commit hook to run it, using the repo's hook manager if one exists. Propose it; the user approves.
    - In `fork`, Gate = the upstream's own checks, derived from `CONTRIBUTING`, the CI workflow, or the Makefile, run locally. Do not touch the hook.
    - Run the gate once and show its output.
-    **Done when** `docs/agents/gate.md` holds the command and its run output has been shown.
-7. **Offer calibrate** (`existing`, and `new` only once history exists): suggest `skill://calibrate` to record the rework baseline (optional; the user decides). In `fork`, calibrate is skipped — nothing may persist and the history isn't yours.
+    **Done when** the agent file's `## Gate` section holds the command and its run output has been shown.
+7. **Offer calibrate** (`existing`, and `new` only once history exists): suggest `skill://calibrate` to record the rework baseline (optional; the user decides). In `fork`, calibrate is skipped, since nothing may persist and the history isn't yours.
     **Done when** the user has answered the offer (in `fork`: skipped, said so).
 
-**Done when**: `docs/agents/conventions.md` and `docs/agents/gate.md` exist, the repo's agent file `## Agent skills` block points at them, the gate passes (or its failures are ticketed), and the user is told: "this repo is onboarded — `docs/agents/conventions.md` is its record of local rules."
+**Done when**: `CODING_STANDARDS.md` exists, the repo's agent file has a `## Gate` section and an `## Agent skills` block pointing at `docs/agents/`, the gate passes (or its failures are ticketed), and the user is told: "this repo is onboarded, `CODING_STANDARDS.md` is its record of local rules."
 
 The finished repo layout carries:
 
 ```markdown
 ## Agent skills (in AGENTS.md/CLAUDE.md) → points to docs/agents/
 ## Stack (in AGENTS.md/CLAUDE.md) → e.g. "elixir (stack pack: rule://stack-elixir)"
-docs/agents/conventions.md → repo-specific one-liners; marks the repo onboarded
-docs/agents/gate.md → one repo-owned command, e.g. mix precommit
+CODING_STANDARDS.md → repo-specific one-liners; marks the repo onboarded
+## Gate (in AGENTS.md/CLAUDE.md) → one repo-owned command, e.g. mix precommit
 ```
 
 ## Stack Packs

@@ -46,9 +46,11 @@ flowchart TD
   SMALL["A small, clear ask"]:::you --> JUST["just ask"]:::auto
   JUST --> WK
   ADHOC["Ad-hoc surface work, no ticket"]:::you --> IMP
+  SPEC["A spec whose tickets are all agent-driven (afk)"]:::you --> IS["implement-spec<br/>(whole spec, one integration branch,<br/>instead of implement per ticket;<br/>only when every ticket is afk)"]:::you
   NEW["New repo for this workflow"]:::you --> OB["onboard<br/>(runs setup-matt-pocock-skills first)"]:::you
   OLD["Workflow changed or older repo setup"]:::you --> OB2["onboard<br/>(upgrades it)"]:::you
   DRIFT["Checking drift and rework"]:::you --> CAL["calibrate"]:::you
+  CLUMSY["A session felt clumsy; improve the agent's setup"]:::you --> RET["retro"]:::you
 
   WF --> TS["to-spec"]:::you
   TS --> TIX["to-tickets"]:::you
@@ -75,7 +77,7 @@ flowchart TD
   <tr><td>Human puzzle</td><td>The user writes its code.</td></tr>
   <tr><td>Agent puzzle</td><td>The agent writes it and explains its approach.</td></tr>
   <tr><td><code>hitl</code> / <code>afk</code></td><td>hitl when a ticket changes the surface or has a human puzzle; otherwise afk. On a tracker: <code>ready-for-human</code> / <code>ready-for-agent</code>.</td></tr>
-  <tr><td>Gate</td><td>The repo's one check command, in <code>docs/agents/gate.md</code>.</td></tr>
+  <tr><td>Gate</td><td>The repo's one check command, in the agent file's <code>## Gate</code> section.</td></tr>
   <tr><td>Stack pack</td><td><code>rule://stack-&lt;name&gt;</code>, what is true of every repo in a stack (e.g. <code>stack-elixir</code>, <code>stack-typescript</code>).</td></tr>
 </table>
 
@@ -91,7 +93,7 @@ flowchart TD
   classDef auto fill:#e5e7eb,color:#111,stroke:#6b7280,stroke-dasharray:4 3
   classDef wait fill:#fde68a,color:#111,stroke:#b45309
 
-  L["0 · Load<br/>ticket, spec's user stories, conventions.md,<br/>CONTEXT.md, ADRs · record the start commit"]:::auto
+  L["0 · Load<br/>ticket, spec's user stories, CODING_STANDARDS.md,<br/>GLOSSARY.md, ADRs · record the start commit"]:::auto
   L --> S{"Does the surface change?"}
   S -- yes --> SK["1 · Skeleton ⏸<br/>written in the real files,<br/>reviewed by me in r3"]:::wait
   S -- no --> B
@@ -103,7 +105,7 @@ flowchart TD
   C --> W["5 · walkthrough"]:::auto
 </pre>
 
-<p><b>Step 0 without a ticket:</b> it first proposes the surface change and puzzles in one <code>ask</code>. <b>Skeleton review:</b> it revises until I archive the review, restructures included; what my annotations teach gets filed by kind (domain terms in <code>CONTEXT.md</code>, general rules in <code>conventions.md</code>, real tradeoffs in ADRs), and later tickets that assumed the old surface get updated. <b>During the build:</b> if it needs a new data shape or contract, it stops, asks, and records an ADR; any other public addition it makes and lists for veto.</p>
+<p><b>Step 0 without a ticket:</b> it first proposes the surface change and puzzles in one <code>ask</code>. <b>Skeleton review:</b> it revises until I archive the review, restructures included; what my annotations teach gets filed by kind (domain terms in <code>GLOSSARY.md</code>, general rules in <code>CODING_STANDARDS.md</code>, real tradeoffs in ADRs), and later tickets that assumed the old surface get updated. <b>During the build:</b> if it needs a new data shape or contract, it stops, asks, and records an ADR; any other public addition it makes and lists for veto.</p>
 
 <h2>walkthrough</h2>
 <p>Every task that changes files ends here. In chat, in as few words as it can, the agent gives (empty parts left out):</p>
@@ -114,7 +116,7 @@ flowchart TD
   <li>decisions for my veto;</li>
   <li>the Gate line.</li>
 </ol>
-<p>Then one question: <b>commit</b> · <b>r3 then commit</b> · <b>PR</b> · <b>leave it</b> — recommending commit for small, contained work and a branch + PR for larger or cross-cutting work. When the ticket was the last open one in its spec, in an onboarded repo that isn't a fork, it also suggests running <code>calibrate</code> in a fresh session.</p>
+<p>Then one question: <b>commit</b> · <b>r3 then commit</b> · <b>PR</b> · <b>leave it</b>, recommending commit for small, contained work and a branch + PR for larger or cross-cutting work. When I pick PR, it reads <code>skill://pr</code> to write the PR body. When the ticket was the last open one in its spec, in an onboarded repo that isn't a fork, it also suggests running <code>calibrate</code> in a fresh session.</p>
 
 <h2>Diagrams</h2>
 <p>The agent draws diagrams with <code>d2</code> through <code>bin/diagram</code>, which <code>install.sh</code> links into <code>~/.local/bin</code>. The script checks the same environment variables omp uses to decide whether it can show images (set by Ghostty, kitty, WezTerm and iTerm2; zellij passes images through) and renders an SVG with readable font sizes. When images can't show (SSH, other terminals, or after you say an image didn't show), the agent uses mermaid instead. Text read elsewhere, like r3 summaries and PR bodies, also uses mermaid, which GitHub draws.</p>
@@ -123,18 +125,18 @@ flowchart TD
 <p>Project knowledge has three homes, one kind each:</p>
 <table>
   <tr><th>Home</th><th>Holds</th></tr>
-  <tr><td><code>CONTEXT.md</code> (repo root)</td><td>The domain's terms, meaning what words mean in this project.</td></tr>
+  <tr><td><code>GLOSSARY.md</code> (repo root)</td><td>The domain's terms, meaning what words mean in this project.</td></tr>
   <tr><td>ADRs (the repo's ADR directory)</td><td>Decisions with real tradeoffs, and why.</td></tr>
-  <tr><td><code>docs/agents/conventions.md</code></td><td>How code is written here, as one-line rules; its existence marks the repo as onboarded.</td></tr>
+  <tr><td><code>CODING_STANDARDS.md</code> (repo root)</td><td>How code is written here, as one-line rules; its existence marks the repo as onboarded.</td></tr>
 </table>
-<p>Also in <code>docs/agents/</code>:</p>
+<p>In <code>docs/agents/</code>:</p>
 <table>
   <tr><th>File</th><th>What it is</th></tr>
-  <tr><td><code>gate.md</code></td><td>The Gate.</td></tr>
   <tr><td><code>calibration.md</code></td><td>The <code>calibrate</code> log.</td></tr>
   <tr><td><code>issue-tracker.md</code></td><td>Written by <code>setup-matt-pocock-skills</code>.</td></tr>
 </table>
-<p>In a fork, these live under <code>.omp/</code> (<code>.omp/CONTEXT.md</code>, <code>.omp/adr/</code>, <code>.omp/docs/agents/</code>), excluded from git.</p>
+<p>The Gate lives in the agent file's <code>## Gate</code> section.</p>
+<p>In a fork, these live under <code>.omp/</code> (<code>.omp/GLOSSARY.md</code>, <code>.omp/CODING_STANDARDS.md</code>, <code>.omp/adr/</code>, <code>.omp/docs/agents/</code>, with the agent file at <code>.omp/AGENTS.md</code>), excluded from git.</p>
 
 <h2>Worked examples</h2>
 <h3>A small fix</h3>

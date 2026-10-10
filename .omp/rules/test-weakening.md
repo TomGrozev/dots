@@ -1,5 +1,5 @@
 ---
-description: "Do not weaken tests — no skip, only, or ignore markers"
+description: "Do not weaken tests: no skip, only, or ignore markers"
 condition:
   - "\\.skip\\("
   - "\\.only\\("

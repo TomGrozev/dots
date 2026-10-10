@@ -1,6 +1,6 @@
 ---
 name: designer
-description: UI and frontend implementation and visual review — builds bounded UI slices and judges rendered interfaces.
+description: "UI and frontend implementation and visual review: builds bounded UI slices and judges rendered interfaces."
 tools:
   - read
   - grep

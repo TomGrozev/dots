@@ -1,6 +1,6 @@
 # Rework Classes and Metric
 
-A **rework commit** changes or removes code that an earlier commit landed — a fix, refactor,
+A **rework commit** changes or removes code that an earlier commit landed: a fix, refactor,
 revert, rename, move, cleanup, replacement, or a heavy edit to files created shortly before.
 Brand-new features that touch nothing recent are not rework.
 
@@ -9,20 +9,20 @@ Brand-new features that touch nothing recent are not rework.
 Give each rework commit exactly one primary class (the cause, not the symptom), with the SHA
 it reworks when identifiable:
 
-- **a. Structure** — module/file structure or boundaries were wrong: splitting a monolith,
+- **a. Structure**: module/file structure or boundaries were wrong: splitting a monolith,
   moving logic between contexts, re-layering the same surface again. *e.g. splitting
   `BackendClient` into `StreamHandler`/`SSEParser`/`RequestContext`.*
-- **b. Duplication** — duplicated code paths, the same thing done two ways, or dead code
+- **b. Duplication**: duplicated code paths, the same thing done two ways, or dead code
   left behind. *e.g. merging three cold-store write paths behind one `persist_turn/1`;
   deleting unused components after a redesign.*
-- **c. Requirements** — the feature itself was redone because the requirement changed or was
+- **c. Requirements**: the feature itself was redone because the requirement changed or was
   learned. *e.g. per-request `SessionStore` → persistent `Conversation`.*
-- **d. Bug** — it didn't work: a bug or missed edge case. *e.g. cache entry shape mismatch.*
-- **e. UI churn** — visual/design rework in production code. Mark it **structural** when it
+- **d. Bug**: it didn't work: a bug or missed edge case. *e.g. cache entry shape mismatch.*
+- **e. UI churn**: visual/design rework in production code. Mark it **structural** when it
   reshapes components/LiveViews rather than styling. *e.g. table → card queue.*
-- **f. Prototype replaced** — prototype/spike code promoted to production, then replaced.
+- **f. Prototype replaced**: prototype/spike code promoted to production, then replaced.
   *e.g. ApexCharts spike → inline SVG.*
-- **g. Other** — say what (tooling, deps, CI, toolchain drift).
+- **g. Other**: say what (tooling, deps, CI, toolchain drift).
 
 ## Target metric: unexplained rework
 

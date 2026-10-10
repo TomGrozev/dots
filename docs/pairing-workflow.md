@@ -14,9 +14,11 @@ I pick the entry point; nothing routes automatically.
 | A bug | `diagnosing-bugs` → fix + regression test → `walkthrough` |
 | A small, clear ask | just ask → `walkthrough` |
 | Ad-hoc surface work, no ticket | `implement` (it proposes surface and puzzles first) |
+| A spec whose tickets are all agent-driven (afk) | `implement-spec` (runs the whole spec on one integration branch; only when every ticket is afk, else `implement` per ticket) |
 | New repo for this workflow | `onboard` (runs `setup-matt-pocock-skills` first) |
 | Workflow changed or older repo setup | `onboard` (upgrades it) |
 | Checking drift and rework | `calibrate` |
+| A session felt clumsy; improve the agent's setup | `retro` (upstream) |
 
 ## Ask vs do
 
@@ -36,7 +38,7 @@ The agent asks me before anything hard to reverse or potentially harmful:
 - **Human puzzle**: the user writes its code.
 - **Agent puzzle**: the agent writes it and explains its approach.
 - **hitl / afk**: hitl when a ticket changes the surface or has a human puzzle; otherwise afk. On a tracker: `ready-for-human` / `ready-for-agent`.
-- **Gate**: the repo's one check command, in `docs/agents/gate.md`.
+- **Gate**: the repo's one check command, in the agent file's `## Gate` section.
 - **Stack pack**: `rule://stack-<name>`, what is true of every repo in a stack (e.g. `stack-elixir`, `stack-typescript`).
 
 ## to-tickets
@@ -47,8 +49,8 @@ Upstream `to-tickets`, plus: each ticket lists its puzzles, each marked `(human)
 
 One ticket per fresh session, afk included.
 
-0. **Load** the ticket, the spec's user stories, `docs/agents/conventions.md`, `CONTEXT.md`, the ADRs; record the start commit. Without a ticket, it first proposes the surface change and puzzles in one `ask`.
-1. **Skeleton**, only if the surface changes: written in the real files, reviewed by me in r3. It revises until I archive the review, restructures included. What my annotations teach gets filed by kind: domain terms in `CONTEXT.md`, general rules in `conventions.md`, real tradeoffs in ADRs. Later tickets that assumed the old surface get updated.
+0. **Load** the ticket, the spec's user stories, `CODING_STANDARDS.md`, `GLOSSARY.md`, the ADRs; record the start commit and state the ticket's title back to me. Without a ticket, it first proposes the surface change and puzzles in one `ask`.
+1. **Skeleton**, only if the surface changes: written in the real files, reviewed by me in r3. It revises until I archive the review, restructures included. What my annotations teach gets filed by kind: domain terms in `GLOSSARY.md`, general rules in `CODING_STANDARDS.md`, real tradeoffs in ADRs. Later tickets that assumed the old surface get updated.
 2. **Build** with `tdd`, everything except my puzzles, which stay outside the tdd loop (at most an empty `TODO(human)` stub if its code needs one).
 3. **My puzzles**: all its failing tests at once and a `TODO(human)` stub written for me reading it cold: each argument explained with example values, the return value, a worked-examples table (one row per test), and the context and tradeoffs. I write it and say "done"; it reruns the tests and reviews my code as a pair.
 4. **Check**: `code-review` (Standards and Spec reviewers; the Spec one sees only the ticket, stories, skeleton and diff), then the Gate with its output.
@@ -65,7 +67,7 @@ Every task that changes files ends here. In chat, in as few words as it can, the
 4. decisions for my veto;
 5. the Gate line.
 
-Then one question: **commit** · **r3 then commit** · **PR** · **leave it**, recommending commit for small, contained work and a branch + PR for larger or cross-cutting work.
+Then one question: **commit** · **r3 then commit** · **PR** · **leave it**, recommending commit for small, contained work and a branch + PR for larger or cross-cutting work. When I pick PR, it reads `skill://pr` to write the PR body.
 
 When the ticket was the last open one in its spec, in an onboarded repo that isn't a fork, it also suggests running `calibrate` in a fresh session.
 
@@ -77,17 +79,18 @@ The agent draws diagrams with d2 through `bin/diagram`, which `install.sh` links
 
 Project knowledge has three homes, one kind each:
 
-- `CONTEXT.md` (repo root): the domain's terms, meaning what words mean in this project.
+- `GLOSSARY.md` (repo root): the domain's terms, meaning what words mean in this project.
 - ADRs (the repo's ADR directory): decisions with real tradeoffs, and why.
-- `docs/agents/conventions.md`: how code is written here, as one-line rules; its existence marks the repo as onboarded.
+- `CODING_STANDARDS.md` (repo root): how code is written here, as one-line rules; its existence marks the repo as onboarded.
 
-Also in `docs/agents/`:
+In `docs/agents/`:
 
-- `gate.md`: the Gate.
 - `calibration.md`: the `calibrate` log.
 - `issue-tracker.md`: written by `setup-matt-pocock-skills`.
 
-In a fork, these live under `.omp/` (`.omp/CONTEXT.md`, `.omp/adr/`, `.omp/docs/agents/`), excluded from git.
+The Gate lives in the agent file's `## Gate` section.
+
+In a fork, these live under `.omp/` (`.omp/GLOSSARY.md`, `.omp/CODING_STANDARDS.md`, `.omp/adr/`, `.omp/docs/agents/`, with the agent file at `.omp/AGENTS.md`), excluded from git.
 
 ## Worked examples
 

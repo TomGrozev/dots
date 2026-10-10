@@ -6,7 +6,7 @@ disable-model-invocation: true
 
 # Calibrate
 
-- Run only when the user asks (`walkthrough` suggests it when a spec's last ticket lands), and never in a `fork` repo — nothing may persist there and the history isn't yours. It measures **unexplained rework** over time — the metric the pairing workflow exists to drive down — and finds where the repo drifted from its conventions. It proposes; the user decides. Repo setup (conventions, guardrails, gate) is `skill://onboard`'s job, not this one's.
+- Run only when the user asks (`walkthrough` suggests it when a spec's last ticket lands), and never in a `fork` repo: nothing may persist there and the history isn't yours. It measures **unexplained rework** over time (the metric the pairing workflow exists to drive down) and finds where the repo drifted from its conventions. It proposes; the user decides. Repo setup (conventions, guardrails, gate) is `skill://onboard`'s job, not this one's.
 
 ## Mode
 
@@ -23,14 +23,14 @@ The calibration log lives at `docs/agents/calibration.md` (see `skill://onboard`
     **Done when** the scout's tally table covers every commit in range, each row with its SHA.
 3. **Compute** unexplained rework (`skill://calibrate/REWORK-CLASSES.md`).
     **Done when** the unexplained-rework count is computed from the tally.
-4. **Detect drift** (re-run, or baseline when `docs/agents/conventions.md` exists): violations of recorded conventions, the same thing done two ways, duplicated paths, dead code, and gate/lint rules disabled or loosened since the last run.
+4. **Detect drift** (re-run, or baseline when `CODING_STANDARDS.md` exists): violations of recorded conventions, the same thing done two ways, duplicated paths, dead code, and gate/lint rules disabled or loosened since the last run.
     **Done when** each drift finding is listed with `file:line`, or "none" is stated.
 5. **Log**: create or append to `docs/agents/calibration.md` in the format from `skill://calibrate/REWORK-CLASSES.md`.
     **Done when** the entry is written to `docs/agents/calibration.md`.
-6. **Propose** a ticket menu: enforcement rules for conventions that keep being broken, cleanups, and stack-pack promotions that now meet the bar in `skill://onboard` (Stack Packs). If the repo is not onboarded (`docs/agents/conventions.md` is missing), the first menu item is running `onboard`. The user picks.
+6. **Propose** a ticket menu: enforcement rules for conventions that keep being broken, cleanups, and stack-pack promotions that now meet the bar in `skill://onboard` (Stack Packs). Sort each proposal by how it gets enforced: a **mechanical violation** (a fixed syntactic pattern, a banned API, an import shape, a file location) becomes an automated check wired into the Gate; a **judgement call** becomes one line in `CODING_STANDARDS.md` for reviewers to enforce. If the repo is not onboarded (`CODING_STANDARDS.md` is missing), the first menu item is running `onboard`. The user picks.
     **Done when** the ticket menu is presented.
 
-**Done when** the log is written and the menu is presented. Log changes follow the end-of-task flow in `skill://walkthrough`.
+**Done when** the log is written and the menu is presented. Log changes: read `skill://walkthrough` and follow its end-of-task flow.
 
 ## Scout Brief Shape
 

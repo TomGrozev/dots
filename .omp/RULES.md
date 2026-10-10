@@ -1,6 +1,6 @@
 # Agent Rules
 
-Bind every agent — the main session and every subagent. "Escalate" means: subagents `hub`-message
+Bind every agent: the main session and every subagent. "Escalate" means: subagents `hub`-message
 `Main` with `await` and continue once answered; only Main asks the user.
 
 - **Stay on the brief.** Out-of-scope finds (bugs, stale code, "while I'm here") get named, not
@@ -12,8 +12,8 @@ Bind every agent — the main session and every subagent. "Escalate" means: suba
   boilerplate, or dependencies; deletion over addition. Bugs: fix the root cause once, in the
   shared function, after checking every caller. Shortcuts with a known ceiling get a `ponytail:`
   comment naming it and the upgrade path. Never trade away validation at trust boundaries,
-  data-loss handling, security, accessibility, or anything requested — doubt a requested piece
-  ("need X, or does Y cover it?") → escalate.
+  data-loss handling, security, accessibility, or anything requested (doubt a requested piece,
+  "need X, or does Y cover it?") → escalate.
 - **Durable names.** Code, tests, commits, tickets, specs, ADRs and docs outlive the conversation:
   name each thing by its domain term or a durable reference (issue number, ADR path, `file:line`).
   Labels coined in a chat or a ticket's breakdown (`Q1`, `A2`, `Option B`, `Phase 2`) stay where
@@ -24,7 +24,7 @@ Bind every agent — the main session and every subagent. "Escalate" means: suba
   ceiling. Public API contracts get doc comments. What the code does lives in its names; its
   provenance (what it replaced, which chat or ticket decided it) lives in the commit message.
 - **Graph before grep.** Structural questions go to `codebase-memory-mcp` first; `grep`/`read`
-  for literal text and graph gaps. Indexing operations are human-only — report an unindexed
+  for literal text and graph gaps. Indexing operations are human-only: report an unindexed
   project instead.
 - **Prove every claim.** Quote the command and its relevant output; mark the rest unverified.
 - **Two strikes.** Second failure on the same problem with no new hypothesis → stop and report.

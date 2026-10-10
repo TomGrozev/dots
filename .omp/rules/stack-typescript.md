@@ -7,7 +7,7 @@ interruptMode: never
 
 # Stack pack: TypeScript
 
-Rules true of any TypeScript repo. Framework- and runtime-specific rules belong in their own `stack-<name>` pack when one is added; repo-specific rules live in `docs/agents/conventions.md` — an onboarded repo is one where this file exists (see `skill://onboard`).
+Rules true of any TypeScript repo. Framework- and runtime-specific rules belong in their own `stack-<name>` pack when one is added; repo-specific rules live in `CODING_STANDARDS.md`, an onboarded repo is one where this file exists (see `skill://onboard`).
 
 ## Skeleton idiom
 
@@ -35,7 +35,7 @@ export async function updateBio(
 
 ## Conventions
 
-- Use `import type` / inline `type` modifiers for type-only imports — with `verbatimModuleSyntax`, what you see is what gets emitted, so the distinction is mandatory, not cosmetic.
+- Use `import type` / inline `type` modifiers for type-only imports: with `verbatimModuleSyntax`, what you see is what gets emitted, so the distinction is mandatory, not cosmetic.
 - Give a real type, or use `unknown` at a boundary and narrow it; avoid `any`. `as` casts and `!` non-null assertions are last resorts with a written reason.
 - Runtime-validate untrusted input at the trust boundary (HTTP body, env var, file, storage) with a zod/valibot schema before it becomes a typed value; avoid casting it in.
 - Model domain state as a discriminated union on a `kind`/`type` tag, instead of boolean flags or stringly-typed literals; narrow by checking the tag.
@@ -44,7 +44,7 @@ export async function updateBio(
 - Handle errors explicitly: `catch (err)` binds `unknown`; check `err instanceof Error` before reading fields. Return a tagged `{ ok, value | error }` across module boundaries for expected failures; throw only for programmer errors.
 - Use async/await; every fallible function returns a `Promise`. Avoid swallowing rejections or catch-and-ignore.
 - Prefer `Readonly<T>`, `readonly` parameters, and `as const` for configuration so nothing mutable leaks.
-- Prefer named exports over a default export; one domain concern per module, named for the noun it handles — not `Helper`, `Utils`, `Manager`, or `Impl`.
+- Prefer named exports over a default export; one domain concern per module, named for the noun it handles, not `Helper`, `Utils`, `Manager`, or `Impl`.
 - Prefer functions over classes; a class earns its place only by holding identity or state (e.g. a service with a lifecycle).
 - Pass options as a single object argument, instead of a run of positional booleans/strings.
 - `node:`-prefixed imports and `process.env` are runtime-specific: validate env once at startup and fail fast. Framework specifics (React, Next, Bun) belong in their own stack pack when one is added.
@@ -61,7 +61,7 @@ export async function updateBio(
 
 ## Default gate
 
-One repo-owned command, recorded in `docs/agents/gate.md`. Idiomatic TypeScript default is a `precommit` script:
+One repo-owned command, recorded in the agent file's `## Gate` section. Idiomatic TypeScript default is a `precommit` script:
 
 ```json
 {

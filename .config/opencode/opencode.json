@@ -166,7 +166,9 @@
           "*": "deny",
           "tdd": "allow",
           "conventional-commit": "allow",
-          "resolving-merge-conflicts": "allow",
+          "implement-spec": "allow",
+          "pr": "allow",
+          "retro": "allow",
           "diagnosing-bugs": "allow",
           "customize-opencode": "allow",
           "code-review": "allow",
@@ -290,6 +292,9 @@
         "skill": {
           "*": "deny",
           "implement": "allow",
+          "implement-spec": "allow",
+          "pr": "allow",
+          "retro": "allow",
           "tdd": "allow",
           "code-review": "allow",
           "diagnosing-bugs": "allow",
@@ -301,7 +306,6 @@
           "research": "allow",
           "wizard": "allow",
           "teach": "allow",
-          "ask-matt": "allow",
           "wait-what": "allow"
         },
         "bash": "deny",
@@ -350,7 +354,9 @@
           "research": "allow",
           "handoff": "allow",
           "teach": "allow",
-          "ask-matt": "allow",
+          "implement-spec": "allow",
+          "pr": "allow",
+          "retro": "allow",
           "wait-what": "allow"
         },
         "bash": {
@@ -414,7 +420,9 @@
           "*": "deny",
           "tdd": "allow",
           "conventional-commit": "allow",
-          "resolving-merge-conflicts": "allow",
+          "implement-spec": "allow",
+          "pr": "allow",
+          "retro": "allow",
           "customize-opencode": "allow"
         },
         "bash": {

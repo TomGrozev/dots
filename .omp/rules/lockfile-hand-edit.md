@@ -1,5 +1,5 @@
 ---
-description: "Do not hand-edit lockfiles — regenerate them with the package manager"
+description: "Do not hand-edit lockfiles: regenerate them with the package manager"
 condition: ".*"
 scope: "tool:edit(package-lock.json), tool:write(package-lock.json), tool:edit(*.lock), tool:write(*.lock), tool:edit(pnpm-lock.yaml), tool:write(pnpm-lock.yaml), tool:edit(go.sum), tool:write(go.sum), tool:edit(composer.lock), tool:write(composer.lock), tool:edit(Gemfile.lock), tool:write(Gemfile.lock)"
 interruptMode: never

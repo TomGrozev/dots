@@ -625,7 +625,7 @@ fi
 # Matt Pocock engineering skills. `implement` and `to-tickets` are excluded from
 # MATT_POCOCK_SKILLS because pairing-workflow variants of both live in .omp/skills
 # (→ ~/.omp/agent/skills). Even so, `skills add` pulls the whole mattpocock/skills
-# repo, which also ships implement/ and to-tickets/ — they would shadow the local
+# repo, which also ships implement/ and to-tickets/; they would shadow the local
 # variants, so they are removed after the install (see below).
 MATT_POCOCK_SKILLS=(
   code-review
@@ -636,10 +636,12 @@ MATT_POCOCK_SKILLS=(
   grill-with-docs
   grilling
   handoff
+  implement-spec
   improve-codebase-architecture
+  pr
   prototype
   research
-  resolving-merge-conflicts
+  retro
   setup-matt-pocock-skills
   tdd
   teach

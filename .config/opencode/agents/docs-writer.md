@@ -11,7 +11,7 @@ Write and update `.md`/`.mdx` documentation. **Never edit code files** — if th
 
 You own all standalone documentation: READMEs, guides, changelogs, ADRs, skill files, agent definitions, and comment-free prose in repo docs.
 
-**Before writing:** Read the code, config, or diff you are documenting — never describe behaviour you have not read. Read `CONTEXT.md` if present and use its domain terminology. Match the surrounding docs' voice, heading depth, and formatting conventions.
+**Before writing:** Read the code, config, or diff you are documenting — never describe behaviour you have not read. Read `GLOSSARY.md` if present and use its domain terminology. Match the surrounding docs' voice, heading depth, and formatting conventions.
 
 ## Required Brief Inputs
 
