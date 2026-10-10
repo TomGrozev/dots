@@ -112,14 +112,23 @@ done
 # (b) Paths created by install steps that have since been removed from this
 # script. When you delete an install block, add the paths it created here.
 obsolete_paths=(
-  "$HOME/.pi/agent/stt.json"                     # pi-voice-stt Soniox STT config (removed 6f153196)
-  "$HOME/.local/share/pi-voice-stt"              # pi-voice-stt git clone
-  "$HOME/.omp/plugins/node_modules/pi-voice-stt" # pi-voice-stt omp plugin link
+  "$HOME/.pi/agent/stt.json"                                 # pi-voice-stt Soniox STT config (removed 6f153196)
+  "$HOME/.local/share/pi-voice-stt"                          # pi-voice-stt git clone
+  "$HOME/.omp/plugins/node_modules/pi-voice-stt"             # pi-voice-stt omp plugin link
+  "$HOME/.omp/plugins/node_modules/@mikefreno/omp-neuralwatt" # published neuralwatt port, superseded by the fork spec (see OMP_PLUGINS)
 )
-# Deregister the plugin first so omp prunes its own state (node_modules link +
-# omp-plugins.lock.json); the filesystem removals below are the fallback.
-if command -v omp &>/dev/null && [ -e "$HOME/.omp/plugins/node_modules/pi-voice-stt" ]; then
-  omp plugin uninstall pi-voice-stt &>/dev/null || true
+# omp plugins whose install block has been replaced: deregister each so omp
+# prunes its own state (node_modules link + omp-plugins.lock.json); the
+# filesystem removals below are the fallback. `uninstall` exits 1 when the
+# plugin is already gone, hence the swallowed status.
+obsolete_plugins=(
+  pi-voice-stt                # removed 6f153196
+  "@mikefreno/omp-neuralwatt" # superseded by the TomGrozev fork spec (see OMP_PLUGINS)
+)
+if command -v omp &>/dev/null; then
+  for plugin in "${obsolete_plugins[@]}"; do
+    omp plugin uninstall "$plugin" &>/dev/null || true
+  done
 fi
 for path in "${obsolete_paths[@]}"; do
   if [ -e "$path" ] || [ -L "$path" ]; then
@@ -129,6 +138,7 @@ for path in "${obsolete_paths[@]}"; do
 done
 # Prune directories the removals above emptied.
 rmdir "$HOME/.pi/agent" "$HOME/.pi" 2>/dev/null || true
+rmdir "$HOME/.omp/plugins/node_modules/@mikefreno" 2>/dev/null || true
 
 # --- Symlink dotfiles ---
 echo ""
