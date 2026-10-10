@@ -10,7 +10,7 @@
  * unguarded.
  */
 import { describe, expect, test, beforeEach, afterEach } from "bun:test";
-import { chmodSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createDefault } from "../index";
@@ -60,6 +60,19 @@ exit 0
 	const stub = join(stubDir, "git");
 	writeFileSync(stub, script);
 	chmodSync(stub, 0o755);
+}
+
+/** Minimal executable stand-in for a git/gh binary on PATH. */
+function writeStubExe(file: string) {
+	writeFileSync(file, "#!/bin/sh\nexit 0\n");
+	chmodSync(file, 0o755);
+}
+
+/** Extract the single-quoted `REALBIN=` path a generated shim script bakes in. */
+function realBinOf(script: string): string {
+	const line = script.split("\n").find(l => l.startsWith("REALBIN="));
+	if (line === undefined) throw new Error("no REALBIN line in shim script");
+	return line.slice("REALBIN=".length).replace(/^'(.*)'$/, "$1");
 }
 
 beforeEach(() => {
@@ -148,5 +161,41 @@ describe("pristine env across binds", () => {
 		expect(String(write.reason)).toContain("no fallback");
 		const read = await redeem(later.neutralEnv.GBI_GRANT_SOCK as string, "read");
 		expect(read.ok).toBe(false);
+	});
+
+	test("inherited neutral env: a shim dir first on PATH never becomes the shim's own REALBIN", async () => {
+		writeCreds();
+
+		// An omp process launched from an agent shell inherits the NEUTRALIZED
+		// env as its "pristine" snapshot: PATH already starts with the shim dir.
+		// Give that dir executable git/gh stubs — exactly what `Bun.which` would
+		// resolve to if the snapshot's shim-dir filter were absent — and put the
+		// real dir after it, with its own git/gh.
+		const shimDir = join(credsDir, "shim");
+		mkdirSync(shimDir, { recursive: true });
+		writeStubExe(join(shimDir, "git"));
+		writeStubExe(join(shimDir, "gh"));
+		writeStubExe(join(stubDir, "gh"));
+		process.env.PATH = `${shimDir}:${stubDir}`;
+
+		const bind = await createDefault({ credsDir });
+
+		// The pristine snapshot keeps the REAL path: the shim dir is filtered out.
+		const pristinePath = bind.pristineEnv.PATH ?? "";
+		expect(pristinePath).toBe(stubDir);
+		expect(pristinePath.split(":")).not.toContain(shimDir);
+
+		// The installed shims resolve their real binaries OUTSIDE the shim dir —
+		// pointing REALBIN at the shim itself re-enters it (no socket → writes
+		// block, reads loop forever).
+		for (const bin of ["git", "gh"] as const) {
+			const realbin = realBinOf(readFileSync(join(shimDir, bin), "utf8"));
+			expect(realbin).toBe(join(stubDir, bin));
+			expect(realbin.startsWith(`${shimDir}/`)).toBe(false);
+		}
+
+		// The PATH granted to an actual call excludes the shim dir too.
+		const env = (await redeem(bind.neutralEnv.GBI_GRANT_SOCK as string, "read")).env as Record<string, string>;
+		expect(env.PATH).toBe(stubDir);
 	});
 });

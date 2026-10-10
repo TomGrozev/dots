@@ -66,7 +66,7 @@ import { ensureBotKey, importBotKey } from "./lib/gpg";
 import { buildBotEnv, installCoauthorHook, type BotEnvConfig } from "./lib/env";
 import { neutralBaseEnv, writeDenyConfig } from "./lib/neutralize";
 import { installShim } from "./lib/shim";
-import { getGrantServer, type GrantResolver } from "./lib/grant-server";
+import { getGrantServer, type GrantDecision, type GrantResolver } from "./lib/grant-server";
 import { blockGuidance } from "./lib/guidance";
 import { installSetup } from "./lib/setup";
 import { installCommitAsMe } from "./lib/commit-as-me";
@@ -109,6 +109,9 @@ export interface BotIdentityBind {
 	pristineEnv: Record<string, string>;
 	/** Bot identity for the `commit_as_me` trailer; null when unconfigured. */
 	bot: { name: string; email: string } | null;
+	/** In-process bot write-class env resolver — the grant server's own resolver,
+	 * reused by `commit_as_me` when the human picks the bot at the dialog. */
+	resolveBotWriteEnv: () => Promise<GrantDecision>;
 }
 
 /**
@@ -127,10 +130,20 @@ export async function createDefault(options: CreateOptions = {}): Promise<BotIde
 	// Process-wide pristine snapshot, taken at first bind before the default
 	// export neutralizes process.env — so later binds (subagents, new sessions)
 	// still resolve identity and the real PATH from the un-overlaid env.
-	const pristineEnv = pristineEnvSnapshot();
-	// The real PATH, captured before any neutralization — used both to resolve
-	// the real git/gh for the shim and to restore transport on granted calls.
-	const realPath = pristineEnv.PATH ?? "";
+	// The shim dir is filtered out of PATH even here: an omp process launched
+	// from an agent shell inherits the neutralized env as its "pristine"
+	// snapshot. Resolving git through it would point the shared shim's REALBIN
+	// at itself (writes re-enter the shim without a socket and block; reads loop
+	// forever), and the extension's own git reads and commit_as_me would loop too.
+	const shimDir = join(credsDir, "shim");
+	const snapshot = pristineEnvSnapshot();
+	// The real PATH — used both to resolve the real git/gh for the shim and to
+	// restore transport on granted calls.
+	const realPath = (snapshot.PATH ?? "")
+		.split(":")
+		.filter(entry => entry !== shimDir)
+		.join(":");
+	const pristineEnv: Record<string, string> = { ...snapshot, PATH: realPath };
 	// A pristine-env spawn for the extension's OWN reads (human identity, gpg
 	// key setup), so they are never self-blocked by the neutral overlay.
 	const pristineSpawn: SpawnFn = async (cmd, env) => {
@@ -217,7 +230,7 @@ export async function createDefault(options: CreateOptions = {}): Promise<BotIde
 	// One server per process per creds dir, shared across binds. This bind's
 	// resolver becomes the live one.
 	const grant = getGrantServer(credsDir, resolver);
-	const { shimDir } = installShim(credsDir, { git: realGit, gh: realGh, runtime: process.execPath });
+	installShim(credsDir, { git: realGit, gh: realGh, runtime: process.execPath });
 	const neutralEnv = neutralBaseEnv({ shimDir, denyConfigPath, gnupgHome: neutralGnupg, realPath, grantSock: grant.socketPath });
 
 	return {
@@ -225,11 +238,12 @@ export async function createDefault(options: CreateOptions = {}): Promise<BotIde
 		pristineSpawn,
 		pristineEnv,
 		bot: config ? { name: config.name, email: config.email } : null,
+		resolveBotWriteEnv: async () => resolver("write"),
 	};
 }
 
 export default async function (pi: ExtensionAPI) {
-	const { neutralEnv, pristineSpawn, pristineEnv, bot } = await createDefault();
+	const { neutralEnv, pristineSpawn, pristineEnv, bot, resolveBotWriteEnv } = await createDefault();
 	// Register the interactive setup wizard + on-launch prompt BEFORE the env is
 	// neutralized: the wizard must run through the pristine (`pristineSpawn`)
 	// spawn captured above so its gh/gpg subprocesses are never self-blocked.
@@ -237,7 +251,7 @@ export default async function (pi: ExtensionAPI) {
 	// Register the human-identity commit tool. It runs git with `pristineEnv`
 	// (real PATH, human config/signing), so it is unaffected by the neutral
 	// overlay installed below.
-	installCommitAsMe(pi, { bot, humanEnv: pristineEnv });
+	installCommitAsMe(pi, { bot, humanEnv: pristineEnv, resolveBotWriteEnv });
 	// Strip by default: neutralize the omp process env so every child born after
 	// this — the bash subprocess, the persistent eval kernel, subagent shells —
 	// inherits stripped credentials. The shim re-requests creds from the grant

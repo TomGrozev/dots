@@ -15,6 +15,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { ExtensionContext } from "@oh-my-pi/pi-coding-agent";
 import { installCommitAsMe, type CommitAsMeDetails, type CommitAsMeHookApi } from "../lib/commit-as-me";
+import { buildBotEnv, installCoauthorHook, type BotEnvConfig } from "../lib/env";
+import type { GrantDecision } from "../lib/grant-server";
 import { FakeExtensionAPI, makeFakeUi } from "./fake-extension-api";
 
 const BOT = { name: "MyProject Agent", email: "12345678+myproject-agent@users.noreply.github.com" };
@@ -24,6 +26,8 @@ const HUMAN_NAME = "Human Dev";
 const HUMAN_EMAIL = "human@example.com";
 /** The exact label the human must pick to approve; Cancel is the default. */
 const APPROVE = `Commit as ${HUMAN_NAME} <${HUMAN_EMAIL}>`;
+/** The exact label the human picks to switch to the bot at the dialog. */
+const BOT_CHOICE = `Commit as the bot ${BOT.name} <${BOT.email}>`;
 
 let root: string;
 let repo: string;
@@ -57,10 +61,38 @@ function stage(file: string, content: string): void {
 	expect(git(["add", file]).code).toBe(0);
 }
 
+/**
+ * A realistic bot write-class env (bot author/committer + the bot-scoped hook
+ * that adds the human trailer), built with the production builders so the test
+ * exercises the same env shape the grant resolver hands the shim. No signing
+ * key: like the real path with a signing-less bot, the repo's local
+ * `commit.gpgsign=false` leaves the commit unsigned.
+ */
+function makeBotWriteEnv(): Record<string, string> {
+	const base: BotEnvConfig = {
+		name: BOT.name,
+		email: BOT.email,
+		token: "github_pat_test_token",
+		humanName: HUMAN_NAME,
+		humanNoreply: HUMAN_EMAIL,
+	};
+	installCoauthorHook(base);
+	return { ...buildBotEnv(base), PATH: humanEnv.PATH! };
+}
+
+/** Refusal by default — human-path tests never trigger the bot resolver. */
+const REFUSE_BOT: () => Promise<GrantDecision> = async () => ({
+	ok: false,
+	reason: "git-bot-identity: write blocked — the agent has no usable GitHub credentials.",
+});
+
 /** Build the registered tool from the fake api (real schema, real execute). */
-function makeTool(bot: typeof BOT | null): { api: FakeExtensionAPI; tool: { execute: (...args: unknown[]) => Promise<{ details?: unknown }> } } {
+function makeTool(
+	bot: typeof BOT | null,
+	resolveBotWriteEnv: () => Promise<GrantDecision> = REFUSE_BOT,
+): { api: FakeExtensionAPI; tool: { execute: (...args: unknown[]) => Promise<{ details?: unknown }> } } {
 	const api = new FakeExtensionAPI();
-	installCommitAsMe(api as unknown as CommitAsMeHookApi, { bot, humanEnv });
+	installCommitAsMe(api as unknown as CommitAsMeHookApi, { bot, humanEnv, resolveBotWriteEnv });
 	const tool = api.tools["commit_as_me"];
 	if (!tool) throw new Error("commit_as_me was not registered");
 	return { api, tool: tool as unknown as { execute: (...args: unknown[]) => Promise<{ details?: unknown }> } };
@@ -106,9 +138,13 @@ beforeEach(() => {
 	expect(git(["config", "user.name", HUMAN_NAME]).code).toBe(0);
 	expect(git(["config", "user.email", HUMAN_EMAIL]).code).toBe(0);
 	expect(git(["config", "commit.gpgsign", "false"]).code).toBe(0);
+	// Redirect the bot scaffold (gitconfig + co-author hook) away from the real
+	// ~/.config path; makeBotWriteEnv reads this at execute time.
+	process.env.GIT_BOT_CONFIG_DIR = join(root, "botconfig");
 });
 
 afterEach(() => {
+	delete process.env.GIT_BOT_CONFIG_DIR;
 	rmSync(root, { recursive: true, force: true });
 });
 
@@ -121,6 +157,7 @@ describe("commit_as_me", () => {
 
 		const result = await tool.execute("call-1", { message: "feat: add a file" }, undefined, undefined, ctx);
 		const details = result.details as CommitAsMeDetails;
+		expect(details.identity).toBe("human");
 		expect(details.subject).toBe("feat: add a file");
 		expect(details.hash).toMatch(/^[0-9a-f]{7,}$/);
 
@@ -168,17 +205,59 @@ describe("commit_as_me", () => {
 		expect(head.body.split(TRAILER).length - 1).toBe(1);
 	});
 
-	test("no bot config: commits with no trailer at all", async () => {
+	test("no bot config: commits with no trailer at all, and the bot row is omitted", async () => {
 		stage("a.txt", "hello\n");
 		const { tool } = makeTool(null);
 		const ui = makeFakeUi({ selects: [APPROVE] });
 		const ctx = ui.ctx({ cwd: repo }) as ExtensionContext;
 
-		await tool.execute("call-1", { message: "chore: untrailered" }, undefined, undefined, ctx);
+		const result = await tool.execute("call-1", { message: "chore: untrailered" }, undefined, undefined, ctx);
 
 		const head = headFields();
 		expect(head.body).not.toContain("Co-authored-by:");
 		expect(head.authorName).toBe(HUMAN_NAME);
+		expect((result.details as CommitAsMeDetails).identity).toBe("human");
+		// Without a configured bot the select offers only Cancel + the human row
+		// (an offered bot row could only refuse — the honest select omits it).
+		const labels = ui.selectCalls[0]!.options.map(o => (typeof o === "string" ? o : o.label));
+		expect(labels).toEqual(["Cancel — do not commit", APPROVE]);
+	});
+
+	test("bot choice: commits as the bot, no bot self-trailer, human trailer added by the bot hook", async () => {
+		stage("a.txt", "hello\n");
+		const { tool } = makeTool(BOT, async () => ({ ok: true, env: makeBotWriteEnv() }));
+		const ui = makeFakeUi({ selects: [BOT_CHOICE] });
+		const ctx = ui.ctx({ cwd: repo }) as ExtensionContext;
+
+		// The agent's message even carries the bot trailer (as the human path
+		// would append); the bot path must strip it rather than credit itself.
+		const result = await tool.execute("call-1", { message: `feat: via bot\n\n${TRAILER}` }, undefined, undefined, ctx);
+
+		expect((result.details as CommitAsMeDetails).identity).toBe("bot");
+		const head = headFields();
+		expect(head.authorName).toBe(BOT.name);
+		expect(head.authorEmail).toBe(BOT.email);
+		expect(head.committerName).toBe(BOT.name);
+		expect(head.committerEmail).toBe(BOT.email);
+		expect(head.body).not.toContain(TRAILER);
+		expect(head.body).toContain(`Co-authored-by: ${HUMAN_NAME} <${HUMAN_EMAIL}>`);
+
+		// The gate offers Cancel, the human, and the bot — in that order.
+		const labels = ui.selectCalls[0]!.options.map(o => (typeof o === "string" ? o : o.label));
+		expect(labels).toEqual(["Cancel — do not commit", APPROVE, BOT_CHOICE]);
+		expect(ui.selectCalls[0]!.dialogOptions?.initialIndex).toBe(0);
+	});
+
+	test("bot choice with missing creds: fails closed, nothing committed", async () => {
+		stage("a.txt", "hello\n");
+		const { tool } = makeTool(BOT); // default resolver refuses
+		const ui = makeFakeUi({ selects: [BOT_CHOICE] });
+		const ctx = ui.ctx({ cwd: repo }) as ExtensionContext;
+
+		await expect(tool.execute("call-1", { message: "feat: nope" }, undefined, undefined, ctx)).rejects.toThrow(
+			/cannot commit as the bot/,
+		);
+		expect(commitCount()).toBe(0);
 	});
 
 	test("nothing staged: errors and does not commit", async () => {

@@ -145,19 +145,20 @@ Bot commits are signed with a bot-owned GPG key located in `~/.config/git-bot-id
 The extension provides two ways to land a commit, chosen by ticket mode:
 
 - **`afk` / `ready-for-agent` tickets** — the agent commits normally. Its `git` invocation goes through the guidance shim, which grants the bot credentials: the bot is the author and committer, signs with the bot's passphrase-less GPG key, and the human is recorded as a `Co-authored-by` trailer (injected by the bot-scoped `prepare-commit-msg` hook).
-- **`hitl` / `ready-for-human` tickets and ad-hoc work** — the human is the author and committer, signing with their own GPG key (e.g. a YubiKey requiring PIN + touch), and the bot becomes the `Co-authored-by` trailer. The agent stages files and writes the conventional-commit message, then calls the **`commit_as_me`** tool.
+- **`hitl` / `ready-for-human` tickets and ad-hoc work** — the human is the author and committer, signing with their own GPG key (e.g. a YubiKey requiring PIN + touch), and the bot becomes the `Co-authored-by` trailer. The agent stages files and writes the conventional-commit message, then calls the **`commit_as_me`** tool — where the human can instead pick **Commit as the bot** to land it through the normal bot path. Staging with `git add` currently requires bot credentials because the shim classifies it as a write.
 
 ### `commit_as_me`
 
-Agent-callable tool that commits **as the human**. It:
+Agent-callable tool that commits the staged changes under **one of two identities the human picks in the dialog**:
 
 1. Verifies something is staged (`git diff --cached`); errors if not.
-2. Builds the final message, appending `Co-authored-by: <bot name> <bot email>` unless it is already present (omitted entirely when no bot config exists).
-3. Shows the human a confirmation dialog with the staged `git diff --cached --stat` and the final message. **The dialog is the gate — the agent cannot answer it.**
-4. On approval, runs the **real** `git` (never the shim) with the human's untouched environment — the pristine pre-neutralization snapshot: real `PATH`, the human's own git config, and their signing setup. It passes no signing flags and never disables signing, so the human's `commit.gpgsign`, GPG agent, and pinentry apply. It runs with an inherited stdin so a smart-card PIN/touch prompt keeps its terminal.
-5. Returns the new commit's short hash and subject.
+2. Shows the human a select with three rows — **Cancel** (the default cursor row, so a stray Enter/Escape declines), **Commit as <human>**, and, when a bot account is configured, **Commit as the bot <name> <email>**. Each row states the author/committer and signing key and shows the staged `git diff --cached --stat` and the message. **The dialog is the gate — the agent cannot answer it.**
+3. On **Commit as <human>**, builds the final message (appending `Co-authored-by: <bot name> <bot email>` unless already present; omitted when no bot config) and runs the **real** `git` (never the shim) with the human's pristine pre-neutralization environment: real `PATH`, the human's own git config and signing. It passes no signing flags and never disables signing, so `commit.gpgsign`, the GPG agent and pinentry apply; it inherits stdin so a smart-card PIN/touch prompt keeps its terminal.
+4. On **Commit as the bot**, commits the same staged changes through the extension's normal bot write path — bot author/committer, the bot's own GPG key, and the human as `Co-authored-by` (added by the bot `prepare-commit-msg` hook). The bot self-trailer is stripped from the message first. The write-class env is resolved **in process** by the grant server's own resolver, never via the shim; if resolution fails (no/invalid config) the commit fails closed with the reason.
+5. Returns the new commit's short hash and subject, and the identity that committed.
 
-Failures are returned as tool errors with **no commit**: nothing staged, no UI available (headless/subagent), or the human declined. On decline the error carries the exact command to run manually, e.g. `git commit -F <file>`, where `<file>` holds the final message.
+Failures are returned as tool errors with **no commit**: nothing staged, no UI available (headless/subagent), the human declined, or the bot path could not resolve credentials. On decline the error carries the exact command to run manually, e.g. `git commit -F <file>`, where `<file>` holds the final message.
+
 
 ## Development
 
