@@ -6,7 +6,7 @@ disable-model-invocation: true
 
 # Calibrate
 
-- Run only when the user asks (`walkthrough` suggests it when a spec's last ticket lands), and never in a `fork` repo: nothing may persist there and the history isn't yours. It measures **unexplained rework** over time (the metric the pairing workflow exists to drive down) and finds where the repo drifted from its conventions. It proposes; the user decides. Repo setup (conventions, guardrails, gate) is `skill://onboard`'s job, not this one's.
+- Run only when the user asks (`land` suggests it when a spec's last ticket lands), and never in a `fork` repo: nothing may persist there and the history isn't yours. It measures **unexplained rework** over time (the metric the pairing workflow exists to drive down) and finds where the repo drifted from its conventions. It proposes; the user decides. Repo setup (conventions, guardrails, gate) is `skill://onboard`'s job, not this one's.
 
 ## Mode
 
@@ -30,7 +30,7 @@ The calibration log lives at `docs/agents/calibration.md` (see `skill://onboard`
 6. **Propose** a ticket menu: enforcement rules for conventions that keep being broken, cleanups, and stack-pack promotions that now meet the bar in `skill://onboard` (Stack Packs). Sort each proposal by how it gets enforced: a **mechanical violation** (a fixed syntactic pattern, a banned API, an import shape, a file location) becomes an automated check wired into the Gate; a **judgement call** becomes one line in `CODING_STANDARDS.md` for reviewers to enforce. If the repo is not onboarded (`CODING_STANDARDS.md` is missing), the first menu item is running `onboard`. The user picks.
     **Done when** the ticket menu is presented.
 
-**Done when** the log is written and the menu is presented. Log changes: read `skill://walkthrough` and follow its end-of-task flow.
+**Done when** the log is written and the menu is presented. Log changes: hand over to `walkthrough` (read `skill://walkthrough`).
 
 ## Scout Brief Shape
 

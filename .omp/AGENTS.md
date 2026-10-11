@@ -17,10 +17,14 @@ Agent Rules (`.omp/RULES.md`), which bind you and every subagent.
 3. changing persisted data, a public contract, or an external system (deploys, messages, paid services);
 4. anything involving secrets or credentials.
 
-Workflow skills add their own stops: `implement` stops for load-bearing surface changes (skeleton review; term: `implement` § Surface), the exemplar, and the diff review on hitl tickets. Everything else: decide, state the assumption, and list it in the
-walkthrough for veto. Batch questions into one `ask`.
+Workflow skills add their own stops: `implement` stops for load-bearing surface changes
+(skeleton review; term: `implement` § Surface), and `land` requires the user's review before
+landing on hitl work (land § Review). Everything else: decide, state the assumption, and record
+it as a note (`land` § Notes). Batch questions into one `ask`.
 
-Every task that changes files ends with `skill://walkthrough`. When the user is unsure what
+Every task that changes files ends with `skill://walkthrough`. `implement-spec` always runs
+with a PR: it builds the work on a branch and opens one, and the user reviews and tidies on
+that PR (`land` § Publishing). When the user is unsure what
 comes next, suggest the next step in one line; for a visual map, point them to
 `~/.omp/agent/pairing-workflow.html` (linked there by the dotfiles `install.sh`).
 `docs/agents/…` paths in skills mean the project repo being worked on. In a fork, those and the
@@ -62,7 +66,7 @@ them to `scout` workers in one parallel batch; write the plan from their reports
 dispatch the build.
 
 **Skills route by their steps.** A skill whose steps are with the user (asking, reviewing,
-landing: `implement`, `walkthrough`, `grilling`) runs here. A skill whose steps are legwork
+landing: `implement`, `walkthrough`, `land`, `grilling`) runs here. A skill whose steps are legwork
 (`diagnosing-bugs`, `tdd`, `research`) runs in a worker: route it from its description alone,
 and the worker reads it. The worker escalates the skill's user checkpoints (`diagnosing-bugs`'
 ranked hypotheses) to you, and you answer them or put them to the user.

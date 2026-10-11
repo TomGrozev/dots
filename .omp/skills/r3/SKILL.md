@@ -1,6 +1,6 @@
 ---
 name: r3
-description: "Publish a diff or files to r3 for human review and work the feedback loop. Use for the skeleton review in implement, when the user picks r3 at the walkthrough, or when the user asks for r3."
+description: "Publish a diff or files to r3 for human review and work the feedback loop. Use for the skeleton review in implement, when land runs a review, or when the user asks for r3."
 ---
 
 # r3

@@ -6,7 +6,7 @@ Read when onboard runs on a repo that already has agent setup. Each row is a leg
 
 In `fork`, read the paths through [FORK.md](FORK.md): the agent file is `.omp/AGENTS.md`, and every repo doc below lives under `.omp/`. Moves there are plain `mv`, since `.omp/` is untracked.
 
-Tickets means open local tickets (`.scratch/*/issues/*.md`) and open tracker issues labelled `ready-for-agent` or `ready-for-human`.
+Tickets means open local tickets (`.scratch/*/issues/*.md`) and open tracker issues labelled `ready-for-agent` or `ready-for-human`. Unless a row says otherwise, "set the mode" means by the mode rule (`to-tickets` § Human tasks and mode).
 
 | Signal | Migration |
 |---|---|
@@ -15,8 +15,8 @@ Tickets means open local tickets (`.scratch/*/issues/*.md`) and open tracker iss
 | The agent file has a `## Conventions` section | Move its lines to `CODING_STANDARDS.md`; delete the section. |
 | The repo has `docs/agents/gate.md` | Move its command into a `## Gate` section of the agent file (`CLAUDE.md` if it exists, else `AGENTS.md`; in a fork, `.omp/AGENTS.md`); delete the file. |
 | The `## Agent skills` block doesn't point at `docs/agents/` | Point it there. |
-| A ticket carries a `Puzzles` field, in any style: `ping-pong`, `strong-style`, `solo`, `(human)`, `(agent)` | Remove the field. Add `Human`: an exemplar when the ticket is the first instance of a pattern a later ticket repeats, else `None`. Recompute the mode (hitl when it has an exemplar or changes the load-bearing surface, else afk; mode rule: `to-tickets` § Human tasks and mode). Tell the user which former human puzzles were dropped, so they can mark one as an exemplar or plan a tidy. |
-| A ticket lacks `Mode` or `Human` | Add them: hitl when it has an exemplar or changes the load-bearing surface, otherwise afk (mode rule: `to-tickets` § Human tasks and mode); `None` when it has no Human entry. |
+| A ticket carries a `Puzzles` field, in any style: `ping-pong`, `strong-style`, `solo`, `(human)`, `(agent)`, or its `Human` list has `exemplar: <pattern>` entries | Remove the `Puzzles` field; rename each `exemplar: <pattern>` entry to `review: pattern <name>`. Rewrite `Human` by the mode rule (`to-tickets` § Human tasks and mode): `review: skeleton` when the ticket changes the load-bearing surface, `review: pattern <name>` per the rule, else `None`. Set the mode, and tell the user which entries changed, so they can tidy at landing. |
+| A ticket lacks `Mode` or `Human` | Add both: `Mode` set by the mode rule, and `Human` listing its review entries, `None` when no review applies. |
 | A ticket's mode and label disagree | Relabel: hitl → `ready-for-human`, afk → `ready-for-agent`. |
 | Repo docs mention the retired `pair` skill or "pairing context" | List each as a manual action; the user's docs are theirs to rewrite. |
 
