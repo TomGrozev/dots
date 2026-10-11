@@ -8,8 +8,11 @@
  * and writes the message, then this tool shows the human a confirmation dialog
  * (the gate — the agent cannot answer it). On approval it runs the REAL git
  * with the human's untouched environment, so the human's own git identity and
- * GPG signing (e.g. a YubiKey needing PIN + touch) apply. It passes no signing
- * flags and never disables signing.
+ * GPG signing (e.g. a YubiKey needing PIN + touch) apply. It forces signing
+ * with `-S`: a `commit.gpgsign=false` in ANY config scope — repo-local
+ * included — must never leave a commit-as-me commit unsigned. Only an explicit
+ * command-line `--no-gpg-sign` countermands `-S`, and this tool never passes
+ * one.
  *
  * ── Third option: commit as the bot instead ─────────────────────────────────
  * If the human changes their mind at the dialog they can pick "Commit as the
@@ -285,9 +288,12 @@ async function runCommitAsMe(
 		return await readHead(repo, env, "bot");
 	}
 
-	// Real git, human env, interactive stdin for pinentry; no signing flags and
-	// nothing that disables the human's own commit.gpgsign.
-	const commit = await withMessageFile(humanMessage, file => runGit(repo, ["commit", "-F", file], env, true));
+	// Real git, human env, interactive stdin for pinentry. `-S` forces a
+	// signature, overriding `commit.gpgsign=false` in any config scope (a
+	// repo-local false must not silently produce an unsigned commit); only an
+	// explicit `--no-gpg-sign` would countermand it, and none is passed. The
+	// signing key and pinentry come from the human's own config/keyring.
+	const commit = await withMessageFile(humanMessage, file => runGit(repo, ["commit", "-S", "-F", file], env, true));
 	if (commit.code !== 0) {
 		throw new Error(commit.stderr.trim() || commit.stdout.trim() || `commit_as_me: git commit exited ${commit.code}`);
 	}

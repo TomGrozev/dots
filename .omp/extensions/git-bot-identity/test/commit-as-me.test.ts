@@ -5,17 +5,20 @@
  * environment, with the BOT only as a `Co-authored-by` trailer.
  *
  * The human env passed to the tool isolates git from the developer's real global
- * config (HOME / GIT_CONFIG_GLOBAL / GIT_CONFIG_SYSTEM redirected), and the test
- * repo disables signing in its OWN local config — the tool must honour that
- * local config rather than passing any signing flags of its own.
+ * config (HOME / GIT_CONFIG_GLOBAL / GIT_CONFIG_SYSTEM redirected) and gives the
+ * human a passphrase-less signing key in an isolated keyring. The test repo sets
+ * `commit.gpgsign=false` in its OWN local config — the tool must still SIGN every
+ * commit (`-S`), because a config-level false must never leave a commit-as-me
+ * commit unsigned.
  */
-import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, test } from "bun:test";
 import { chmodSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { ExtensionContext } from "@oh-my-pi/pi-coding-agent";
 import { installCommitAsMe, type CommitAsMeDetails, type CommitAsMeHookApi } from "../lib/commit-as-me";
 import { buildBotEnv, installCoauthorHook, type BotEnvConfig } from "../lib/env";
+import { ensureBotKey } from "../lib/gpg";
 import type { GrantDecision } from "../lib/grant-server";
 import { FakeExtensionAPI, makeFakeUi } from "./fake-extension-api";
 
@@ -33,6 +36,8 @@ let root: string;
 let repo: string;
 let home: string;
 let humanEnv: Record<string, string>;
+/** The human's passphrase-less signing key fingerprint (in the isolated keyring). */
+let humanKey: string;
 
 /** Run git in the temp repo under the isolated human env. */
 function git(args: string[]): { code: number; out: string; err: string } {
@@ -103,6 +108,26 @@ function makeTool(
 	return { api, tool: tool as unknown as { execute: (...args: unknown[]) => Promise<{ details?: unknown }> } };
 }
 
+/**
+ * The human's passphrase-less signing key lives in a keyring at a SHORT path:
+ * gpg-agent puts its unix socket inside GNUPGHOME, and macOS's per-process
+ * tmpdir (used for `root`) is long enough to overflow the socket path limit —
+ * the agent then fails to start ("can't connect to the gpg-agent"). Generated
+ * once per run (keygen is not per-test work) and shared by every test.
+ */
+let keyring: string;
+
+beforeAll(async () => {
+	keyring = mkdtempSync(join("/tmp", "gbi-key-"));
+	humanKey = (await ensureBotKey(keyring, HUMAN_EMAIL)).keyId;
+}, 30_000);
+
+afterAll(() => {
+	// The keyring's gpg-agent outlives gpg; kill it so repeated runs don't leak one.
+	Bun.spawnSync(["gpgconf", "--kill", "gpg-agent"], { env: { ...process.env, GNUPGHOME: join(keyring, "gnupg") } });
+	rmSync(keyring, { recursive: true, force: true });
+});
+
 beforeEach(() => {
 	root = mkdtempSync(join(tmpdir(), "gbi-commit-as-me-"));
 	repo = join(root, "repo");
@@ -142,6 +167,11 @@ beforeEach(() => {
 	expect(Bun.spawnSync(["git", "init", "-q", repo], { env: humanEnv }).exitCode).toBe(0);
 	expect(git(["config", "user.name", HUMAN_NAME]).code).toBe(0);
 	expect(git(["config", "user.email", HUMAN_EMAIL]).code).toBe(0);
+	// The human's own signing key, in the shared isolated keyring, so the tool's
+	// forced `-S` can actually sign.
+	humanEnv.GNUPGHOME = join(keyring, "gnupg");
+	expect(git(["config", "user.signingkey", humanKey]).code).toBe(0);
+	// Repo-local `commit.gpgsign=false` — the tool must override it and sign.
 	expect(git(["config", "commit.gpgsign", "false"]).code).toBe(0);
 	// Redirect the bot scaffold (gitconfig + co-author hook) away from the real
 	// ~/.config path; makeBotWriteEnv reads this at execute time.
@@ -195,6 +225,39 @@ describe("commit_as_me", () => {
 		expect(approve.description).toContain("feat: add a file");
 		// A warning toast also names the human identity.
 		expect(ui.notifications.some(n => n.type === "warning" && n.message.includes(HUMAN_NAME))).toBe(true);
+	});
+
+	test("repo-local commit.gpgsign=false does not stop signing: the tool forces -S", async () => {
+		// The repo's own config says false (see beforeEach); the human's global
+		// config is /dev/null. A commit-as-me commit must still be signed.
+		expect(git(["config", "commit.gpgsign"]).out.trim()).toBe("false");
+		stage("a.txt", "hello\n");
+		const { tool } = makeTool(BOT);
+		const ui = makeFakeUi({ selects: [APPROVE] });
+		const ctx = ui.ctx({ cwd: repo }) as ExtensionContext;
+
+		await tool.execute("call-1", { message: "feat: signed anyway" }, undefined, undefined, ctx);
+
+		// %G? = G (good signature) once the keyring holds the signing key.
+		expect(git(["log", "-1", "--format=%G?"]).out.trim()).toBe("G");
+	});
+
+	test("no usable signing key: fails closed, nothing committed", async () => {
+		stage("a.txt", "hello\n");
+		// Point at an empty keyring and drop the explicit key: `-S` has nothing
+		// to sign with, so the tool must refuse rather than land an unsigned commit.
+		git(["config", "--unset", "user.signingkey"]);
+		const emptyRing = mkdtempSync(join("/tmp", "gbi-empty-"));
+		humanEnv.GNUPGHOME = emptyRing;
+		const { tool } = makeTool(BOT);
+		const ui = makeFakeUi({ selects: [APPROVE] });
+		const ctx = ui.ctx({ cwd: repo }) as ExtensionContext;
+
+		await expect(tool.execute("call-1", { message: "feat: cannot sign" }, undefined, undefined, ctx)).rejects.toThrow(
+			/gpg|sign/i,
+		);
+		expect(commitCount()).toBe(0);
+		rmSync(emptyRing, { recursive: true, force: true });
 	});
 
 	test("message that already carries the bot trailer: not duplicated", async () => {
