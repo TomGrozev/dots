@@ -17,10 +17,11 @@ Where onboarding writes is the single source of truth for the repo's agent rules
 - **Normal (`existing`/`new`)**: the repo's agent file (`CLAUDE.md` if it exists, else `AGENTS.md`) carries the `## Agent skills` block. Coding standards live in `CODING_STANDARDS.md` at the repo root, the Gate in the agent file's `## Gate` section, ADRs in the repo's ADR directory, and the calibration log in `docs/agents/calibration.md`.
 - **`fork`**: see [FORK.md](FORK.md).
 
-What goes where:
+What goes where (every skill that proposes a line files it by this test):
 - `GLOSSARY.md`: the domain's terms (the words).
-- ADRs: decisions with real tradeoffs, and why; hard to reverse.
-- `CODING_STANDARDS.md`: how code is written here, as one-line rules.
+- ADRs: a choice between real alternatives, with tradeoffs and why; hard to reverse. Architecture, library, data-model and protocol choices go here, never in `CODING_STANDARDS.md`.
+- `CODING_STANDARDS.md`: how code is written here, as one-line imperative rules a reviewer can check against a single diff hunk ("Return `{:error, reason}` tuples from context functions, never raise", "Put tests next to the module as `*_test.ts`"). Each rule names a code shape: naming, layout, error handling, API shape, data access, test style, logging. If the line needs a "because" paragraph or alternatives to make sense, it is an ADR; if a linter or formatter could enforce it, it is a guardrail instead.
+- Nothing: one-off choices for a single ticket, facts about what was built, preferences already enforced by tooling, and anything a reviewer could not point at in a diff. Default to nothing when unsure.
 
 An onboarded repo is one where `CODING_STANDARDS.md` exists.
 Re-running onboard on a repo that already has agent setup reads [UPGRADE.md](UPGRADE.md) first.
