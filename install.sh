@@ -14,7 +14,24 @@ OMP_AGENT_DIR="$HOME/.omp/agent"
 UNAME_OS="$(uname -s | tr '[:upper:]' '[:lower:]')"
 UNAME_ARCH="$(uname -m)"
 
-mkdir -p "$LOCAL_BIN" "$OMP_AGENT_DIR" "$HOME/.config"
+# AGENT_POD=true selects the lean profile for an agent pod: a disposable
+# container that clones this repo at runtime and runs
+# `AGENT_POD=true bash install.sh` from the clone. The pod's image already
+# carries the shell (zsh, oh-my-zsh, p10k), the CLI tools (miao, r3,
+# codebase-memory-mcp, the Zellij WASM plugins) and the shell/dotfile wiring, so
+# every section that installs those is skipped here: the clone exists only to
+# supply the authored agent config under ~/.omp/agent. The pod's image also
+# supplies the agent-tier config overlay on top of the linked base config.yml,
+# so the devcontainer bake below never runs in this mode either. Unset, or any
+# value other than "true", keeps the full install below unchanged.
+AGENT_POD="${AGENT_POD:-false}"
+
+mkdir -p "$OMP_AGENT_DIR"
+# ~/.local/bin and ~/.config only ever receive the installs and symlinks the
+# lean profile skips, so it does not create them.
+if [ "$AGENT_POD" != "true" ]; then
+  mkdir -p "$LOCAL_BIN" "$HOME/.config"
+fi
 
 # --- Helpers ---
 
@@ -37,6 +54,8 @@ link_entry() {
 }
 
 # --- Install Oh My Zsh ---
+# Skipped in AGENT_POD mode: the pod's image ships its own shell.
+if [ "$AGENT_POD" != "true" ]; then
 echo ""
 echo "Installing Oh My Zsh..."
 
@@ -85,6 +104,7 @@ else
   echo "  Installing Powerlevel10k..."
   git clone --quiet --depth=1 "https://github.com/romkatv/powerlevel10k.git" "$p10k_dir"
 fi
+fi # AGENT_POD guard: shell installs (oh-my-zsh, its plugins, p10k)
 
 # --- Remove targets dropped from the dotfiles ---
 # A commit that removes a dotfile or an install step leaves the previously
@@ -141,6 +161,8 @@ rmdir "$HOME/.pi/agent" "$HOME/.pi" 2>/dev/null || true
 rmdir "$HOME/.omp/plugins/node_modules/@mikefreno" 2>/dev/null || true
 
 # --- Symlink dotfiles ---
+# Skipped in AGENT_POD mode: the pod's image owns the shell/dotfile wiring.
+if [ "$AGENT_POD" != "true" ]; then
 echo ""
 echo "Creating symlinks..."
 
@@ -214,6 +236,7 @@ AWK
 else
   link_entry "$captain_miao_src" "$captain_miao_dst" ".config/captain-miao"
 fi
+fi # AGENT_POD guard: dotfile, .config and captain-miao symlinks
 
 # --- Link omp (Oh My Pi) config ---
 # ~/.omp/agent/ holds runtime state (agent.db, sessions/, memories/) alongside
@@ -223,16 +246,33 @@ fi
 echo ""
 echo "Linking omp config..."
 
-omp_entries=(config.yml config-devcontainer.yml mcp.json AGENTS.md RULES.md WATCHDOG.md agents extensions rules hooks skills)
+# The lean agent-pod profile links only the authored config the pod runs on:
+# mcp.json, WATCHDOG.md, config-devcontainer.yml and hooks belong to the laptop
+# and devcontainer installs, and skills/ is narrowed to the pairing-workflow
+# skills linked after the loop.
+if [ "$AGENT_POD" = "true" ]; then
+  omp_entries=(config.yml AGENTS.md RULES.md agents extensions rules)
+else
+  omp_entries=(config.yml config-devcontainer.yml mcp.json AGENTS.md RULES.md WATCHDOG.md agents extensions rules hooks skills)
+fi
 
 for entry in "${omp_entries[@]}"; do
   # config.yml is handled below in devcontainers: baked with the overlay
-  # merged in, not symlinked (see the block after this loop).
-  if [ "$entry" = "config.yml" ] && [ "${DEVCONTAINER:-}" = "true" ] && [ -f "$DOTFILES_DIR/.omp/config-devcontainer.yml" ]; then
+  # merged in, not symlinked (see the block after this loop). AGENT_POD takes
+  # precedence: the pod always gets the base config.yml linked, never the bake.
+  if [ "$entry" = "config.yml" ] && [ "$AGENT_POD" != "true" ] && [ "${DEVCONTAINER:-}" = "true" ] && [ -f "$DOTFILES_DIR/.omp/config-devcontainer.yml" ]; then
     continue
   fi
   link_entry "$DOTFILES_DIR/.omp/$entry" "$OMP_AGENT_DIR/$entry" "~/.omp/agent/$entry"
 done
+
+# The pod's agent-tier config names only the three pairing-workflow skills, so
+# the lean profile links those individually instead of the whole skills/ dir.
+if [ "$AGENT_POD" = "true" ]; then
+  for skill in implement walkthrough land; do
+    link_entry "$DOTFILES_DIR/.omp/skills/$skill" "$OMP_AGENT_DIR/skills/$skill" "~/.omp/agent/skills/$skill"
+  done
+fi
 
 # Fixed path to the workflow map, independent of where the repo is cloned, so
 # the agent's instructions can point at it.
@@ -250,7 +290,7 @@ link_entry "$DOTFILES_DIR/docs/pairing-workflow.html" "$OMP_AGENT_DIR/pairing-wo
 # Falls back to a plain symlink of the base config.yml if python3/pip/pyyaml is
 # unavailable - that fails safe (restrictive approvalMode) rather than silently
 # leaving no config.yml at all.
-if [ "${DEVCONTAINER:-}" = "true" ] && [ -f "$DOTFILES_DIR/.omp/config-devcontainer.yml" ]; then
+if [ "$AGENT_POD" != "true" ] && [ "${DEVCONTAINER:-}" = "true" ] && [ -f "$DOTFILES_DIR/.omp/config-devcontainer.yml" ]; then
   echo ""
   echo "Baking devcontainer overlay into config.yml..."
   if command -v python3 >/dev/null 2>&1 &&
@@ -302,6 +342,8 @@ if command -v omp &>/dev/null; then
 fi
 
 # --- Download Zellij WASM plugins ---
+# Skipped in AGENT_POD mode: the pod's image ships the Zellij plugin set.
+if [ "$AGENT_POD" != "true" ]; then
 echo ""
 echo "Downloading Zellij plugins..."
 
@@ -361,8 +403,11 @@ for i in "${!ZELLIJ_PLUGIN_NAMES[@]}"; do
     rm -f "$tmp_plugin"
   fi
 done
+fi # AGENT_POD guard: Zellij WASM plugins
 
 # --- Install codebase-memory-mcp ---
+# Skipped in AGENT_POD mode: the pod's image ships the binary.
+if [ "$AGENT_POD" != "true" ]; then
 echo ""
 echo "Installing codebase-memory-mcp..."
 
@@ -447,8 +492,13 @@ else
 
   echo "  codebase-memory-mcp installed to ~/.local/bin/codebase-memory-mcp"
 fi
+fi # AGENT_POD guard: codebase-memory-mcp
 
 # --- Install captain-miao (coding agent session manager) ---
+# Skipped in AGENT_POD mode, together with the up-to-date check, the
+# install/update block and the ~/.local/bin/diagram link below: the pod's image
+# ships these binaries.
+if [ "$AGENT_POD" != "true" ]; then
 # Installs the `miao` dashboard binary. The `miao-server` daemon is a separate
 # release asset and ships in the devcontainer image. Release assets embed the
 # version in their filename (miao-bundled-all-server-v0.6.0-<triple>.tar.gz),
@@ -553,8 +603,12 @@ if [ "$INSTALL_MIAO" = "1" ]; then
 fi
 
 link_entry "$DOTFILES_DIR/bin/diagram" "$LOCAL_BIN/diagram" "~/.local/bin/diagram"
+fi # AGENT_POD guard: captain-miao, its up-to-date check and install/update, diagram
 
 # --- Clean up Plannotator (replaced by r3) ---
+# Skipped in AGENT_POD mode, with the r3 blocks and the opencode npm install
+# below: the pod runs none of these tools.
+if [ "$AGENT_POD" != "true" ]; then
 if [ -f "$LOCAL_BIN/plannotator" ]; then
   echo ""
   echo "Removing old Plannotator (replaced by r3)..."
@@ -627,6 +681,7 @@ elif command -v npm &>/dev/null; then
 else
   echo "  npm not found. Install Node.js to get opencode plugin dependencies."
 fi
+fi # AGENT_POD guard: Plannotator cleanup, r3, opencode npm dependencies
 
 # --- Install agent skills (shared by opencode and omp) ---
 # Skills install into ~/.agents/skills/, which omp exposes via its
@@ -664,6 +719,13 @@ MATT_POCOCK_SKILLS=(
   writing-for-agents
 )
 
+# Lean agent-pod profile: only the review and commit-convention skills the pod's
+# agent-tier config names; the rest, plus frontend-design and apple-design
+# below, are laptop-side work skills.
+if [ "$AGENT_POD" = "true" ]; then
+  MATT_POCOCK_SKILLS=(tdd code-review)
+fi
+
 if command -v npm &>/dev/null; then
   echo ""
   echo "Installing skills..."
@@ -686,11 +748,13 @@ if command -v npm &>/dev/null; then
   echo "  Installing conventional-commit skill..."
   npx skills add https://github.com/github/awesome-copilot --skill conventional-commit -a universal -y -g
 
+  if [ "$AGENT_POD" != "true" ]; then
   echo "  Installing frontend-design skill..."
   npx skills add https://github.com/anthropics/skills --skill frontend-design -a universal -y -g
 
   echo "  Installing apple-design skill..."
   npx skills add https://github.com/emilkowalski/skills --skill apple-design -a universal -y -g
+  fi
 else
   echo "  npm not found. Install Node.js to install agent skills."
 fi

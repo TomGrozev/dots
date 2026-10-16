@@ -46,6 +46,25 @@ The install script performs the following:
 5. **Agents**: Installs essential agent skills (Matt Pocock engineering skills, conventional-commit, frontend-design) via npm.
 6. **Integration**: Configures `r3` public URLs for Coder workspaces.
 
+### Agent Pod Mode
+An agent pod clones this repo at startup and runs the installer in its lean
+profile:
+
+```bash
+AGENT_POD=true bash install.sh
+```
+
+The pod's image already carries the shell (zsh, oh-my-zsh, p10k), the CLI tools
+(`miao`, `r3`, `codebase-memory-mcp`, the Zellij plugins) and the shell/dotfile
+wiring, so this mode skips every one of those installs and symlinks. It links
+only the authored agent config — `~/.omp/agent/` gets `config.yml` (the base
+config, linked as the default path does), `AGENTS.md`, `RULES.md`, `agents/`,
+`rules/`, `extensions/`, `skills/{implement,walkthrough,land}` and
+`pairing-workflow.html` — plus the cc-safety-net policy, the omp plugins
+(`cc-safety-net` and the neuralwatt fork), and the `tdd`, `code-review` and
+`conventional-commit` agent skills. The pod's own image supplies the agent-tier
+config overlay on top of the linked base `config.yml`.
+
 ### Manual Installation
 If you prefer not to use the script, manually symlink the required files:
 ```bash
