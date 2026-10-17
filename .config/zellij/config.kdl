@@ -51,7 +51,7 @@ keybinds clear-defaults=true {
         }
     }
 
-    // ── Locked mode: everything passes through (nvim/opencode/shell own keys). ──
+    // ── Locked mode: everything passes through (nvim/shell own keys). ──
     locked {
         // Manual unlock: disable autolock (so it won't instantly re-lock) → normal.
         bind "Ctrl g" {
@@ -318,7 +318,7 @@ plugins {
     }
     autolock location="file:~/.config/zellij/plugins/zellij-autolock.wasm" {
         is_enabled true
-        triggers "nvim|vim|git|fzf|zoxide|atuin|opencode|yazi|ssh|omp|pi|miao|miao-server"
+        triggers "nvim|vim|git|fzf|zoxide|atuin|yazi|ssh|omp|pi|miao|miao-server"
         reaction_seconds "0.3"
         print_to_log false
     }

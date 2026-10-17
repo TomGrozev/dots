@@ -88,8 +88,6 @@ skills:
     - ~/.agents/skills
   enableSkillCommands: true
 disabledProviders:
-  - opencode
-  - opencode-go
   - ollama
   - llama.cpp
   - lm-studio
@@ -445,8 +443,6 @@ goal:
 commands:
   enableClaudeUser: false
   enableClaudeProject: false
-  enableOpencodeUser: false
-  enableOpencodeProject: false
 debug:
   enabled: false
 fetch:

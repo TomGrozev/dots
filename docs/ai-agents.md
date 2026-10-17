@@ -1,6 +1,6 @@
 # AI Agent Tooling
 
-This repository integrates several tools for AI-assisted coding, centered around the `omp` orchestrator and `opencode`.
+This repository integrates several tools for AI-assisted coding, centered around the `omp` orchestrator.
 
 ## OMP (Orchestrator)
 
@@ -21,11 +21,6 @@ The orchestrator manages agent sessions, roles, and tool integrations.
   - **Extensions**: Custom functionality plugins in `.omp/extensions/`.
 - **Monitoring**: `WATCHDOG.md` describes the automated oversight process.
 - **Workflow**: See [pairing-workflow.md](pairing-workflow.md) for the collaboration map and [flow diagram](pairing-workflow.html).
-
-## OpenCode
-
-A set of tools for AI-powered code generation and interaction.
-- Configuration is located in `.config/opencode/`.
 
 ## Companion Tools
 

@@ -5,19 +5,18 @@ My personal dotfiles, mainly used to set up dev pods and AI-assisted coding.
 ## What's Included
 
 ### Shell & Core
-- **Zsh & Bash**: Full configuration (`.zshrc`, `.zshenv`, `.zprofile`, `.bashrc`, `.profile`) including Oh My Zsh and Powerlevel10k.
-- **Environment**: Specialized agent environment (`.agent-env.sh`) and tool versions via [asdf](https://asdf.io/) (`.tool-versions`).
+- **Zsh & Bash**: Full configuration (`.zshrc`, `.zshenv`, `.zprofile`, `.bashrc`) including Oh My Zsh and Powerlevel10k.
+- **Environment**: Tool versions via [asdf](https://asdf.io/) (`.tool-versions`).
 - **FZF**: Shell integration (`.fzf.bash`, `.fzf.zsh`).
 
 ### AI Agent Tooling
 - **OMP (Orchestrator)**: High-level agent management, roles, skills, and rules (`.omp/`).
-- **OpenCode**: AI-powered code interaction tools (`.config/opencode/`).
 - **Codebase Memory**: Knowledge graph MCP for structural codebase analysis.
 - **Companion Tools**: Captain Miao (session manager) and r3 (review tool).
 - **CortexKit**: AI toolkit integration (`.cortexkit/`, `.config/cortexkit/`).
 
 ### Editor & Git
-- **Neovim**: LazyVim-based configuration with custom AI and development plugins (`.config/nvim/`).
+- **Neovim**: LazyVim-based configuration with custom development plugins (`.config/nvim/`).
 - **Git**: GPG signing, delta pager, and global ignores (`.gitconfig`, `.gitignore_global`).
 - **Git Bot Identity**: Separate git identity for agent-made commits (`.config/git-bot-identity/`).
 
@@ -42,7 +41,7 @@ The install script performs the following:
 1. **Symlinks**: Maps dotfiles from `~/dotfiles` to home directory, backing up existing files with `.bak`.
 2. **Shell**: Installs Oh My Zsh and required plugins (syntax highlighting, autosuggestions) and Powerlevel10k.
 3. **Tooling**: Installs binaries for `codebase-memory-mcp`, `captain-miao`, and `r3`.
-4. **Configuration**: Sets up `.config/` subdirectories for `gh`, `nvim`, `opencode`, `ghostty`, `yazi`, `zellij`, `cortexkit`, and `captain-miao`.
+4. **Configuration**: Sets up `.config/` subdirectories for `gh`, `nvim`, `ghostty`, `yazi`, `zellij`, `cortexkit`, and `captain-miao`.
 5. **Agents**: Installs essential agent skills (Matt Pocock engineering skills, conventional-commit, frontend-design) via npm.
 6. **Integration**: Configures `r3` public URLs for Coder workspaces.
 
@@ -57,8 +56,8 @@ AGENT_POD=true bash install.sh
 The pod's image already carries omp, node, git, gh, zsh and the CLI tools
 (`miao`, `miao-server`, `zellij`, `d2`, …), so this mode skips the shell installs
 (oh-my-zsh, p10k), the interactive wiring (dotfile and `~/.config` symlinks,
-Zellij plugins, `r3`, opencode npm dependencies, the captain-miao dashboard) and
-the devcontainer `config.yml` bake. It links the authored agent config —
+Zellij plugins, `r3`, the captain-miao dashboard) and the devcontainer
+`config.yml` bake. It links the authored agent config —
 `~/.omp/agent/` gets `config.yml` (the base config, linked as the default path
 does), `mcp.json`, `AGENTS.md`, `RULES.md`, `agents/`, `rules/`, `extensions/`,
 `skills/{implement,walkthrough,land}` and `pairing-workflow.html` — plus the
@@ -82,5 +81,5 @@ ln -s ~/dotfiles/.gitconfig ~/.gitconfig
 
 ## Docs
 For detailed information on specific components, see the documentation:
-- [AI Agent Tooling](docs/ai-agents.md) - Detail on OMP, OpenCode, and supporting tools.
+- [AI Agent Tooling](docs/ai-agents.md) - Detail on OMP and supporting tools.
 

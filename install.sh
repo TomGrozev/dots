@@ -21,7 +21,7 @@ UNAME_ARCH="$(uname -m)"
 # gh, zsh and the CLI tools (miao, miao-server, zellij, d2, nvim, yazi, …), so
 # the sections that install a shell (oh-my-zsh, p10k) or the interactive
 # workspace wiring (dotfile and ~/.config symlinks, Zellij WASM plugins, r3,
-# opencode npm dependencies, the captain-miao dashboard) are skipped here: the
+# the captain-miao dashboard) are skipped here: the
 # clone exists only to supply the authored agent config under ~/.omp/agent.
 # Binary installs the image does NOT ship still run — each is guarded by its own
 # presence check, so one install path serves the laptop, the devcontainer and
@@ -183,8 +183,6 @@ files=(
   .zshrc
   .zshenv
   .zprofile
-  .profile
-  .agent-env.sh
   .p10k.zsh
   .bashrc
   .fzf.zsh
@@ -200,7 +198,7 @@ done
 echo ""
 echo "Creating .config symlinks..."
 
-config_dirs=(gh ghostty nvim opencode cortexkit yaji zellij)
+config_dirs=(gh ghostty nvim cortexkit yaji zellij)
 
 for dir in "${config_dirs[@]}"; do
   link_entry "$DOTFILES_DIR/.config/$dir" "$HOME/.config/$dir" ".config/$dir"
@@ -628,8 +626,8 @@ fi # AGENT_POD guard: captain-miao, its up-to-date check and install/update
 link_entry "$DOTFILES_DIR/bin/diagram" "$LOCAL_BIN/diagram" "~/.local/bin/diagram"
 
 # --- Clean up Plannotator (replaced by r3) ---
-# Skipped in AGENT_POD mode, with the r3 blocks and the opencode npm install
-# below: the pod runs none of these tools.
+# Skipped in AGENT_POD mode, with the r3 blocks below: the pod runs none of
+# these tools.
 if [ "$AGENT_POD" != "true" ]; then
 if [ -f "$LOCAL_BIN/plannotator" ]; then
   echo ""
@@ -691,23 +689,11 @@ else
   echo "  (run: r3 config set publicUrl <url> && r3 config set requireLogin 0)"
 fi
 
-# --- Install opencode npm dependencies ---
-echo ""
-echo "Installing opencode npm dependencies..."
+fi # AGENT_POD guard: Plannotator cleanup, r3
 
-if [ ! -f "$DOTFILES_DIR/.config/opencode/package.json" ]; then
-  echo "  No package.json in .config/opencode, skipping"
-elif command -v npm &>/dev/null; then
-  (cd "$DOTFILES_DIR/.config/opencode" && npm install --production)
-  echo "  opencode dependencies installed"
-else
-  echo "  npm not found. Install Node.js to get opencode plugin dependencies."
-fi
-fi # AGENT_POD guard: Plannotator cleanup, r3, opencode npm dependencies
-
-# --- Install agent skills (shared by opencode and omp) ---
+# --- Install agent skills (omp) ---
 # Skills install into ~/.agents/skills/, which omp exposes via its
-# config.yml `skills.customDirectories` and opencode reads natively.
+# config.yml `skills.customDirectories`.
 # `skills add -a universal` targets that shared directory agent-agnostically.
 # Matt Pocock engineering skills. `implement` and `to-tickets` are excluded from
 # MATT_POCOCK_SKILLS because pairing-workflow variants of both live in .omp/skills
