@@ -25,10 +25,13 @@ UNAME_ARCH="$(uname -m)"
 # clone exists only to supply the authored agent config under ~/.omp/agent.
 # Binary installs the image does NOT ship still run — each is guarded by its own
 # presence check, so one install path serves the laptop, the devcontainer and
-# the pod. The pod's image also supplies the agent-tier config overlay on top of
-# the linked base config.yml, so the devcontainer bake below never runs in this
-# mode either. Unset, or any value other than "true", keeps the full install
-# below unchanged.
+# the pod. The image ships no omp config of its own — no PI_CONFIG_FILES
+# overlay, no config.yml, no APPEND_SYSTEM.md — so everything unattended-
+# specific arrives from this clone: this mode bakes .omp/config-agent-pod.yml
+# into config.yml (same mechanism as the devcontainer bake below, different
+# overlay) and links .omp/APPEND_SYSTEM-agent-pod.md as the append-to-system-
+# prompt file omp auto-discovers. Unset, or any value other than "true", keeps
+# the full install below unchanged.
 AGENT_POD="${AGENT_POD:-false}"
 
 mkdir -p "$OMP_AGENT_DIR" "$LOCAL_BIN"
@@ -255,6 +258,17 @@ fi # AGENT_POD guard: dotfile, .config and captain-miao symlinks
 echo ""
 echo "Linking omp config..."
 
+# The overlay this mode bakes into config.yml, if any (see the block after this
+# loop). Only the devcontainer and the agent pod ship one; everywhere else
+# config.yml is linked like any other entry. The agent image deliberately ships
+# no omp config overlay of its own, so the pod's comes from this clone.
+CONFIG_OVERLAY=""
+if [ "$AGENT_POD" = "true" ] && [ -f "$DOTFILES_DIR/.omp/config-agent-pod.yml" ]; then
+  CONFIG_OVERLAY="$DOTFILES_DIR/.omp/config-agent-pod.yml"
+elif [ "$AGENT_POD" != "true" ] && [ "${DEVCONTAINER:-}" = "true" ] && [ -f "$DOTFILES_DIR/.omp/config-devcontainer.yml" ]; then
+  CONFIG_OVERLAY="$DOTFILES_DIR/.omp/config-devcontainer.yml"
+fi
+
 # The lean agent-pod profile links only the authored config the pod runs on:
 # WATCHDOG.md, config-devcontainer.yml and hooks belong to the laptop and
 # devcontainer installs, and skills/ is narrowed to the pairing-workflow skills
@@ -268,10 +282,10 @@ else
 fi
 
 for entry in "${omp_entries[@]}"; do
-  # config.yml is handled below in devcontainers: baked with the overlay
-  # merged in, not symlinked (see the block after this loop). AGENT_POD takes
-  # precedence: the pod always gets the base config.yml linked, never the bake.
-  if [ "$entry" = "config.yml" ] && [ "$AGENT_POD" != "true" ] && [ "${DEVCONTAINER:-}" = "true" ] && [ -f "$DOTFILES_DIR/.omp/config-devcontainer.yml" ]; then
+  # config.yml is baked with this mode's overlay merged in, not symlinked (see
+  # the block after this loop): the devcontainer merges config-devcontainer.yml,
+  # the agent pod config-agent-pod.yml.
+  if [ "$entry" = "config.yml" ] && [ -n "$CONFIG_OVERLAY" ]; then
     continue
   fi
   link_entry "$DOTFILES_DIR/.omp/$entry" "$OMP_AGENT_DIR/$entry" "~/.omp/agent/$entry"
@@ -289,34 +303,54 @@ fi
 # the agent's instructions can point at it.
 link_entry "$DOTFILES_DIR/docs/pairing-workflow.html" "$OMP_AGENT_DIR/pairing-workflow.html" "~/.omp/agent/pairing-workflow.html"
 
-# --- Devcontainer: bake config-devcontainer.yml into config.yml ---
-# A PI_CONFIG_FILES env var could select this overlay dynamically for shells that
-# source it - but captain-miao's remote/pooled session spawn never runs a shell at
-# all (miao-server launches the agent binary directly with a hardcoded minimal
-# env), so that env var would never reach it. Deep-merge the overlay into
-# config.yml itself at install time instead, so the file omp loads by default
-# already has it - no env var required. Arrays replace wholesale (documented in
-# config-devcontainer.yml's own header), matching PI_CONFIG_FILES's merge semantics
-# exactly (verified: both routes resolve tools.approvalMode to "yolo" identically).
-# Falls back to a plain symlink of the base config.yml if python3/pip/pyyaml is
-# unavailable - that fails safe (restrictive approvalMode) rather than silently
-# leaving no config.yml at all.
-if [ "$AGENT_POD" != "true" ] && [ "${DEVCONTAINER:-}" = "true" ] && [ -f "$DOTFILES_DIR/.omp/config-devcontainer.yml" ]; then
+# --- Bake the mode's overlay into config.yml ---
+# A PI_CONFIG_FILES env var could select an overlay dynamically for shells that
+# source it - but two of the modes that need one never run a shell at all: the
+# devcontainer's captain-miao remote/pooled session spawn (miao-server launches
+# the agent binary directly with a hardcoded minimal env) and the agent pod's
+# kelos_entrypoint.sh (a single `omp -p` process). So neither can rely on an env
+# var, and the pod's image deliberately ships no overlay of its own. Deep-merge
+# the overlay into config.yml itself at install time instead, so the file omp
+# loads by default already has it - no env var required. Arrays replace wholesale
+# (documented in the overlays' own headers), matching PI_CONFIG_FILES's merge
+# semantics exactly (verified: both routes resolve tools.approvalMode to "yolo"
+# identically). Falls back to a plain symlink of the base config.yml if
+# python3/pip/pyyaml is unavailable - that fails safe (restrictive approvalMode)
+# rather than silently leaving no config.yml at all.
+#
+# pyyaml is acquired by import first, install second: it is often already
+# importable (in which case no network is touched), and the two pip spellings
+# cover the distros whose pip predates --break-system-packages (it needs
+# pip >= 23.0.1, and macOS's system python3 has an older one - without the
+# fallback the pod would silently lose its whole overlay).
+if [ -n "$CONFIG_OVERLAY" ]; then
   echo ""
-  echo "Baking devcontainer overlay into config.yml..."
+  echo "Baking $(basename "$CONFIG_OVERLAY") into config.yml..."
   if command -v python3 >/dev/null 2>&1 &&
-    python3 -m pip install --quiet --user --break-system-packages pyyaml >/dev/null 2>&1 &&
+    { python3 -c "import yaml" >/dev/null 2>&1 ||
+      python3 -m pip install --quiet --user --break-system-packages pyyaml >/dev/null 2>&1 ||
+      python3 -m pip install --quiet --user pyyaml >/dev/null 2>&1; } &&
     python3 "$DOTFILES_DIR/.omp/merge-config.py" \
       "$DOTFILES_DIR/.omp/config.yml" \
-      "$DOTFILES_DIR/.omp/config-devcontainer.yml" \
+      "$CONFIG_OVERLAY" \
       "$OMP_AGENT_DIR/config.yml"; then
     echo "  Wrote merged config.yml"
   else
     echo "  WARNING: merge failed (python3/pyyaml unavailable?) - falling back to plain config.yml symlink"
-    echo "  (devcontainer overlay will NOT apply - approvalMode stays restrictive until python3/pyyaml"
+    echo "  ($(basename "$CONFIG_OVERLAY") will NOT apply - approvalMode stays restrictive until python3/pyyaml"
     echo "  is available and install.sh is re-run)"
     link_entry "$DOTFILES_DIR/.omp/config.yml" "$OMP_AGENT_DIR/config.yml" "~/.omp/agent/config.yml"
   fi
+fi
+
+# --- Link the unattended system-prompt addendum (agent pod only) ---
+# omp appends ~/.omp/agent/APPEND_SYSTEM.md to the main session's system prompt
+# when --append-system-prompt is absent (omp 18.8.7 resolves the append file by
+# auto-discovery: <agentDir>/APPEND_SYSTEM.md), so the addendum is installed
+# under the discovered name rather than passed on the pod's command line - the
+# image passes none. Linked, not copied: it is authored config.
+if [ "$AGENT_POD" = "true" ]; then
+  link_entry "$DOTFILES_DIR/.omp/APPEND_SYSTEM-agent-pod.md" "$OMP_AGENT_DIR/APPEND_SYSTEM.md" "~/.omp/agent/APPEND_SYSTEM.md"
 fi
 
 # --- Link cc-safety-net policy ---
