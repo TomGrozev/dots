@@ -16,21 +16,27 @@ UNAME_ARCH="$(uname -m)"
 
 # AGENT_POD=true selects the lean profile for an agent pod: a disposable
 # container that clones this repo at runtime and runs
-# `AGENT_POD=true bash install.sh` from the clone. The pod's image already
-# carries the shell (zsh, oh-my-zsh, p10k), the CLI tools (miao, r3,
-# codebase-memory-mcp, the Zellij WASM plugins) and the shell/dotfile wiring, so
-# every section that installs those is skipped here: the clone exists only to
-# supply the authored agent config under ~/.omp/agent. The pod's image also
-# supplies the agent-tier config overlay on top of the linked base config.yml,
-# so the devcontainer bake below never runs in this mode either. Unset, or any
-# value other than "true", keeps the full install below unchanged.
+# `AGENT_POD=true bash install.sh` from the clone (kelos_entrypoint.sh in
+# TomGrozev/devcontainers). The pod's image already carries omp, node/npm, git,
+# gh, zsh and the CLI tools (miao, miao-server, zellij, d2, nvim, yazi, …), so
+# the sections that install a shell (oh-my-zsh, p10k) or the interactive
+# workspace wiring (dotfile and ~/.config symlinks, Zellij WASM plugins, r3,
+# opencode npm dependencies, the captain-miao dashboard) are skipped here: the
+# clone exists only to supply the authored agent config under ~/.omp/agent.
+# Binary installs the image does NOT ship still run — each is guarded by its own
+# presence check, so one install path serves the laptop, the devcontainer and
+# the pod. The pod's image also supplies the agent-tier config overlay on top of
+# the linked base config.yml, so the devcontainer bake below never runs in this
+# mode either. Unset, or any value other than "true", keeps the full install
+# below unchanged.
 AGENT_POD="${AGENT_POD:-false}"
 
-mkdir -p "$OMP_AGENT_DIR"
-# ~/.local/bin and ~/.config only ever receive the installs and symlinks the
-# lean profile skips, so it does not create them.
+mkdir -p "$OMP_AGENT_DIR" "$LOCAL_BIN"
+# ~/.config only ever receives the symlinks and installs the lean profile skips,
+# so it does not create it. ~/.local/bin is different: the pod still gets the
+# codebase-memory-mcp binary and the `diagram` link there.
 if [ "$AGENT_POD" != "true" ]; then
-  mkdir -p "$LOCAL_BIN" "$HOME/.config"
+  mkdir -p "$HOME/.config"
 fi
 
 # --- Helpers ---
@@ -161,7 +167,12 @@ rmdir "$HOME/.pi/agent" "$HOME/.pi" 2>/dev/null || true
 rmdir "$HOME/.omp/plugins/node_modules/@mikefreno" 2>/dev/null || true
 
 # --- Symlink dotfiles ---
-# Skipped in AGENT_POD mode: the pod's image owns the shell/dotfile wiring.
+# Skipped in AGENT_POD mode: the pod's image owns the shell/dotfile wiring, and
+# the pod must not take this repo's git identity. `.gitconfig` carries the
+# human's user.name/user.email and `commit.gpgsign = true` against a signing key
+# that exists only on the laptop. The pod's identity, signing key and token come
+# from the git-bot-identity extension instead, which composes them per call and
+# shadows the global config (GIT_CONFIG_GLOBAL → its own deny-gitconfig).
 if [ "$AGENT_POD" != "true" ]; then
 echo ""
 echo "Creating symlinks..."
@@ -247,11 +258,13 @@ echo ""
 echo "Linking omp config..."
 
 # The lean agent-pod profile links only the authored config the pod runs on:
-# mcp.json, WATCHDOG.md, config-devcontainer.yml and hooks belong to the laptop
-# and devcontainer installs, and skills/ is narrowed to the pairing-workflow
-# skills linked after the loop.
+# WATCHDOG.md, config-devcontainer.yml and hooks belong to the laptop and
+# devcontainer installs, and skills/ is narrowed to the pairing-workflow skills
+# linked after the loop. mcp.json is linked in both modes: the codebase-memory
+# server is how the pod's agent learns the ticket's repo, and the other two are
+# hosted.
 if [ "$AGENT_POD" = "true" ]; then
-  omp_entries=(config.yml AGENTS.md RULES.md agents extensions rules)
+  omp_entries=(config.yml mcp.json AGENTS.md RULES.md agents extensions rules)
 else
   omp_entries=(config.yml config-devcontainer.yml mcp.json AGENTS.md RULES.md WATCHDOG.md agents extensions rules hooks skills)
 fi
@@ -342,7 +355,10 @@ if command -v omp &>/dev/null; then
 fi
 
 # --- Download Zellij WASM plugins ---
-# Skipped in AGENT_POD mode: the pod's image ships the Zellij plugin set.
+# Skipped in AGENT_POD mode: the pod runs `omp -p`, a single headless process
+# with no terminal, so it never starts zellij. The base image ships the zellij
+# binary but not these plugin WASMs, and they only ever land in
+# ~/.config/zellij — which the pod does not link either.
 if [ "$AGENT_POD" != "true" ]; then
 echo ""
 echo "Downloading Zellij plugins..."
@@ -406,8 +422,10 @@ done
 fi # AGENT_POD guard: Zellij WASM plugins
 
 # --- Install codebase-memory-mcp ---
-# Skipped in AGENT_POD mode: the pod's image ships the binary.
-if [ "$AGENT_POD" != "true" ]; then
+# Runs in every mode, AGENT_POD included: the pod's image ships neither the
+# binary nor an index, and the pod's mcp.json names it. The presence check below
+# is what makes that safe — the laptop and the devcontainer already have it, so
+# this is a no-op there.
 echo ""
 echo "Installing codebase-memory-mcp..."
 
@@ -492,12 +510,11 @@ else
 
   echo "  codebase-memory-mcp installed to ~/.local/bin/codebase-memory-mcp"
 fi
-fi # AGENT_POD guard: codebase-memory-mcp
 
 # --- Install captain-miao (coding agent session manager) ---
-# Skipped in AGENT_POD mode, together with the up-to-date check, the
-# install/update block and the ~/.local/bin/diagram link below: the pod's image
-# ships these binaries.
+# Skipped in AGENT_POD mode, together with the up-to-date check and the
+# install/update block below: the pod's image ships both binaries, and an
+# unattended run never launches the dashboard.
 if [ "$AGENT_POD" != "true" ]; then
 # Installs the `miao` dashboard binary. The `miao-server` daemon is a separate
 # release asset and ships in the devcontainer image. Release assets embed the
@@ -601,9 +618,14 @@ if [ "$INSTALL_MIAO" = "1" ]; then
 
   echo "  captain-miao installed to ~/.local/bin/miao"
 fi
+fi # AGENT_POD guard: captain-miao, its up-to-date check and install/update
 
+# --- Link the diagram helper ---
+# Unguarded: the pod's AGENTS.md tells the agent to draw flows with
+# `diagram <name>.d2`, and the helper degrades on its own where images cannot be
+# shown (it prints "no images: use mermaid"), so the pod wants this link too.
+# The base image ships d2, which the helper calls.
 link_entry "$DOTFILES_DIR/bin/diagram" "$LOCAL_BIN/diagram" "~/.local/bin/diagram"
-fi # AGENT_POD guard: captain-miao, its up-to-date check and install/update, diagram
 
 # --- Clean up Plannotator (replaced by r3) ---
 # Skipped in AGENT_POD mode, with the r3 blocks and the opencode npm install
@@ -719,9 +741,10 @@ MATT_POCOCK_SKILLS=(
   writing-for-agents
 )
 
-# Lean agent-pod profile: only the review and commit-convention skills the pod's
-# agent-tier config names; the rest, plus frontend-design and apple-design
-# below, are laptop-side work skills.
+# Lean agent-pod profile: of the Matt Pocock skills, only tdd and code-review are
+# named by the pod's agent-tier config (its skills.includeSkills allowlist); the
+# rest are laptop-side work skills. The two design skills below come from other
+# repos and are installed in both modes.
 if [ "$AGENT_POD" = "true" ]; then
   MATT_POCOCK_SKILLS=(tdd code-review)
 fi
@@ -748,13 +771,15 @@ if command -v npm &>/dev/null; then
   echo "  Installing conventional-commit skill..."
   npx skills add https://github.com/github/awesome-copilot --skill conventional-commit -a universal -y -g
 
-  if [ "$AGENT_POD" != "true" ]; then
+  # Installed in AGENT_POD mode too: a pod handed a UI ticket should be able to
+  # reach them. They stay invisible in the pod until the agent image's own
+  # skills.includeSkills allowlist (TomGrozev/devcontainers,
+  # images/agent/agent.yml) names them.
   echo "  Installing frontend-design skill..."
   npx skills add https://github.com/anthropics/skills --skill frontend-design -a universal -y -g
 
   echo "  Installing apple-design skill..."
   npx skills add https://github.com/emilkowalski/skills --skill apple-design -a universal -y -g
-  fi
 else
   echo "  npm not found. Install Node.js to install agent skills."
 fi

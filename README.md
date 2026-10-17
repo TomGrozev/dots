@@ -54,16 +54,23 @@ profile:
 AGENT_POD=true bash install.sh
 ```
 
-The pod's image already carries the shell (zsh, oh-my-zsh, p10k), the CLI tools
-(`miao`, `r3`, `codebase-memory-mcp`, the Zellij plugins) and the shell/dotfile
-wiring, so this mode skips every one of those installs and symlinks. It links
-only the authored agent config — `~/.omp/agent/` gets `config.yml` (the base
-config, linked as the default path does), `AGENTS.md`, `RULES.md`, `agents/`,
-`rules/`, `extensions/`, `skills/{implement,walkthrough,land}` and
-`pairing-workflow.html` — plus the cc-safety-net policy, the omp plugins
-(`cc-safety-net` and the neuralwatt fork), and the `tdd`, `code-review` and
-`conventional-commit` agent skills. The pod's own image supplies the agent-tier
-config overlay on top of the linked base `config.yml`.
+The pod's image already carries omp, node, git, gh, zsh and the CLI tools
+(`miao`, `miao-server`, `zellij`, `d2`, …), so this mode skips the shell installs
+(oh-my-zsh, p10k), the interactive wiring (dotfile and `~/.config` symlinks,
+Zellij plugins, `r3`, opencode npm dependencies, the captain-miao dashboard) and
+the devcontainer `config.yml` bake. It links the authored agent config —
+`~/.omp/agent/` gets `config.yml` (the base config, linked as the default path
+does), `mcp.json`, `AGENTS.md`, `RULES.md`, `agents/`, `rules/`, `extensions/`,
+`skills/{implement,walkthrough,land}` and `pairing-workflow.html` — plus the
+cc-safety-net policy, the omp plugins (`cc-safety-net` and the neuralwatt fork),
+the `diagram` helper and the agent skills. The pod's own image supplies the
+agent-tier config overlay on top of the linked base `config.yml`, and its
+`skills.includeSkills` allowlist decides which installed skills the pod's agent
+can actually read.
+
+Binary installs that the image does not ship still run in this mode, because each
+is guarded by a presence check: `codebase-memory-mcp` lands in `~/.local/bin` on
+a fresh pod, and is a no-op wherever it already exists.
 
 ### Manual Installation
 If you prefer not to use the script, manually symlink the required files:
