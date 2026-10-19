@@ -62,6 +62,26 @@ link_entry() {
   echo "  Linked $label"
 }
 
+# --- Arch Linux system packages ---
+# Runs first because everything below assumes git, curl and zsh exist. Only on
+# Arch hosts: the Mac, the devcontainers and the agent pods get their tools
+# elsewhere (Homebrew / the image). --needed makes re-runs skip installed packages.
+if [ -f /etc/arch-release ] && [ "$AGENT_POD" != "true" ]; then
+  echo ""
+  echo "Installing Arch packages..."
+  sudo pacman -S --needed --noconfirm - < "$DOTFILES_DIR/packages/arch.txt"
+
+  # AUR packages go through paru; bootstrap it from the prebuilt paru-bin when absent.
+  if ! command -v paru &>/dev/null; then
+    echo "  Bootstrapping paru..."
+    paru_build="$(mktemp -d)"
+    git clone --quiet --depth=1 https://aur.archlinux.org/paru-bin.git "$paru_build"
+    (cd "$paru_build" && makepkg -si --noconfirm)
+    rm -rf "$paru_build"
+  fi
+  paru -S --needed --noconfirm - < "$DOTFILES_DIR/packages/aur.txt"
+fi
+
 # --- Install Oh My Zsh ---
 # Skipped in AGENT_POD mode: the pod's image ships its own shell.
 if [ "$AGENT_POD" != "true" ]; then
@@ -363,6 +383,28 @@ CCSN_DIR="$HOME/.cc-safety-net"
 mkdir -p "$CCSN_DIR"
 ln -sfn "$DOTFILES_DIR/.cc-safety-net/policy.json" "$CCSN_DIR/policy.json"
 echo "  Linked ~/.cc-safety-net/policy.json"
+
+# --- Install omp (Linux) ---
+# The devcontainer and pod images ship omp; a bare Linux host (e.g. Arch) does
+# not. Presence-checked, so it is a no-op wherever omp already exists. Updates
+# afterwards are omp's own job, so this only fetches the latest release once.
+if [ "$UNAME_OS" = "linux" ] && ! command -v omp &>/dev/null; then
+  case "$UNAME_ARCH" in
+    x86_64) omp_arch="x64" ;;
+    aarch64|arm64) omp_arch="arm64" ;;
+    *) omp_arch="" ;;
+  esac
+  if [ -n "$omp_arch" ]; then
+    echo ""
+    echo "Installing omp..."
+    curl -fsSL -o "$LOCAL_BIN/omp" \
+      "https://github.com/can1357/oh-my-pi/releases/latest/download/omp-linux-$omp_arch"
+    chmod +x "$LOCAL_BIN/omp"
+    export PATH="$LOCAL_BIN:$PATH"
+  else
+    echo "  Skipping omp: unsupported arch $UNAME_ARCH"
+  fi
+fi
 
 # --- Install omp plugins ---
 # omp npm plugins installed into ~/.omp/plugins/. omp's plugin state is runtime-
