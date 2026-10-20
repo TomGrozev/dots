@@ -3,6 +3,10 @@
 # notifications module — popups are the whole notification surface.
 
 font=FiraCode Nerd Font 11
+# mako looks icons up in hicolor/pixmaps rather than the installed theme, so
+# without this the icons the polar scripts pass never resolve; the cards are
+# light, so Papirus (dark glyphs) is the readable choice.
+icon-path=/usr/share/icons/Papirus
 max-history=20
 max-visible=5
 sort=-time
@@ -18,7 +22,7 @@ anchor=top-right
 layer=overlay
 
 background-color=#E5E9F0F5
-text-color=#D8DEE9FF
+text-color=#2E3440FF
 border-color=#88C0D0FF
 
 default-timeout=8000
@@ -35,7 +39,7 @@ on-button-right=dismiss
 # Urgency: frost for normal, muted slate for low, Aurora red for critical.
 [urgency=low]
 border-color=#4C566AFF
-text-color=#D8DEE9FF
+text-color=#4C566AFF
 default-timeout=4000
 
 [urgency=normal]
@@ -45,6 +49,7 @@ default-timeout=8000
 [urgency=critical]
 border-color=#BF616AFF
 background-color=#3B4252F5
+text-color=#ECEFF4FF
 default-timeout=0
 
 # Do-not-disturb: hide everything except critical alerts.
@@ -59,9 +64,6 @@ invisible=0
 # icon and bar stay the only decoration.
 [app-name=polar-osd]
 anchor=top-center
-# mako only searches hicolor/pixmaps by default; the audio icons live in the
-# installed icon theme, and the light Papirus glyphs stay dark on the pill.
-icon-path=/usr/share/icons/Papirus
 width=230
 height=88
 margin=8
