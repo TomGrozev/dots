@@ -43,19 +43,38 @@ end
 
 Polar = {}
 
+local function tui_window(name)
+    local class = "polar.tui." .. name
+    for _, win in ipairs(hl.get_windows()) do
+        if win.class == class then return win end
+    end
+end
+
 --- Toggle a drop-down TUI on its own special workspace.
--- Launched once per boot; afterwards the app keeps its state and only the
--- workspace visibility changes.
+-- The app lives for one window: quitting it (q in btop, exiting lazygit)
+-- resets `launched`, so the next shortcut starts a fresh instance.
 function Polar.tui(name)
     local cmd = TUIS[name]
     if not cmd then
         error("Polar.tui: unknown scratchpad '" .. tostring(name) .. "'")
     end
 
-    -- Show the workspace before the app maps: a window that appears on an
-    -- already-visible special is focused by the window.open handler below,
-    -- whereas one that maps on a hidden special loses that focus race.
-    hl.dispatch(hl.dsp.workspace.toggle_special(name))
+    local special = hl.get_active_special_workspace()
+    local showing = special ~= nil and special.name == "special:" .. name
+
+    -- A running app: the shortcut only shows or hides its scratchpad.
+    if tui_window(name) then
+        hl.dispatch(hl.dsp.workspace.toggle_special(name))
+        return
+    end
+
+    -- No window (the user quit the app): relaunch it. Show the workspace
+    -- before the app maps, unless it is already up -- toggling there would
+    -- hide it and the new window would open behind the previous workspace.
+    -- An already-visible special gets focused by the window.open handler.
+    if not showing then
+        hl.dispatch(hl.dsp.workspace.toggle_special(name))
+    end
 
     if not launched[name] then
         launched[name] = true
@@ -108,4 +127,12 @@ hl.on("window.open", function(win)
     if win.workspace.name ~= special.name then return end
     if not win.class:match("^polar%.tui%.") then return end
     hl.dispatch(hl.dsp.focus({ window = win }))
+end)
+
+-- Quitting a TUI must clear its launch state, or the shortcut would only
+-- reveal an empty scratchpad for the rest of the session. close carries the
+-- class; destroy's Window has none by the time it fires.
+hl.on("window.close", function(win)
+    local name = win.class:match("^polar%.tui%.(.+)$")
+    if name then launched[name] = nil end
 end)
