@@ -12,3 +12,6 @@ node_modules/
 package-lock.json
 
 .zprofile
+
+# OpenWhispr rewrites this at runtime
+.config/hypr/openwhispr-binds.lua

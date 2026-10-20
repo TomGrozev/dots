@@ -1,0 +1,129 @@
+#!/usr/bin/env bash
+# Tip of the day. Two sources: the live cheat sheet (so tips follow the real
+# keymap) and ~/.config/polar/tips.txt for things that are not a keybind.
+set -euo pipefail
+
+cache_dir=${XDG_CACHE_HOME:-$HOME/.cache}/polar
+state_dir=${XDG_STATE_HOME:-$HOME/.local/state}/polar
+config_dir=${XDG_CONFIG_HOME:-$HOME/.config}/polar
+tsv=$cache_dir/cheatsheet.tsv
+tips_file=$config_dir/tips.txt
+seen_file=$state_dir/tips-seen
+last_file=$state_dir/tips-last
+off_file=$state_dir/tips-off
+
+# Every tip says how to get rid of tips; that hint must never go stale.
+OFF_HINT='Turn tips off: SUPER+Space h o'
+
+usage() {
+  cat <<'EOF'
+Usage: polar-tip [--login|--now|--on|--off] [--help]
+
+  --login   show one tip, at most once per day (silent while tips are off)
+  --now     show one tip immediately
+  --on      enable the login tip
+  --off     disable the login tip (--now still works)
+
+Tips come from the cheat sheet (real keybindings) plus ~/.config/polar/tips.txt.
+Each tip is shown once; the seen list resets when every tip has been shown.
+EOF
+}
+
+notify() {
+  if command -v notify-send >/dev/null 2>&1; then
+    notify-send --app-name=Polar --icon=dialog-information "$@" 2>/dev/null || true
+  else
+    printf 'polar: %s\n' "$*" >&2
+  fi
+}
+
+# cksum keeps the seen list one short line per tip, so multi-line tips and
+# tabs in descriptions cannot corrupt it.
+tip_key() {
+  printf '%s' "$1" | cksum | cut -d' ' -f1
+}
+
+show_one() {
+  local tips=() tip unseen=()
+  local group chord desc title body
+
+  if [ -r "$tsv" ]; then
+    while IFS=$'\t' read -r group chord desc _; do
+      [ -n "$chord" ] && [ -n "$desc" ] || continue
+      tips+=("Try $chord — $desc")
+    done <"$tsv"
+  fi
+
+  if [ -r "$tips_file" ]; then
+    while IFS=$'\t' read -r title body; do
+      [ -n "$title" ] || continue
+      if [ -n "$body" ]; then
+        tips+=("$title"$'\n'"$body")
+      else
+        tips+=("$title")
+      fi
+    done <"$tips_file"
+  fi
+
+  if [ ${#tips[@]} -eq 0 ]; then
+    printf 'polar-tip: no tips available (missing %s and %s)\n' "$tsv" "$tips_file" >&2
+    return 1
+  fi
+
+  mkdir -p "$state_dir"
+  touch "$seen_file"
+  for tip in "${tips[@]}"; do
+    if ! grep -qxF "$(tip_key "$tip")" "$seen_file"; then
+      unseen+=("$tip")
+    fi
+  done
+
+  if [ ${#unseen[@]} -eq 0 ]; then
+    : >"$seen_file"
+    unseen=("${tips[@]}")
+  fi
+
+  tip=${unseen[RANDOM % ${#unseen[@]}]}
+  printf '%s\n' "$(tip_key "$tip")" >>"$seen_file"
+  notify "Polar tip" "$tip"$'\n\n'"$OFF_HINT"
+}
+
+case "${1:-}" in
+--login)
+  if [ -e "$off_file" ]; then
+    exit 0
+  fi
+  mkdir -p "$state_dir"
+  today=$(date +%F)
+  if [ -r "$last_file" ] && [ "$(cat "$last_file")" = "$today" ]; then
+    exit 0
+  fi
+  if show_one; then
+    printf '%s\n' "$today" >"$last_file"
+  fi
+  ;;
+--now)
+  show_one
+  ;;
+--on)
+  rm -f "$off_file"
+  notify "Polar tip" "Daily tips are on."
+  ;;
+--off)
+  mkdir -p "$state_dir"
+  : >"$off_file"
+  notify "Polar tip" "Daily tips are off. Turn them back on: polar-tip --on"
+  ;;
+-h | --help)
+  usage
+  ;;
+"")
+  usage >&2
+  exit 2
+  ;;
+*)
+  printf 'polar-tip: unknown argument: %s\n' "$1" >&2
+  usage >&2
+  exit 2
+  ;;
+esac

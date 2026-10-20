@@ -1,0 +1,121 @@
+# Polar bar: 24px, translucent Nord, guidance-first.
+# Position: the bar itself is the "mode hint" surface — bindmode, focus,
+# recording and DND all live here so the current state is always visible.
+
+name = "polar"
+position = "top"
+height = 24
+anchor_to_edges = true
+layer = "top"
+exclusive_zone = true
+popup_gap = 4
+
+# Read by the mode badges. The scripts own these values (`ironbar var set`).
+ironvar_defaults = { polar_focus = "false", polar_recording = "false", polar_dnd = "false" }
+
+# --- Left: workspace dots + scratchpad indicator ---
+
+# Favourites pin 1..10 so the row is a stable, tiny target instead of a
+# list that shifts as workspaces come and go.
+# `hidden` keeps the five TUI scratchpads out of the row. Both spellings are
+# listed because Hyprland reports `special:<name>` in its JSON while ironbar
+# has historically passed through the stripped name.
+[[start]]
+type = "workspaces"
+sort = "index"
+favorites = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10"]
+hidden = [
+  "special:term", "term",
+  "special:files", "files",
+  "special:top", "top",
+  "special:audio", "audio",
+  "special:git", "git",
+]
+
+# Focused scratchpad. Empty when none is shown, so the dot row stays calm.
+[[start]]
+type = "custom"
+name = "scratchpad"
+class = "scratchpad"
+bar = [
+  { type = "label", label = '{{1000:hyprctl monitors -j | jq -r ".[] | select(.focused) | .specialWorkspace.name" | sed "s/^special://"}}' },
+]
+
+# --- Centre: clock (click opens the calendar popup) ---
+[[center]]
+type = "clock"
+format = "%a %d %b  %H:%M"
+format_popup = "%H:%M"
+show_week_numbers = true
+
+# --- Right: mode badges, audio, resources, tray ---
+
+# The resize submap name; HyprCore names it `resize` so the badge reads
+# `resize`. bindmode has no format option, so the exit hint is the adjacent
+# module below — both appear only while a submap is active.
+[[end]]
+type = "bindmode"
+name = "bindmode"
+class = "mode"
+
+[[end]]
+type = "custom"
+name = "mode-hint"
+class = "mode-hint"
+show_if = 'test -n "$(hyprctl submap)"'
+bar = [
+  { type = "label", label = " · Esc" },
+]
+
+[[end]]
+type = "custom"
+name = "focus-badge"
+class = "badge"
+show_if = "#polar_focus"
+bar = [
+  { type = "button", label = "FOCUS · Super+Z", class = "pill focus", on_click = "!polar-focus" },
+]
+
+[[end]]
+type = "custom"
+name = "recording-badge"
+class = "badge"
+show_if = "#polar_recording"
+bar = [
+  { type = "label", label = "● REC · Super+Space r x", class = "pill recording" },
+]
+
+[[end]]
+type = "custom"
+name = "dnd-badge"
+class = "badge"
+show_if = "#polar_dnd"
+bar = [
+  { type = "button", label = "DND", class = "pill dnd", on_click = "!polar-dnd" },
+]
+
+[[end]]
+type = "volume"
+format = "{icon} {percentage}%"
+show_sources = false
+on_click_left = "hyprctl eval \"Polar.tui('audio')\""
+on_scroll_up = "wpctl set-volume @DEFAULT_AUDIO_SINK@ 2%+"
+on_scroll_down = "wpctl set-volume @DEFAULT_AUDIO_SINK@ 2%-"
+
+[end.icons]
+volume = "󰕾"
+muted = "󰝟"
+
+[[end]]
+type = "sys_info"
+format = ["{cpu_percent}%", "{memory_percent}%"]
+
+[end.interval]
+cpu = 2
+memory = 10
+
+[[end]]
+type = "tray"
+icon_size = 16
+direction = "horizontal"
+prefer_theme_icons = true

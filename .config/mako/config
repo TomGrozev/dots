@@ -1,0 +1,55 @@
+# Polar notifications: Nord, top-right, 8px corners.
+# mako is the only notification daemon here (no SwayNC), so ironbar has no
+# notifications module — popups are the whole notification surface.
+
+font=FiraCode Nerd Font 11
+max-history=20
+max-visible=5
+sort=-time
+
+width=360
+height=180
+margin=10
+outer-margin=12,12
+padding=10
+border-size=2
+border-radius=8
+anchor=top-right
+layer=overlay
+
+background-color=#2E3440F2
+text-color=#D8DEE9FF
+border-color=#88C0D0FF
+
+default-timeout=8000
+ignore-timeout=0
+markup=1
+icons=1
+max-icon-size=32
+icon-border-radius=4
+
+on-button-left=invoke-default-action
+on-button-middle=dismiss
+on-button-right=dismiss
+
+# Urgency: frost for normal, muted slate for low, Aurora red for critical.
+[urgency=low]
+border-color=#4C566AFF
+text-color=#D8DEE9FF
+default-timeout=4000
+
+[urgency=normal]
+border-color=#88C0D0FF
+default-timeout=8000
+
+[urgency=critical]
+border-color=#BF616AFF
+background-color=#3B4252F5
+default-timeout=0
+
+# Do-not-disturb: hide everything except critical alerts.
+[mode=do-not-disturb]
+invisible=1
+
+[mode=do-not-disturb urgency=critical]
+invisible=0

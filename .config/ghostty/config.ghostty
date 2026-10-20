@@ -17,6 +17,9 @@ window-padding-x = 16
 window-padding-y = 12
 window-decoration = true
 
+# Let the Hyprland blur show through the Polar glass.
+background-opacity = 0.94
+
 # Futuristic cursor
 cursor-style = bar
 cursor-opacity = 0.9

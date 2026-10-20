@@ -1,0 +1,83 @@
+#!/usr/bin/env bash
+# Session menu. Destructive actions ask once more; everything else acts at once.
+set -euo pipefail
+
+usage() {
+  cat <<'EOF'
+Usage: polar-power [--help]
+
+Session menu: lock, suspend, reboot, power off, log out. Reboot and power off
+ask for confirmation first.
+EOF
+}
+
+notify() {
+  if command -v notify-send >/dev/null 2>&1; then
+    notify-send --app-name=Polar --icon=dialog-information "$@" 2>/dev/null || true
+  else
+    printf 'polar: %s\n' "$*" >&2
+  fi
+}
+
+require() {
+  if ! command -v "$1" >/dev/null 2>&1; then
+    notify "Action unavailable" "Missing $1. Install it and try again."
+    exit 1
+  fi
+}
+
+case "${1:-}" in
+-h | --help)
+  usage
+  exit 0
+  ;;
+"") ;;
+*)
+  printf 'polar-power: unknown argument: %s\n' "$1" >&2
+  usage >&2
+  exit 2
+  ;;
+esac
+
+require fuzzel
+
+# Nerd Font glyphs rather than icon lookup: no theme dependency, always renders.
+lock=$'\uf023  Lock'
+suspend=$'\uf186  Suspend'
+reboot=$'\uf021  Reboot'
+poweroff=$'\uf011  Power off'
+logout=$'\uf08b  Log out'
+
+if ! choice=$(printf '%s\n' "$lock" "$suspend" "$reboot" "$poweroff" "$logout" |
+  fuzzel --dmenu --prompt='power › ' --only-match --no-run-if-empty --lines=5); then
+  exit 0
+fi
+
+case "$choice" in
+"$lock")
+  require hyprlock
+  hyprlock
+  ;;
+"$suspend")
+  systemctl suspend
+  ;;
+"$reboot" | "$poweroff")
+  if [ "$choice" = "$reboot" ]; then
+    action=reboot
+    label=Reboot
+  else
+    action=poweroff
+    label='Power off'
+  fi
+  if ! answer=$(printf 'Cancel\nYes, %s\n' "$label" |
+    fuzzel --dmenu --prompt='confirm › ' --only-match --no-run-if-empty --lines=2); then
+    exit 0
+  fi
+  [ "$answer" = "Yes, $label" ] || exit 0
+  systemctl "$action"
+  ;;
+"$logout")
+  require uwsm
+  uwsm stop
+  ;;
+esac

@@ -1,0 +1,66 @@
+#!/usr/bin/env bash
+# Toggle mako's do-not-disturb mode. Independent of focus mode: focus turns
+# DND on and only turns it back off when polar-dnd is off too.
+set -euo pipefail
+
+state_dir=${XDG_STATE_HOME:-$HOME/.local/state}/polar
+
+usage() {
+  cat <<'EOF'
+Usage: polar-dnd [--help]
+
+Toggle notifications: mako enters/exits do-not-disturb, the ironbar variable
+polar_dnd mirrors the state (the bar shows a muted bell), and HyprCore gets
+Polar.set_state('dnd', ...).
+
+State lives in $XDG_STATE_HOME/polar/dnd when ironbar is not running.
+EOF
+}
+
+state_get() { # ironvar name, state file name
+  local value
+  mkdir -p "$state_dir"
+  if value=$(ironbar var get "$1" 2>/dev/null) && { [ "$value" = true ] || [ "$value" = false ]; }; then
+    printf '%s\n' "$value"
+  elif [ -r "$state_dir/$2" ]; then
+    cat "$state_dir/$2"
+  else
+    printf 'false\n'
+  fi
+}
+
+state_set() { # ironvar name, state file name, value
+  mkdir -p "$state_dir"
+  ironbar var set "$1" "$3" >/dev/null 2>&1 || true
+  printf '%s\n' "$3" >"$state_dir/$2"
+}
+
+case "${1:-}" in
+-h | --help)
+  usage
+  exit 0
+  ;;
+"") ;;
+*)
+  printf 'polar-dnd: unknown argument: %s\n' "$1" >&2
+  usage >&2
+  exit 2
+  ;;
+esac
+
+if [ "$(state_get polar_dnd dnd)" = true ]; then
+  next=false
+else
+  next=true
+fi
+
+if command -v makoctl >/dev/null 2>&1; then
+  if [ "$next" = true ]; then
+    makoctl mode -s do-not-disturb >/dev/null 2>&1 || true
+  else
+    makoctl mode -r do-not-disturb >/dev/null 2>&1 || true
+  fi
+fi
+
+hyprctl eval "Polar.set_state('dnd', $next)" >/dev/null 2>&1 || true
+state_set polar_dnd dnd "$next"

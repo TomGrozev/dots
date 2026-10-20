@@ -1,0 +1,139 @@
+#!/usr/bin/env bash
+# polar-wall — Nord wallpapers for the awww daemon.
+# The wallpaper set is kept nordified so every screen shares the Nord palette;
+# `nordify` is the only path that adds files to the library.
+set -euo pipefail
+
+WALL_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/polar/wallpapers"
+STATE_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/polar"
+STATE_FILE="$STATE_DIR/wallpaper"
+
+die() {
+  printf 'polar-wall: %s\n' "$*" >&2
+  exit 1
+}
+
+usage() {
+  cat <<'EOF'
+polar-wall — Nord wallpapers for awww
+
+Usage:
+  polar-wall next
+  polar-wall set <image>
+  polar-wall nordify <image>
+  polar-wall restore
+
+Commands:
+  next             Cycle to the next nordified wallpaper (fade, 0.8s).
+  set <image>      Show an image (grow, 0.8s) and remember it.
+  nordify <image>  Recolour an image with the Nord palette, keep it in
+                   ~/.local/share/polar/wallpapers, and show it.
+  restore          Re-apply the last wallpaper; cycles if none is known.
+
+Wallpapers live in ${XDG_DATA_HOME:-~/.local/share}/polar/wallpapers.
+The last applied image is remembered in ${XDG_STATE_HOME:-~/.local/state}/polar/wallpaper.
+EOF
+}
+
+notify() {
+  command -v notify-send >/dev/null 2>&1 && notify-send -a Polar -i image-x-generic "$1" "${2:-}" || true
+}
+
+# awww's transitions: grow for an explicit pick, fade for cycling/restore.
+show() {
+  local img="$1" type="$2"
+  [[ -f $img ]] || die "no such image: $img"
+  awww img --transition-type "$type" --transition-duration 0.8 --transition-fps 60 \
+    --resize crop "$img" ||
+    die "awww failed (is awww-daemon running?)"
+  mkdir -p "$STATE_DIR"
+  printf '%s\n' "$img" >"$STATE_FILE"
+}
+
+nordify() {
+  local src="$1" name out
+  [[ -f $src ]] || die "no such image: $src"
+  command -v lutgen >/dev/null 2>&1 ||
+    die "lutgen not installed (AUR package: lutgen-bin)"
+
+  mkdir -p "$WALL_DIR"
+  name="$(basename "$src")"
+  name="${name%.*}.png"
+  out="$WALL_DIR/$name"
+  if [[ ! -f $out ]]; then
+    lutgen apply --palette nord --preserve -o "$out" "$src" ||
+      die "lutgen failed on $src"
+  fi
+  show "$out" grow
+  notify "Wallpaper nordified" "$(basename "$out")"
+}
+
+# First run: turn the compositor's bundled walls into the Nord library.
+seed() {
+  local found
+  found="$(find "$WALL_DIR" -maxdepth 1 -type f 2>/dev/null | head -n 1)"
+  [[ -n $found ]] && return 0
+  command -v lutgen >/dev/null 2>&1 ||
+    die "no wallpapers yet and lutgen is not installed (AUR package: lutgen-bin)"
+
+  local srcs=(/usr/share/hypr/wall*.png)
+  [[ -e ${srcs[0]} ]] || die "no wallpapers yet and no /usr/share/hypr/wall*.png to seed from"
+  mkdir -p "$WALL_DIR"
+  for src in "${srcs[@]}"; do
+    local name="${src##*/}"
+    lutgen apply --palette nord --preserve -o "$WALL_DIR/${name%.*}.png" "$src" ||
+      die "lutgen failed on $src"
+  done
+}
+
+next() {
+  seed
+  local walls=() i current
+  while IFS= read -r wall; do
+    walls+=("$wall")
+  done < <(find "$WALL_DIR" -maxdepth 1 -type f \
+    \( -iname '*.png' -o -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.webp' \) | sort)
+  ((${#walls[@]})) || die "no wallpapers in $WALL_DIR"
+
+  current="$(cat "$STATE_FILE" 2>/dev/null || true)"
+  for i in "${!walls[@]}"; do
+    if [[ ${walls[$i]} == "$current" ]]; then
+      show "${walls[$(((i + 1) % ${#walls[@]}))]}" fade
+      return
+    fi
+  done
+  show "${walls[0]}" fade
+}
+
+restore() {
+  local last
+  last="$(cat "$STATE_FILE" 2>/dev/null || true)"
+  if [[ -n $last && -f $last ]]; then
+    show "$last" fade
+  else
+    next
+  fi
+}
+
+case "${1:-}" in
+--help | -h | help | "")
+  usage
+  ;;
+next)
+  next
+  ;;
+set)
+  [[ $# -eq 2 ]] || die "usage: polar-wall set <image>"
+  show "$(realpath -- "$2")" grow
+  ;;
+nordify)
+  [[ $# -eq 2 ]] || die "usage: polar-wall nordify <image>"
+  nordify "$(realpath -- "$2")"
+  ;;
+restore)
+  restore
+  ;;
+*)
+  die "unknown command: $1 (try --help)"
+  ;;
+esac

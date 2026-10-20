@@ -1,0 +1,240 @@
+/* Polar bar — Nord palette, 24px, blurred translucent glass.
+ * The Hyprland layer rule in hyprland.lua blurs namespace `ironbar`, so the
+ * alpha below is what turns into glass. */
+
+@define-color nord0 #2e3440;
+@define-color nord1 #3b4252;
+@define-color nord2 #434c5e;
+@define-color nord3 #4c566a;
+@define-color nord4 #d8dee9;
+@define-color nord5 #e5e9f0;
+@define-color nord6 #eceff4;
+@define-color nord7 #8fbcbb;
+@define-color nord8 #88c0d0;
+@define-color nord9 #81a1c1;
+@define-color nord10 #5e81ac;
+@define-color nord11 #bf616a;
+@define-color nord12 #d08770;
+@define-color nord13 #ebcb8b;
+@define-color nord14 #a3be8c;
+@define-color nord15 #b48ead;
+
+* {
+  font-family: "FiraCode Nerd Font", monospace;
+  font-size: 11px;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  background-image: none;
+  min-height: 0;
+}
+
+.background {
+  background-color: alpha(@nord0, 0.88);
+  color: @nord4;
+}
+
+#bar {
+  padding: 0 8px;
+  min-height: 24px;
+}
+
+#start, #center, #end {
+  min-height: 24px;
+}
+
+/* Uniform rhythm between modules; badges opt out to sit flush. */
+#end > .widget-container + .widget-container {
+  margin-left: 10px;
+}
+
+/* --- Left: numeric workspace dots --- */
+
+.workspaces {
+  margin: 0 2px;
+}
+
+.workspaces .item {
+  min-width: 17px;
+  min-height: 17px;
+  margin: 0 2px;
+  padding: 0;
+  border-radius: 5px;
+  background-color: transparent;
+  color: @nord3;
+  font-size: 10px;
+  font-weight: bold;
+  transition: background-color 120ms ease, color 120ms ease;
+}
+
+.workspaces .item label {
+  padding: 0 1px;
+}
+
+.workspaces .item.visible {
+  background-color: @nord2;
+  color: @nord5;
+}
+
+.workspaces .item.focused {
+  background-color: @nord8;
+  color: @nord0;
+}
+
+.workspaces .item.urgent {
+  background-color: @nord12;
+  color: @nord0;
+}
+
+.workspaces .item.inactive {
+  color: transparent;
+  background-color: transparent;
+  box-shadow: inset 0 0 0 1px @nord2;
+}
+
+.workspaces .item:hover {
+  background-color: @nord2;
+  color: @nord6;
+}
+
+/* Focused scratchpad name, e.g. `term`. */
+.scratchpad {
+  margin-left: 4px;
+  color: @nord15;
+  font-weight: bold;
+}
+
+/* --- Centre: clock --- */
+
+.clock {
+  color: @nord6;
+  font-weight: bold;
+  letter-spacing: 1px;
+}
+
+/* --- Right: mode badges --- */
+
+.bindmode {
+  background-color: @nord13;
+  color: @nord0;
+  padding: 1px 6px;
+  border-radius: 4px 0 0 4px;
+  font-weight: bold;
+  font-size: 10px;
+}
+
+.mode-hint {
+  background-color: @nord13;
+  color: @nord1;
+  padding: 1px 6px 1px 0;
+  border-radius: 0 4px 4px 0;
+  font-weight: bold;
+  font-size: 10px;
+  margin-left: -10px; /* fuse with the bindmode pill */
+}
+
+.badge .pill {
+  padding: 1px 7px;
+  border-radius: 4px;
+  font-weight: bold;
+  font-size: 10px;
+}
+
+.badge .pill.focus {
+  background-color: @nord8;
+  color: @nord0;
+}
+
+.badge .pill.recording {
+  background-color: @nord11;
+  color: @nord6;
+}
+
+.badge .pill.dnd {
+  background-color: @nord15;
+  color: @nord6;
+}
+
+.badge button {
+  padding: 0;
+  background: none;
+  border: none;
+}
+
+/* --- Volume + resources --- */
+
+.volume {
+  color: @nord9;
+}
+
+.volume:hover {
+  color: @nord8;
+}
+
+.sysinfo {
+  color: @nord3;
+}
+
+.sysinfo .item + .item {
+  margin-left: 6px;
+}
+
+/* --- Tray --- */
+
+.tray {
+  margin-left: 4px;
+}
+
+.tray .item {
+  padding: 0 2px;
+  border-radius: 3px;
+}
+
+.tray .item:hover {
+  background-color: @nord2;
+}
+
+/* --- Popups (calendar, volume mixer) --- */
+
+popover,
+popover > contents,
+popover contents {
+  background-color: @nord0;
+  color: @nord4;
+  border: 1px solid @nord2;
+  border-radius: 8px;
+  padding: 4px;
+}
+
+popup {
+  background-color: @nord0;
+}
+
+.popup-clock .calendar {
+  color: @nord4;
+}
+
+.popup-clock .calendar:selected {
+  background-color: @nord8;
+  color: @nord0;
+  border-radius: 4px;
+}
+
+.popup-clock .calendar .today {
+  color: @nord8;
+  font-weight: bold;
+}
+
+calendar {
+  color: @nord4;
+}
+
+calendar:selected {
+  background-color: @nord8;
+  color: @nord0;
+}
+
+calendar.header {
+  color: @nord13;
+  font-weight: bold;
+}

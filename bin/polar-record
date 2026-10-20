@@ -1,0 +1,147 @@
+#!/usr/bin/env bash
+# Screen recording through gpu-screen-recorder (NVENC). gpu-screen-recorder
+# finalises the file when it receives SIGINT, so "stop" is just a signal.
+set -euo pipefail
+
+state_dir=${XDG_STATE_HOME:-$HOME/.local/state}/polar
+out_dir=$HOME/Videos/Recordings
+pid_file=$state_dir/recording.pid
+path_file=$state_dir/recording.path
+log_file=$state_dir/recording.log
+
+usage() {
+  cat <<'EOF'
+Usage: polar-record region|screen|toggle|stop [--help]
+
+  region   select an area with slurp, then record it
+  screen   record the monitor
+  toggle   stop if recording, otherwise start a screen recording
+  stop     stop and save the running recording
+
+Files go to ~/Videos/Recordings/YYYY-MM-DD_HH-MM-SS.mp4 with the default
+output's audio. The active border turns red while recording.
+
+Needs gpu-screen-recorder (slurp for region).
+EOF
+}
+
+notify() {
+  if command -v notify-send >/dev/null 2>&1; then
+    notify-send --app-name=Polar --icon=media-record "$@" 2>/dev/null || true
+  else
+    printf 'polar: %s\n' "$*" >&2
+  fi
+}
+
+running_pid() {
+  [ -r "$pid_file" ] || return 1
+  local pid
+  pid=$(cat "$pid_file")
+  [ -n "$pid" ] || return 1
+  kill -0 "$pid" 2>/dev/null || return 1
+  printf '%s\n' "$pid"
+}
+
+set_recording() { # true|false
+  hyprctl eval "Polar.set_state('recording', $1)" >/dev/null 2>&1 || true
+  ironbar var set polar_recording "$1" >/dev/null 2>&1 || true
+}
+
+require() {
+  if ! command -v "$1" >/dev/null 2>&1; then
+    notify "Recording unavailable" "Missing $1. Install it and try again."
+    exit 1
+  fi
+}
+
+start() {
+  local mode=$1 file pid
+  local args=()
+  require gpu-screen-recorder
+  mkdir -p "$out_dir" "$state_dir"
+
+  file=$out_dir/$(date +%Y-%m-%d_%H-%M-%S).mp4
+  # The distro FFmpeg here needs NVENC API 13.1 while the NVIDIA driver exposes
+  # 13.0, so NVENC is unavailable until those versions align; the CPU fallback
+  # keeps recording working instead of failing outright.
+  args=(-o "$file" -c mp4 -f 60 -q very_high -a default_output -fallback-cpu-encoding yes)
+
+  if [ "$mode" = region ]; then
+    require slurp
+    local geometry
+    geometry=$(slurp) || exit 0
+    [ -n "$geometry" ] || exit 0
+    args=(-w region -region "$geometry" "${args[@]}")
+  else
+    args=(-w screen "${args[@]}")
+  fi
+
+  # nohup keeps the recorder alive after this script and the launching shell
+  # exit; SIGINT still reaches it because nohup only ignores SIGHUP.
+  nohup gpu-screen-recorder "${args[@]}" >"$log_file" 2>&1 &
+  pid=$!
+
+  sleep 1
+  if ! kill -0 "$pid" 2>/dev/null; then
+    notify "Recording failed" "gpu-screen-recorder exited. Log: $log_file"
+    exit 1
+  fi
+
+  printf '%s\n' "$pid" >"$pid_file"
+  printf '%s\n' "$file" >"$path_file"
+  set_recording true
+  notify "Recording · $mode" "Saving to $file"
+}
+
+stop() {
+  local pid file
+  if ! pid=$(running_pid); then
+    rm -f "$pid_file" "$path_file"
+    set_recording false
+    notify "Not recording" "Nothing to stop."
+    return 0
+  fi
+
+  file=$(cat "$path_file" 2>/dev/null || true)
+  kill -INT "$pid"
+  for _ in {1..100}; do
+    kill -0 "$pid" 2>/dev/null || break
+    sleep 0.1
+  done
+
+  rm -f "$pid_file" "$path_file"
+  set_recording false
+  if [ -n "$file" ]; then
+    notify "Recording saved" "$file"
+  else
+    notify "Recording saved" "$out_dir"
+  fi
+}
+
+case "${1:-}" in
+region | screen)
+  start "$1"
+  ;;
+toggle)
+  if running_pid >/dev/null; then
+    stop
+  else
+    start screen
+  fi
+  ;;
+stop)
+  stop
+  ;;
+-h | --help)
+  usage
+  ;;
+"")
+  usage >&2
+  exit 2
+  ;;
+*)
+  printf 'polar-record: unknown argument: %s\n' "$1" >&2
+  usage >&2
+  exit 2
+  ;;
+esac

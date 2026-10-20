@@ -1,0 +1,165 @@
+#!/usr/bin/env bash
+# polar-nav — move focus one step outwards: nvim split → zellij pane → Hyprland window.
+#
+# Each layer knows its own edge; Hyprland cannot see inside a terminal, so the
+# window title is the only handle on the zellij session: zellij writes
+# "<session> | <pane title>" on every focus change (make_terminal_title,
+# zellij-utils/src/shared.rs in 0.45.1). Movement is applied by the innermost
+# layer that can still move; when zellij's client-side focused pane id is
+# unchanged the edge is reached and the compositor takes over.
+#
+# --from-nvim is passed by the nvim keymap after its own split move failed: it
+# stops us from injecting the chord back into the editor that asked, which would
+# double-move.
+set -euo pipefail
+
+prog=${0##*/}
+debug() { [[ ${debug:-0} == 1 ]] && printf '%s: %s\n' "$prog" "$*" >&2; return 0; }
+
+usage() {
+  cat <<'EOF'
+Usage: polar-nav <left|down|up|right> [--from-nvim] [--debug]
+
+Move focus one step towards <direction>, innermost layer first: the focused
+nvim gets the chord, then the zellij pane moves, then the Hyprland window.
+Safe to bind on SUPER+hjkl: when nothing inside the terminal can move, the
+focused window moves outwards.
+
+Options:
+  --from-nvim   called by nvim after its own split move failed; never re-injects
+                the chord into nvim
+  --debug       log each decision to stderr
+
+Environment:
+  POLAR_NAV_DRY_RUN=1              print the hyprctl dispatch instead of running it
+  POLAR_NAV_ACTIVEWINDOW_JSON=...  use this JSON (or @file) instead of hyprctl
+                                   activewindow; for tests
+EOF
+}
+
+dir=
+from_nvim=0
+debug=0
+while (($#)); do
+  case $1 in
+  left | right | up | down) dir=$1 ;;
+  --from-nvim) from_nvim=1 ;;
+  --debug) debug=1 ;;
+  -h | --help)
+    usage
+    exit 0
+    ;;
+  *)
+    printf '%s: unknown argument %s\n\n' "$prog" "$1" >&2
+    usage >&2
+    exit 2
+    ;;
+  esac
+  shift
+done
+[[ -n $dir ]] || {
+  printf '%s: missing direction\n\n' "$prog" >&2
+  usage >&2
+  exit 2
+}
+
+# Hyprland 0.56 Lua config: `keyword` is gone, dispatch takes Lua source.
+# zellij and Hyprland use the same direction names, so $dir needs no mapping.
+hl_focus() {
+  local expr="hl.dsp.focus({direction=\"$dir\"})"
+  debug "hyprland: focus $dir"
+  if [[ ${POLAR_NAV_DRY_RUN:-0} == 1 ]]; then
+    printf "hyprctl dispatch '%s'\n" "$expr"
+  else
+    hyprctl dispatch "$expr" >/dev/null
+  fi
+}
+
+# ── window → zellij session ───────────────────────────────────────────────
+
+win=${POLAR_NAV_ACTIVEWINDOW_JSON:-}
+if [[ -n $win ]]; then
+  [[ $win == @* ]] && win=$(cat -- "${win#@}")
+else
+  win=$(hyprctl activewindow -j || true)
+fi
+[[ -n $win ]] || win='{}'
+IFS=$'\t' read -r title class < <(jq -r '[(.title // ""), (.class // "")] | @tsv' <<<"$win" 2>/dev/null) || { title= class=; }
+debug "window class='$class' title='$title'"
+
+# Fast path: one hyprctl call for anything that cannot host a zellij client.
+case ${class,,} in
+*ghostty*) ;;
+*)
+  hl_focus
+  exit 0
+  ;;
+esac
+
+# "<session> | <pane title>"; a title with no separator can still be a bare
+# session name (empty pane title).
+sess=
+case $title in
+*' | '*) sess=${title%% | *} ;;
+*) [[ $title == *[![:space:]]* ]] && sess=$title ;;
+esac
+debug "candidate session '$sess'"
+
+sock_dir=${ZELLIJ_SOCK_DIR:-${XDG_RUNTIME_DIR:-/tmp}/zellij}
+session_live() {
+  local p
+  for p in "$sock_dir"/*/"$1" "$sock_dir/$1"; do
+    [[ -S $p ]] && return 0
+  done
+  return 1
+}
+if [[ -z $sess ]] || ! session_live "$sess"; then
+  debug "no live zellij session"
+  hl_focus
+  exit 0
+fi
+
+z() { zellij -s "$sess" action "$@" 2>/dev/null; }
+
+# The CLI client is routed to a session client, so its own view of focus is the
+# one the user sees (single-client sessions: exact; two windows on one session:
+# last-typed wins, a documented limitation).
+focused_pane() { z list-clients | awk 'NR > 1 && NF > 1 { print $2; exit }'; }
+
+before=$(focused_pane) || before=
+if [[ -z $before ]]; then
+  debug "session has no client, handing to hyprland"
+  hl_focus
+  exit 0
+fi
+
+if ((!from_nvim)); then
+  cmd=$(z list-panes --json | jq -r --argjson id "${before#terminal_}" \
+    '.[] | select(.is_plugin | not) | select(.id == $id) | .pane_command // ""' 2>/dev/null) || cmd=
+  debug "pane $before runs '$cmd'"
+  # nvim owns its splits: forward the chord and let its keymap chain onwards.
+  if [[ $cmd =~ (^|/)(n?vim|vim|hx|helix)( |$) ]]; then
+    case $dir in
+    left) key='Ctrl h' ;;
+    down) key='Ctrl j' ;;
+    up) key='Ctrl k' ;;
+    right) key='Ctrl l' ;;
+    esac
+    debug "nvim pane, sending $key"
+    z send-keys "$key"
+    exit 0
+  fi
+fi
+
+if ! z move-focus "$dir"; then
+  debug "move-focus failed, handing to hyprland"
+  hl_focus
+  exit 0
+fi
+
+after=$(focused_pane) || after=
+debug "pane $before -> ${after:-?}"
+if [[ $after == "$before" ]]; then
+  hl_focus
+fi
+exit 0

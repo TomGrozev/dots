@@ -1,2 +1,7 @@
 asdf-vm
 rtk
+wlr-which-key
+lutgen-bin
+nordic-theme
+nordzy-cursors
+papirus-folders

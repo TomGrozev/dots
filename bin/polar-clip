@@ -1,0 +1,49 @@
+#!/usr/bin/env bash
+# Clipboard history picker over cliphist. cliphist list prints "ID<TAB>preview";
+# fuzzel shows the whole line so the preview stays searchable, and the chosen
+# line goes back through cliphist decode.
+set -euo pipefail
+
+usage() {
+  cat <<'EOF'
+Usage: polar-clip [--help]
+
+Pick a previous clipboard entry in fuzzel and put it back on the clipboard.
+Images and text both work; the picker shows cliphist's previews.
+EOF
+}
+
+notify() {
+  if command -v notify-send >/dev/null 2>&1; then
+    notify-send --app-name=Polar --icon=edit-paste "$@" 2>/dev/null || true
+  else
+    printf 'polar: %s\n' "$*" >&2
+  fi
+}
+
+case "${1:-}" in
+-h | --help)
+  usage
+  exit 0
+  ;;
+"") ;;
+*)
+  printf 'polar-clip: unknown argument: %s\n' "$1" >&2
+  usage >&2
+  exit 2
+  ;;
+esac
+
+for tool in cliphist fuzzel wl-copy; do
+  if ! command -v "$tool" >/dev/null 2>&1; then
+    notify "Clipboard unavailable" "Missing $tool."
+    exit 1
+  fi
+done
+
+if ! selection=$(cliphist list | fuzzel --dmenu --prompt='clipboard › ' --match-mode=fuzzy --only-match); then
+  exit 0 # Esc
+fi
+[ -n "$selection" ] || exit 0
+
+printf '%s' "$selection" | cliphist decode | wl-copy

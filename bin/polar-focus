@@ -1,0 +1,74 @@
+#!/usr/bin/env bash
+# Focus mode: one window, no bar, no notifications, no dimming.
+# HyprCore applies the visual side (Polar.set_state); the bar and mako are
+# toggled here because they are separate processes.
+set -euo pipefail
+
+state_dir=${XDG_STATE_HOME:-$HOME/.local/state}/polar
+bar=polar
+
+usage() {
+  cat <<'EOF'
+Usage: polar-focus [--help]
+
+Toggle focus mode: gaps and border shrink to nothing, dimming stops, the bar
+hides and notifications are muted. Run it again to restore everything.
+
+State lives in the Hyprland config (Polar.set_state) and in
+$XDG_STATE_HOME/polar/; the ironbar variable polar_focus mirrors it.
+EOF
+}
+
+state_get() { # ironvar name, state file name
+  local value
+  mkdir -p "$state_dir"
+  if value=$(ironbar var get "$1" 2>/dev/null) && { [ "$value" = true ] || [ "$value" = false ]; }; then
+    printf '%s\n' "$value"
+  elif [ -r "$state_dir/$2" ]; then
+    cat "$state_dir/$2"
+  else
+    printf 'false\n'
+  fi
+}
+
+state_set() { # ironvar name, state file name, value
+  mkdir -p "$state_dir"
+  ironbar var set "$1" "$3" >/dev/null 2>&1 || true
+  printf '%s\n' "$3" >"$state_dir/$2"
+}
+
+case "${1:-}" in
+-h | --help)
+  usage
+  exit 0
+  ;;
+"") ;;
+*)
+  printf 'polar-focus: unknown argument: %s\n' "$1" >&2
+  usage >&2
+  exit 2
+  ;;
+esac
+
+if [ "$(state_get polar_focus focus)" = true ]; then
+  next=false
+else
+  next=true
+fi
+
+hyprctl eval "Polar.set_state('focus', $next)" >/dev/null 2>&1 || true
+
+if [ "$next" = true ]; then
+  ironbar bar "$bar" set-visible false >/dev/null 2>&1 || true
+  if command -v makoctl >/dev/null 2>&1; then
+    makoctl mode -s do-not-disturb >/dev/null 2>&1 || true
+  fi
+else
+  ironbar bar "$bar" set-visible true >/dev/null 2>&1 || true
+  # Do not clear DND if the user asked for it on its own (polar-dnd).
+  if [ "$(state_get polar_dnd dnd)" != true ] && command -v makoctl >/dev/null 2>&1; then
+    makoctl mode -r do-not-disturb >/dev/null 2>&1 || true
+  fi
+fi
+
+state_set polar_focus focus "$next"

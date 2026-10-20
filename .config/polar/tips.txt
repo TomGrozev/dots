@@ -1,0 +1,20 @@
+The leader is the map	SUPER+Space opens it. Every action is one or two letters, and the same list is searchable with SUPER+/ — you do not have to memorise anything.
+Scratchpads keep state	SUPER+Space t (terminal), f (yazi), b (btop), a (wiremix) and g (lazygit) open drop-down panes. Closing one only hides it; reopening gives back the same shell history, yazi position or btop scroll.
+Focus mode	SUPER+Z removes gaps, the bar and notifications so one window owns the screen. Press it again to get the desktop back.
+Border colours mean something	Nord blue is normal, yellow means a keyboard mode is waiting (resize), purple is a special workspace, red means recording, orange marks an urgent window.
+Lowercase is the TUI, Shift is the GUI	In the leader, a opens wiremix and A Pavucontrol, b opens btop and B Mission Center, f opens yazi and F Thunar. Both versions of each tool are one letter apart.
+Resize mode	SUPER+Space m r enters resize mode, then hjkl resizes. The border turns yellow and Esc leaves the mode; SUPER+CTRL+H/J/K/L resizes directly without the mode.
+hjkl works across boundaries	SUPER+hjkl moves focus between Hyprland windows, zellij panes and nvim splits. At an edge it crosses into the neighbouring window, so one motion set covers the whole desktop.
+Drag with SUPER	Hold SUPER and drag with the left mouse button to move a floating window; SUPER+right-drag resizes it. Tiling still arranges new windows automatically.
+The cheat sheet can run things	SUPER+/ searches every binding by name. Type "shot", press Enter, and the action runs — the fastest way to learn a key.
+Clipboard history	SUPER+Space c opens everything you have copied, text and images. Type any part of the entry to find it again.
+Wallpapers are recoloured, not replaced	SUPER+Space v n maps the next wallpaper into the Nord palette before setting it. The original file stays untouched and the switch is a crossfade.
+Recording is visible	SUPER+Space r then r for a region, s for the screen, x to stop. While recording the active border is red and the bar shows it; files land in ~/Videos/Recordings.
+Screenshots stay out of the way	Print captures a region, or use SUPER+Space s for region, window or screen. The shot opens in an annotator: Enter copies it to the clipboard and saves it, Esc discards it.
+Tips are one per day	This is the daily tip; each one is shown once and the list resets when it runs out. SUPER+Space h o turns tips off, h O turns them back on, h t shows one now.
+Terminal apps are drop-down panes	yazi, btop, wiremix and lazygit open over your work in a floating pane rather than joining the tiling, so they never disturb an arrangement.
+Modes announce themselves	When a mode is active the border colour changes and the bar shows the mode with the key that leaves it. Esc is the universal exit.
+Notifications do not steal focus	They stack in a corner and expire. SUPER+Space n d toggles do-not-disturb; the bar shows a muted bell.
+The mouse is optional	Every action in the cheat sheet is also a keybinding. If you learn only two things, learn SUPER+Space and SUPER+/.
+Workspaces beat minimising	SUPER+1…0 switches workspace and SUPER+SHIFT+1…0 moves the focused window there. Tiling means windows never overlap, so a workspace per task is cheaper than shuffling windows.
+One window, one purpose	Windows are tiled edge to edge, so a new window takes space instead of covering one. If that is not what you want, float it with SUPER+V or put it on its own workspace.

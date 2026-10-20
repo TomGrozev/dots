@@ -1,0 +1,92 @@
+#!/usr/bin/env bash
+# Screenshot → satty. satty copies on Enter and saves the annotated PNG; the
+# raw region is never written to disk, so cancelled shots leave no clutter.
+set -euo pipefail
+
+out_dir=$HOME/Pictures/Screenshots
+
+usage() {
+  cat <<'EOF'
+Usage: polar-shot region|window|screen [--help]
+
+  region   select an area with slurp
+  window   capture the focused window
+  screen   capture the focused monitor
+
+Each shot opens satty: annotate, then Enter copies to the clipboard and saves
+to ~/Pictures/Screenshots/YYYY-MM-DD_HH-MM-SS.png; Esc discards it.
+
+Needs grim, slurp, satty and wl-copy.
+EOF
+}
+
+notify() {
+  if command -v notify-send >/dev/null 2>&1; then
+    notify-send --app-name=Polar --icon=dialog-information "$@" 2>/dev/null || true
+  else
+    printf 'polar: %s\n' "$*" >&2
+  fi
+}
+
+require() {
+  if ! command -v "$1" >/dev/null 2>&1; then
+    notify "Screenshot unavailable" "Missing $1. Install it and try again."
+    exit 1
+  fi
+}
+
+[ $# -ge 1 ] || {
+  usage >&2
+  exit 2
+}
+
+case $1 in
+-h | --help)
+  usage
+  exit 0
+  ;;
+region | window | screen) mode=$1 ;;
+*)
+  printf 'polar-shot: unknown mode: %s\n' "$1" >&2
+  usage >&2
+  exit 2
+  ;;
+esac
+
+require grim
+require satty
+require wl-copy
+require jq
+
+mkdir -p "$out_dir"
+file=$out_dir/$(date +%Y-%m-%d_%H-%M-%S).png
+satty_args=(-o "$file" --copy-command wl-copy --save-after-copy --early-exit copy)
+
+case $mode in
+region)
+  require slurp
+  geometry=$(slurp) || exit 0
+  [ -n "$geometry" ] || exit 0
+  grim -g "$geometry" - | satty -f - "${satty_args[@]}"
+  ;;
+window)
+  require hyprctl
+  # "X,Y WxH" is the geometry format grim shares with slurp.
+  geometry=$(hyprctl activewindow -j |
+    jq -r 'select(.address != null) | "\(.at[0]),\(.at[1]) \(.size[0])x\(.size[1])"')
+  if [ -z "$geometry" ]; then
+    notify "Screenshot unavailable" "No focused window."
+    exit 1
+  fi
+  grim -g "$geometry" - | satty -f - "${satty_args[@]}"
+  ;;
+screen)
+  require hyprctl
+  monitor=$(hyprctl monitors -j | jq -r '.[] | select(.focused) | .name' | head -n 1)
+  if [ -n "$monitor" ]; then
+    grim -o "$monitor" - | satty -f - "${satty_args[@]}"
+  else
+    grim - | satty -f - "${satty_args[@]}"
+  fi
+  ;;
+esac

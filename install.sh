@@ -82,6 +82,31 @@ if [ -f /etc/arch-release ] && [ "$AGENT_POD" != "true" ]; then
   yay -S --needed --noconfirm - < "$DOTFILES_DIR/packages/aur.txt"
 fi
 
+# --- GTK / icon theming (Arch desktop only) ---
+# Same guards as the other desktop-only blocks: macOS, devcontainers, agent
+# pods and headless hosts have no GTK session to theme. gsettings writes the
+# user's dconf database; xsettings portals and GTK apps pick the values up.
+if [ -f /etc/arch-release ] &&
+  [ "${DEVCONTAINER:-}" != "true" ] &&
+  [ "$AGENT_POD" != "true" ] &&
+  [ -n "${DISPLAY:-}${WAYLAND_DISPLAY:-}" ] &&
+  command -v gsettings >/dev/null 2>&1; then
+  echo ""
+  echo "Applying Nord GTK theme..."
+
+  gsettings set org.gnome.desktop.interface gtk-theme Nordic
+  gsettings set org.gnome.desktop.interface icon-theme Papirus-Dark
+  gsettings set org.gnome.desktop.interface cursor-theme Nordzy-cursors
+  gsettings set org.gnome.desktop.interface color-scheme prefer-dark
+  gsettings set org.gnome.desktop.interface font-name 'FiraCode Nerd Font 11'
+
+  # Papirus-Dark is the icon theme the bar and launcher use; nordic folders
+  # keep its directory icons in the same palette.
+  if command -v papirus-folders >/dev/null 2>&1; then
+    papirus-folders -C nordic --theme Papirus-Dark
+  fi
+fi
+
 # --- Install Oh My Zsh ---
 # Skipped in AGENT_POD mode: the pod's image ships its own shell.
 if [ "$AGENT_POD" != "true" ]; then
@@ -223,9 +248,31 @@ echo "Creating .config symlinks..."
 
 config_dirs=(gh ghostty nvim cortexkit yaji zellij)
 
+# The Polar Hyprland desktop only exists on Arch desktops; macOS,
+# devcontainers, agent pods and headless hosts get none of its configs or
+# scripts. Same guards as the GTK theming block above.
+if [ -f /etc/arch-release ] &&
+  [ "${DEVCONTAINER:-}" != "true" ] &&
+  [ "$AGENT_POD" != "true" ] &&
+  [ -n "${DISPLAY:-}${WAYLAND_DISPLAY:-}" ]; then
+  polar_desktop=true
+  config_dirs+=(hypr ironbar mako fuzzel polar)
+else
+  polar_desktop=false
+fi
+
 for dir in "${config_dirs[@]}"; do
   link_entry "$DOTFILES_DIR/.config/$dir" "$HOME/.config/$dir" ".config/$dir"
 done
+
+# Polar desktop scripts. The glob picks up new scripts without touching this
+# list; Hyprland's config puts ~/.local/bin on PATH so binds call them bare.
+if [ "$polar_desktop" = true ]; then
+  for script in "$DOTFILES_DIR"/bin/polar-*; do
+    [ -e "$script" ] || continue
+    link_entry "$script" "$LOCAL_BIN/$(basename "$script")" "~/.local/bin/$(basename "$script")"
+  done
+fi
 
 # --- Link captain-miao config ---
 # config.toml is symlinked on the laptop so `pooled` stays unset (direct-local,
