@@ -6,3 +6,4 @@ nordic-theme
 nordzy-cursors
 papirus-folders
 sidra-bin
+coder-bin
