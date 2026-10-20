@@ -71,15 +71,15 @@ if [ -f /etc/arch-release ] && [ "$AGENT_POD" != "true" ]; then
   echo "Installing Arch packages..."
   sudo pacman -S --needed --noconfirm - < "$DOTFILES_DIR/packages/arch.txt"
 
-  # AUR packages go through paru; bootstrap it from the prebuilt paru-bin when absent.
-  if ! command -v paru &>/dev/null; then
-    echo "  Bootstrapping paru..."
-    paru_build="$(mktemp -d)"
-    git clone --quiet --depth=1 https://aur.archlinux.org/paru-bin.git "$paru_build"
-    (cd "$paru_build" && makepkg -si --noconfirm)
-    rm -rf "$paru_build"
+  # AUR packages go through yay; bootstrap it from the prebuilt yay-bin when absent.
+  if ! command -v yay &>/dev/null; then
+    echo "  Bootstrapping yay..."
+    yay_build="$(mktemp -d)"
+    git clone --quiet --depth=1 https://aur.archlinux.org/yay-bin.git "$yay_build"
+    (cd "$yay_build" && makepkg -si --noconfirm)
+    rm -rf "$yay_build"
   fi
-  paru -S --needed --noconfirm - < "$DOTFILES_DIR/packages/aur.txt"
+  yay -S --needed --noconfirm - < "$DOTFILES_DIR/packages/aur.txt"
 fi
 
 # --- Install Oh My Zsh ---

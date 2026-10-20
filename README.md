@@ -44,7 +44,7 @@ The install script performs the following:
 4. **Configuration**: Sets up `.config/` subdirectories for `gh`, `nvim`, `ghostty`, `yazi`, `zellij`, `cortexkit`, and `captain-miao`.
 5. **Agents**: Installs essential agent skills (Matt Pocock engineering skills, conventional-commit, frontend-design) via npm.
 6. **Integration**: Configures `r3` public URLs for Coder workspaces.
-7. **Arch Linux packages**: On Arch hosts only, installs `packages/arch.txt` with pacman and `packages/aur.txt` with paru (bootstrapped if missing), and on any Linux host without omp, downloads the latest omp release into `~/.local/bin`. Find packages installed outside the lists with `pacman -Qqen` (repo) and `pacman -Qqem` (AUR).
+7. **Arch Linux packages**: On Arch hosts only, installs `packages/arch.txt` with pacman and `packages/aur.txt` with yay (bootstrapped if missing), and on any Linux host without omp, downloads the latest omp release into `~/.local/bin`. Find packages installed outside the lists with `pacman -Qqen` (repo) and `pacman -Qqem` (AUR).
 
 ### Agent Pod Mode
 An agent pod clones this repo at startup and runs the installer in its lean
