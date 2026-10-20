@@ -204,8 +204,12 @@ layout {
                 pipe_zjstatus_hints_format "#[fg=$nord5,italic] {output} "
 
                 // ── DateTime ──────────────────────────────────────
+                // zjstatus formats the datetime widget in Etc/UTC unless told
+                // otherwise (it runs sandboxed and cannot read /etc/localtime),
+                // so name the zone or the bar disagrees with the system clock.
                 datetime          "#[fg=$nord4] {format}"
                 datetime_format   "%H:%M %d %b %Y"
+                datetime_timezone "Australia/Sydney"
             }
         }
     }
