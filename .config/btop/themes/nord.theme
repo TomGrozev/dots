@@ -1,0 +1,73 @@
+# Nord theme for the Polar Hyprland desktop.
+# main_bg is empty so ghostty's translucent glass (0.94 opacity, blurred by
+# Hyprland) shows through; theme_background=False in btop.conf matches this.
+theme[main_bg]=""
+
+theme[main_fg]="#D8DEE9"
+theme[title]="#8FBCBB"
+theme[hi_fg]="#88C0D0"
+theme[selected_bg]="#434C5E"
+theme[selected_fg]="#ECEFF4"
+theme[inactive_fg]="#4C566A"
+# Axis/scale labels: nord3 is too dim to read against the glass at a glance.
+theme[graph_text]="#616E88"
+theme[meter_bg]="#3B4252"
+theme[proc_misc]="#81A1C1"
+
+# Box outlines and dividers use nord1, the same tone as Hyprland's inactive
+# window border, so btop frames read as part of the desktop chrome.
+theme[cpu_box]="#3B4252"
+theme[mem_box]="#3B4252"
+theme[net_box]="#3B4252"
+theme[proc_box]="#3B4252"
+theme[div_line]="#3B4252"
+
+# Temperature ramp: cool green under load, amber approaching limits, red hot.
+theme[temp_start]="#A3BE8C"
+theme[temp_mid]="#EBCB8B"
+theme[temp_end]="#BF616A"
+
+# CPU graph: deep frost rising to the light frost accent.
+theme[cpu_start]="#5E81AC"
+theme[cpu_mid]="#88C0D0"
+theme[cpu_end]="#8FBCBB"
+
+# Memory/disk meters. Single-colour meters leave mid/end empty.
+theme[free_start]="#81A1C1"
+theme[free_mid]=""
+theme[free_end]="#88C0D0"
+
+theme[cached_start]="#5E81AC"
+theme[cached_mid]=""
+theme[cached_end]="#81A1C1"
+
+theme[available_start]="#8FBCBB"
+theme[available_mid]=""
+theme[available_end]=""
+
+theme[used_start]="#B48EAD"
+theme[used_mid]=""
+theme[used_end]=""
+
+# Network: download in frost, upload in the dimmer blue so the two graphs stay
+# distinguishable at a glance.
+theme[download_start]="#5E81AC"
+theme[download_mid]=""
+theme[download_end]="#88C0D0"
+
+theme[upload_start]="#5E81AC"
+theme[upload_mid]=""
+theme[upload_end]="#81A1C1"
+
+# Per-process CPU graphs reuse the main CPU gradient.
+theme[process_start]="#5E81AC"
+theme[process_mid]="#88C0D0"
+theme[process_end]="#8FBCBB"
+
+# Process box banners: red for paused, frost blue for followed/banner states.
+theme[proc_pause_bg]="#BF616A"
+theme[proc_follow_bg]="#5E81AC"
+theme[proc_banner_bg]="#5E81AC"
+theme[proc_banner_fg]="#ECEFF4"
+theme[followed_bg]="#5E81AC"
+theme[followed_fg]="#ECEFF4"

@@ -17,7 +17,7 @@ border-radius=8
 anchor=top-right
 layer=overlay
 
-background-color=#2E3440F2
+background-color=#E5E9F0F5
 text-color=#D8DEE9FF
 border-color=#88C0D0FF
 
@@ -52,4 +52,32 @@ default-timeout=0
 invisible=1
 
 [mode=do-not-disturb urgency=critical]
+invisible=0
+
+# Volume/mic OSD: compact top-centre popup, replaced on every key press by
+# polar-volume. Progress bar carries the level; the border is dropped so the
+# icon and bar stay the only decoration.
+[app-name=polar-osd]
+anchor=top-center
+# mako only searches hicolor/pixmaps by default; the audio icons live in the
+# installed icon theme, and the light Papirus glyphs stay dark on the pill.
+icon-path=/usr/share/icons/Papirus
+width=230
+height=88
+margin=8
+# 32px clears the 24px ironbar plus its gap; horizontal margin keeps the pill
+# off the screen edge.
+outer-margin=32,10
+padding=8,10
+border-size=0
+border-radius=8
+progress-color=over #88C0D0FF
+background-color=#E5E9F0F5
+text-color=#2E3440FF
+max-icon-size=26
+icon-border-radius=0
+default-timeout=1200
+
+# Own key presses are feedback, not an alert: never hide the OSD in DND.
+[mode=do-not-disturb app-name=polar-osd]
 invisible=0

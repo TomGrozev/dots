@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080" viewBox="0 0 1920 1080">
+<!-- Polar wallpaper: a lone shell prompt waiting for input -->
+<defs>
+<filter id="glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="18"/></filter>
+</defs>
+<rect width="1920" height="1080" fill="#2E3440"/>
+<path d="M330 556L402 640L330 724" fill="none" stroke="#88C0D0" stroke-width="28" stroke-linecap="round" stroke-linejoin="round"/>
+<rect x="472" y="532" width="112" height="216" rx="8" fill="#ECEFF4" opacity=".22" filter="url(#glow)"/><rect x="480" y="540" width="96" height="200" rx="4" fill="#ECEFF4"/>
+</svg>

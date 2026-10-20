@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080" viewBox="0 0 1920 1080">
+<!-- Polar wallpaper: a build DAG on a dot grid: done steps in frost, one step running, the target pending -->
+<defs>
+<pattern id="dots" width="40" height="40" patternUnits="userSpaceOnUse"><circle cx="20.0" cy="20.0" r="1.6" fill="#434C5E"/></pattern><filter id="glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="10"/></filter>
+</defs>
+<rect width="1920" height="1080" fill="#2E3440"/>
+
+<rect width="1920" height="1080" fill="url(#dots)" opacity=".55"/>
+<path d="M1071 380H1108Q1120 380 1120 392V448Q1120 460 1132 460H1169" fill="none" stroke="#4C566A" stroke-width="2.5"/>
+<path d="M1071 540H1108Q1120 540 1120 528V472Q1120 460 1132 460H1169" fill="none" stroke="#88C0D0" stroke-width="2.5"/>
+<path d="M1071 540H1108Q1120 540 1120 552V648Q1120 660 1132 660H1169" fill="none" stroke="#4C566A" stroke-width="2.5"/>
+<path d="M1071 740H1108Q1120 740 1120 728V672Q1120 660 1132 660H1169" fill="none" stroke="#4C566A" stroke-width="2.5"/>
+<path d="M1071 380H1289" fill="none" stroke="#4C566A" stroke-width="2.5"/>
+<path d="M1191 460H1228Q1240 460 1240 472V568Q1240 580 1252 580H1289" fill="none" stroke="#88C0D0" stroke-width="2.5"/>
+<path d="M1191 660H1228Q1240 660 1240 648V592Q1240 580 1252 580H1289" fill="none" stroke="#4C566A" stroke-width="2.5"/>
+<path d="M1311 380H1348Q1360 380 1360 392V488Q1360 500 1372 500H1409" fill="none" stroke="#4C566A" stroke-width="2.5"/>
+<path d="M1311 580H1348Q1360 580 1360 568V512Q1360 500 1372 500H1409" fill="none" stroke="#88C0D0" stroke-width="2.5"/>
+<path d="M1191 460H1228Q1240 460 1240 448V392Q1240 380 1252 380H1289" fill="none" stroke="#4C566A" stroke-width="2.5"/>
+<path d="M1431 500H1529" fill="none" stroke="#4C566A" stroke-width="2.5" stroke-dasharray="2 8" stroke-linecap="round"/>
+<rect x="1049" y="369" width="22" height="22" rx="5" fill="#2E3440" stroke="#81A1C1" stroke-width="2.5"/>
+<rect x="1049" y="529" width="22" height="22" rx="5" fill="#88C0D0"/>
+<rect x="1049" y="729" width="22" height="22" rx="5" fill="#2E3440" stroke="#81A1C1" stroke-width="2.5"/>
+<rect x="1169" y="449" width="22" height="22" rx="5" fill="#88C0D0"/>
+<rect x="1169" y="649" width="22" height="22" rx="5" fill="#2E3440" stroke="#81A1C1" stroke-width="2.5"/>
+<rect x="1289" y="369" width="22" height="22" rx="5" fill="#2E3440" stroke="#81A1C1" stroke-width="2.5"/>
+<rect x="1289" y="569" width="22" height="22" rx="5" fill="#88C0D0"/>
+<rect x="1394" y="474" width="52" height="52" rx="14" fill="#EBCB8B" opacity=".35" filter="url(#glow)"/>
+<rect x="1409" y="489" width="22" height="22" rx="5" fill="#EBCB8B"/>
+<rect x="1529" y="489" width="22" height="22" rx="5" fill="#2E3440" stroke="#4C566A" stroke-width="2.5" stroke-dasharray="4 4"/>
+</svg>

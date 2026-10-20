@@ -23,6 +23,7 @@ My personal dotfiles, mainly used to set up dev pods and AI-assisted coding.
 ### Terminal & System
 - **Ghostty**: Modern terminal configuration (`.config/ghostty/`).
 - **Zellij**: Multiplexer setup (`.config/zellij/`).
+- **btop**: Nord-themed system monitor (`.config/btop/`).
 - **Yazi**: Terminal file manager (`.config/yazi/`).
 - **GitHub CLI**: gh configuration (`.config/gh/`).
 - **Safety Net**: CC-safety-net policy management (`.cc-safety-net/`).
@@ -41,7 +42,7 @@ The install script performs the following:
 1. **Symlinks**: Maps dotfiles from `~/dotfiles` to home directory, backing up existing files with `.bak`.
 2. **Shell**: Installs Oh My Zsh and required plugins (syntax highlighting, autosuggestions) and Powerlevel10k.
 3. **Tooling**: Installs binaries for `codebase-memory-mcp`, `captain-miao`, and `r3`.
-4. **Configuration**: Sets up `.config/` subdirectories for `gh`, `nvim`, `ghostty`, `yazi`, `zellij`, `cortexkit`, and `captain-miao`.
+4. **Configuration**: Sets up `.config/` subdirectories for `gh`, `nvim`, `ghostty`, `yazi`, `zellij`, `btop`, `cortexkit`, and `captain-miao`.
 5. **Agents**: Installs essential agent skills (Matt Pocock engineering skills, conventional-commit, frontend-design) via npm.
 6. **Integration**: Configures `r3` public URLs for Coder workspaces.
 7. **Arch Linux packages**: On Arch hosts only, installs `packages/arch.txt` with pacman and `packages/aur.txt` with yay (bootstrapped if missing), and on any Linux host without omp, downloads the latest omp release into `~/.local/bin`. Find packages installed outside the lists with `pacman -Qqen` (repo) and `pacman -Qqem` (AUR).

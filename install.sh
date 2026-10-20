@@ -290,7 +290,7 @@ done
 echo ""
 echo "Creating .config symlinks..."
 
-config_dirs=(gh ghostty nvim cortexkit yaji zellij)
+config_dirs=(btop gh ghostty nvim cortexkit yaji zellij)
 
 # The Polar Hyprland desktop only exists on Arch desktops; macOS,
 # devcontainers, agent pods and headless hosts get none of its configs or
@@ -316,6 +316,36 @@ if [ "$polar_desktop" = true ]; then
     [ -e "$script" ] || continue
     link_entry "$script" "$LOCAL_BIN/$(basename "$script")" "~/.local/bin/$(basename "$script")"
   done
+
+  # hyprpolkitagent's unit is shipped disabled, so without this no password
+  # prompt ever appears (mounting a drive, any privileged GUI tool). It is a
+  # session service bound to graphical-session.target, not a Hyprland child, so
+  # it is enabled here rather than listed in autostart.lua. `start` (not
+  # restart) so re-running install.sh cannot drop an open prompt.
+  if command -v systemctl >/dev/null 2>&1; then
+    systemctl --user enable hyprpolkitagent.service
+    # The unit is ConditionEnvironment=WAYLAND_DISPLAY, so a first run from a
+    # non-Wayland shell cannot start it. Enabling is what matters; a failure to
+    # start must not abort the install under `set -e`.
+    systemctl --user start hyprpolkitagent.service ||
+      echo "  WARNING: polkit agent did not start; it will start at next login"
+    echo "  Enabled hyprpolkitagent"
+  else
+    echo "  WARNING: systemctl not found; enable the polkit agent manually with:"
+    echo "    systemctl --user enable --now hyprpolkitagent.service"
+  fi
+
+  # Nord on the Linux console, so ly and plain TTYs match the desktop. System
+  # files, hence sudo; the unit's own comment explains why it is not a kernel
+  # parameter.
+  if command -v systemctl >/dev/null 2>&1 && command -v setvtrgb >/dev/null 2>&1; then
+    sudo install -Dm644 "$DOTFILES_DIR/system/etc/vtrgb" /etc/vtrgb
+    sudo install -Dm644 "$DOTFILES_DIR/system/etc/systemd/system/polar-console-palette.service" \
+      /etc/systemd/system/polar-console-palette.service
+    sudo systemctl daemon-reload
+    sudo systemctl enable --now polar-console-palette.service
+    echo "  Applied the Nord console palette"
+  fi
 fi
 
 # --- Link captain-miao config ---

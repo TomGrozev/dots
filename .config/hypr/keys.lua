@@ -180,12 +180,12 @@ add({ chord = "SUPER + Z", group = "Modes", desc = "Toggle focus mode", action =
 add({ chord = "SUPER + Escape", group = "System", desc = "Lock screen", action = hl.dsp.exec_cmd("hyprlock"), cmd = "hyprlock" })
 add({ chord = "Print", group = "Screenshot", desc = "Screenshot region", action = hl.dsp.exec_cmd("polar-shot region"), cmd = "polar-shot region" })
 
--- Media keys. wpctl follows the default sink/source, so it also works when
--- PipeWire moves the default device.
-add({ chord = "XF86AudioRaiseVolume", group = "Media", desc = "Volume up", action = hl.dsp.exec_cmd("wpctl set-volume -l 1 @DEFAULT_AUDIO_SINK@ 5%+"), cmd = "wpctl set-volume -l 1 @DEFAULT_AUDIO_SINK@ 5%+", opts = { locked = true, repeating = true } })
-add({ chord = "XF86AudioLowerVolume", group = "Media", desc = "Volume down", action = hl.dsp.exec_cmd("wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-"), cmd = "wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-", opts = { locked = true, repeating = true } })
-add({ chord = "XF86AudioMute", group = "Media", desc = "Mute output", action = hl.dsp.exec_cmd("wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle"), cmd = "wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle", opts = { locked = true, repeating = true } })
-add({ chord = "XF86AudioMicMute", group = "Media", desc = "Mute microphone", action = hl.dsp.exec_cmd("wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle"), cmd = "wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle", opts = { locked = true, repeating = true } })
+-- Media keys. polar-volume drives wpctl, which follows the default sink/source,
+-- so it also works when PipeWire moves the default device.
+add({ chord = "XF86AudioRaiseVolume", group = "Media", desc = "Volume up", action = hl.dsp.exec_cmd("polar-volume up"), cmd = "polar-volume up", opts = { locked = true, repeating = true } })
+add({ chord = "XF86AudioLowerVolume", group = "Media", desc = "Volume down", action = hl.dsp.exec_cmd("polar-volume down"), cmd = "polar-volume down", opts = { locked = true, repeating = true } })
+add({ chord = "XF86AudioMute", group = "Media", desc = "Mute output", action = hl.dsp.exec_cmd("polar-volume mute"), cmd = "polar-volume mute", opts = { locked = true, repeating = true } })
+add({ chord = "XF86AudioMicMute", group = "Media", desc = "Mute microphone", action = hl.dsp.exec_cmd("polar-volume mic-mute"), cmd = "polar-volume mic-mute", opts = { locked = true, repeating = true } })
 
 -- Generation ---------------------------------------------------------------
 

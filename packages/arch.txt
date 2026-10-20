@@ -34,9 +34,12 @@ wl-clipboard
 wtype
 hyprlock
 hypridle
+hyprpolkitagent
+hyprsunset
 grim
 slurp
 satty
+resvg
 gpu-screen-recorder
 btop
 lazygit

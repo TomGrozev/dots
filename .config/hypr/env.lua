@@ -11,8 +11,9 @@ hl.env("XCURSOR_SIZE", "24")
 hl.env("HYPRCURSOR_THEME", "Nordzy-cursors")
 hl.env("HYPRCURSOR_SIZE", "24")
 
--- Dark GTK/Qt for apps that do not read the colour scheme from the compositor.
-hl.env("GTK_THEME", "Adwaita:dark")
+-- GTK deliberately has no GTK_THEME here: install.sh sets the Nordic theme
+-- through gsettings, and an env override would win over it for every GTK app.
+-- Qt keeps its own theme engine; qt6ct reads the same Nord colours.
 hl.env("QT_QPA_PLATFORMTHEME", "qt6ct")
 hl.env("QT_QPA_PLATFORM", "wayland;xcb")
 

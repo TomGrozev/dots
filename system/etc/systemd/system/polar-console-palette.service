@@ -1,0 +1,17 @@
+# Nord palette for every Linux console, so ly (on tty1) and plain TTYs match
+# the desktop. /etc/vtrgb holds the 16 ANSI colours as decimal red, green and
+# blue rows; colour 0 is nord0 because the console paints its background with it.
+# A runtime unit instead of vt.default_* kernel parameters: those would live in
+# the Secure Boot signed UKI's embedded cmdline and need a rebuild and re-sign.
+[Unit]
+Description=Nord palette for the Linux console
+DefaultDependencies=no
+After=systemd-vconsole-setup.service
+Before=sysinit.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/setvtrgb /etc/vtrgb
+
+[Install]
+WantedBy=sysinit.target

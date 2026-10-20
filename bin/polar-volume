@@ -1,0 +1,122 @@
+#!/usr/bin/env bash
+# Volume/mic keys: change the default sink/source, then show the result as a
+# single mako popup (app-name polar-osd) that is replaced on every press.
+set -euo pipefail
+
+runtime_dir=${XDG_RUNTIME_DIR:-/tmp}
+id_dir=$runtime_dir/polar-osd
+
+die() {
+  printf 'polar-volume: %s\n' "$*" >&2
+  exit 1
+}
+
+usage() {
+  cat <<'EOF'
+polar-volume — volume keys with an on-screen display
+
+Usage:
+  polar-volume up
+  polar-volume down
+  polar-volume mute
+  polar-volume mic-mute
+
+Commands:
+  up        Raise the default sink by 5% (capped at 100%) and show the level.
+  down      Lower the default sink by 5% and show the level.
+  mute      Toggle the default sink mute and show the state.
+  mic-mute  Toggle the default source mute and show the state.
+
+The popup is a mako notification with app-name "polar-osd"; its id is kept in
+${XDG_RUNTIME_DIR:-/tmp}/polar-osd so repeated presses replace it instead of
+stacking new ones. The mako config styles and anchors it.
+EOF
+}
+
+# read_state <wpctl target>: sets pct (0-100) and muted (0|1).
+read_state() {
+  local line vol
+  line=$(wpctl get-volume "$1") || die "wpctl get-volume failed for $1"
+  vol=${line#Volume: }
+  muted=0
+  case $vol in
+  *'[MUTED]'*)
+    muted=1
+    vol=${vol% \[MUTED\]}
+    ;;
+  esac
+  pct=$(awk -v v="$vol" 'BEGIN { printf "%d", v * 100 + 0.5 }')
+}
+
+# osd <id-file> <icon> <summary>: body is the progress bar.
+osd() {
+  local id_file=$1 icon=$2 summary=$3 id args=()
+  mkdir -p "$id_dir"
+  # --print-id/--replace-id (libnotify 0.8.9) is the only reliable way to keep
+  # one popup: mako has no stack-tag/synchronous option, and dismiss-by-app
+  # would also drop other notifications from the same app.
+  args=(-a polar-osd -i "$icon" -t 1200 -e -h "int:value:$pct" -p)
+  [[ -s $id_file ]] && args+=(-r "$(cat "$id_file")")
+  id=$(notify-send "${args[@]}" "$summary" "") || return 0
+  printf '%s\n' "$id" >"$id_file"
+}
+
+volume_icon() { # mic muted pct
+  # Papirus (the installed theme) names the mic set audio-input-microphone-*
+  # rather than microphone-sensitivity-*; mako resolves names only from the
+  # theme roots listed in icon-path, so these must exist there.
+  local prefix=audio-volume
+  [[ $1 == 1 ]] && prefix=audio-input-microphone
+  if [[ $2 == 1 || $3 -eq 0 ]]; then
+    printf '%s-muted\n' "$prefix"
+  elif [[ $3 -lt 34 ]]; then
+    printf '%s-low\n' "$prefix"
+  elif [[ $3 -lt 67 ]]; then
+    printf '%s-medium\n' "$prefix"
+  else
+    printf '%s-high\n' "$prefix"
+  fi
+}
+
+sink_osd() {
+  read_state @DEFAULT_AUDIO_SINK@
+  if [[ $muted == 1 ]]; then
+    osd "$id_dir/volume" "$(volume_icon 0 1 "$pct")" "Muted"
+  else
+    osd "$id_dir/volume" "$(volume_icon 0 0 "$pct")" "Volume ${pct}%"
+  fi
+}
+
+mic_osd() {
+  read_state @DEFAULT_AUDIO_SOURCE@
+  if [[ $muted == 1 ]]; then
+    osd "$id_dir/mic" "$(volume_icon 1 1 "$pct")" "Mic muted"
+  else
+    osd "$id_dir/mic" "$(volume_icon 1 0 "$pct")" "Mic ${pct}%"
+  fi
+}
+
+case "${1:-}" in
+-h | --help | help | "")
+  usage
+  ;;
+up)
+  wpctl set-volume -l 1 @DEFAULT_AUDIO_SINK@ 5%+
+  sink_osd
+  ;;
+down)
+  wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-
+  sink_osd
+  ;;
+mute)
+  wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle
+  sink_osd
+  ;;
+mic-mute)
+  wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle
+  mic_osd
+  ;;
+*)
+  die "unknown command: $1 (try --help)"
+  ;;
+esac

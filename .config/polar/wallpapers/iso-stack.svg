@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080" viewBox="0 0 1920 1080">
+<!-- Polar wallpaper: an isometric wireframe stack of four layers with one warm block on top -->
+<defs>
+<filter id="glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="18"/></filter>
+</defs>
+<rect width="1920" height="1080" fill="#2E3440"/>
+
+<path d="M560 344.8L560 578.8" stroke="#4C566A" stroke-width="1.5" stroke-dasharray="3 7" opacity=".7"/>
+<path d="M770 466L770 700" stroke="#4C566A" stroke-width="1.5" stroke-dasharray="3 7" opacity=".7"/>
+<path d="M560 587.2L560 821.2" stroke="#4C566A" stroke-width="1.5" stroke-dasharray="3 7" opacity=".7"/>
+<path d="M350 466L350 700" stroke="#4C566A" stroke-width="1.5" stroke-dasharray="3 7" opacity=".7"/>
+<path d="M560 578.8L770 700L560 821.2L350 700Z" fill="#2E3440" opacity=".85"/>
+<path d="M560 578.8L770 700L560 821.2L350 700Z" fill="none" stroke="#4C566A" stroke-width="2.5" stroke-linejoin="round" opacity="0.5"/>
+<path d="M560 500.8L770 622L560 743.2L350 622Z" fill="#2E3440" opacity=".85"/>
+<path d="M560 500.8L770 622L560 743.2L350 622Z" fill="none" stroke="#4C566A" stroke-width="2.5" stroke-linejoin="round" opacity="0.7"/>
+<path d="M560 422.8L770 544L560 665.2L350 544Z" fill="#2E3440" opacity=".85"/>
+<path d="M560 422.8L770 544L560 665.2L350 544Z" fill="none" stroke="#81A1C1" stroke-width="2.5" stroke-linejoin="round" opacity="0.85"/>
+<path d="M560 344.8L770 466L560 587.2L350 466Z" fill="#88C0D0" opacity=".12"/>
+<path d="M385 445.8L595 567" stroke="#88C0D0" stroke-width="1" opacity=".22"/>
+<path d="M385 486.2L595 365" stroke="#88C0D0" stroke-width="1" opacity=".22"/>
+<path d="M420 425.6L630 546.8" stroke="#88C0D0" stroke-width="1" opacity=".22"/>
+<path d="M420 506.4L630 385.2" stroke="#88C0D0" stroke-width="1" opacity=".22"/>
+<path d="M455 405.4L665 526.6" stroke="#88C0D0" stroke-width="1" opacity=".22"/>
+<path d="M455 526.6L665 405.4" stroke="#88C0D0" stroke-width="1" opacity=".22"/>
+<path d="M490 385.2L700 506.4" stroke="#88C0D0" stroke-width="1" opacity=".22"/>
+<path d="M490 546.8L700 425.6" stroke="#88C0D0" stroke-width="1" opacity=".22"/>
+<path d="M525 365L735 486.2" stroke="#88C0D0" stroke-width="1" opacity=".22"/>
+<path d="M525 567L735 445.8" stroke="#88C0D0" stroke-width="1" opacity=".22"/>
+<path d="M560 344.8L770 466L560 587.2L350 466Z" fill="none" stroke="#88C0D0" stroke-width="2.5" stroke-linejoin="round" opacity="1"/>
+<ellipse cx="630.0" cy="466" rx="80" ry="40" fill="#EBCB8B" opacity=".3" filter="url(#glow)"/>
+<path d="M586 426L630 451.4L630 491.4L586 466Z" fill="#D08770" opacity=".75"/><path d="M674 426L630 451.4L630 491.4L674 466Z" fill="#D08770" opacity=".55"/><path d="M630 400.6L674 426L630 451.4L586 426Z" fill="#EBCB8B"/>
+</svg>

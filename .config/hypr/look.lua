@@ -28,15 +28,22 @@ hl.config({
         dim_strength     = 0.12,
         dim_special      = 0.35,
 
+        -- Tiled windows get no shadow (rules.lua); floating glass needs the
+        -- larger, softer shadow to read against the wallpaper. render_power 3
+        -- with range 20 is the most a 3GB GTX 1060 should render per window.
         shadow = {
-            enabled      = true,
-            range        = 8,
-            render_power = 3,
-            color        = 0x661A1A1A,
+            enabled        = true,
+            range          = 20,
+            render_power   = 3,
+            color          = 0x991E232C,
+            color_inactive = 0x551E232C,
         },
 
         -- Blur is enabled globally because layer rules are the only way to blur
         -- layer-shell surfaces; windows opt out through rules.lua's no_blur rule.
+        -- xray blurs the wallpaper layer only, so the glass costs the same
+        -- whatever is underneath; surfaces that float over real windows (bar,
+        -- launcher, notifications, which-key) turn it back off in rules.lua.
         blur = {
             enabled           = true,
             size              = 5,
@@ -44,6 +51,7 @@ hl.config({
             ignore_opacity    = true,
             new_optimizations = true,
             popups            = true,
+            xray              = true,
         },
     },
 
@@ -60,5 +68,14 @@ hl.config({
         disable_splash_rendering = true,
         force_default_wallpaper = 0,
         focus_on_activate       = false,
+        -- Nord0 rather than the default near-black, so the frame before the
+        -- wallpaper paints is the same colour as every other surface.
+        background_color        = "#2E3440",
+    },
+
+    -- The cursor is a pointer, not a decoration; it gets out of the way as
+    -- soon as a key is pressed and comes back on the next mouse move.
+    cursor = {
+        hide_on_key_press = true,
     },
 })

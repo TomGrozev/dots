@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
 # polar-wall — Nord wallpapers for the awww daemon.
-# The wallpaper set is kept nordified so every screen shares the Nord palette;
-# `nordify` is the only path that adds files to the library.
+# Wallpapers ship as SVGs and are rendered into the library at the monitor's
+# pixel size, so every screen gets a native-resolution Nord image.
 set -euo pipefail
 
 WALL_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/polar/wallpapers"
+SVG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/polar/wallpapers"
 STATE_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/polar"
 STATE_FILE="$STATE_DIR/wallpaper"
 
@@ -24,13 +25,17 @@ Usage:
   polar-wall restore
 
 Commands:
-  next             Cycle to the next nordified wallpaper (fade, 0.8s).
+  next             Render any new bundled wallpaper, then cycle to the next
+                   one (fade, 0.8s).
   set <image>      Show an image (grow, 0.8s) and remember it.
   nordify <image>  Recolour an image with the Nord palette, keep it in
                    ~/.local/share/polar/wallpapers, and show it.
-  restore          Re-apply the last wallpaper; cycles if none is known.
+  restore          Render any new bundled wallpaper, then re-apply the last
+                   wallpaper; cycles if none is known.
 
-Wallpapers live in ${XDG_DATA_HOME:-~/.local/share}/polar/wallpapers.
+Bundled wallpapers are the SVGs in ${XDG_CONFIG_HOME:-~/.config}/polar/wallpapers;
+they are rendered with resvg at the focused monitor's resolution into
+${XDG_DATA_HOME:-~/.local/share}/polar/wallpapers.
 The last applied image is remembered in ${XDG_STATE_HOME:-~/.local/state}/polar/wallpaper.
 EOF
 }
@@ -72,28 +77,58 @@ nordify() {
   notify "Wallpaper nordified" "$(basename "$out")"
 }
 
-# First run: turn the compositor's bundled walls into the Nord library.
-seed() {
-  local found
-  # Must exist before the find below: a missing dir makes find exit 1, which
-  # `set -e` turns into a hard failure on a fresh install.
-  mkdir -p "$WALL_DIR"
-  found="$(find "$WALL_DIR" -maxdepth 1 -type f 2>/dev/null | head -n 1)"
-  [[ -n $found ]] && return 0
-  command -v lutgen >/dev/null 2>&1 ||
-    die "no wallpapers yet and lutgen is not installed (AUR package: lutgen-bin)"
+# Render at the focused monitor's pixel size. `restore` can run before the
+# compositor answers, hence the 1080p fallback.
+monitor_size() {
+  local size
+  size="$({ hyprctl monitors -j | jq -r 'first(.[] | select(.focused) | "\(.width) \(.height)")'; } 2>/dev/null)" || true
+  if [[ $size =~ ^([0-9]+)\ ([0-9]+)$ ]]; then
+    printf '%s %s\n' "${BASH_REMATCH[1]}" "${BASH_REMATCH[2]}"
+  else
+    printf '1920 1080\n'
+  fi
+}
 
-  local srcs=(/usr/share/hypr/wall*.png)
-  [[ -e ${srcs[0]} ]] || die "no wallpapers yet and no /usr/share/hypr/wall*.png to seed from"
-  for src in "${srcs[@]}"; do
-    local name="${src##*/}"
-    lutgen apply --palette nord --preserve -o "$WALL_DIR/${name%.*}.png" "$src" ||
-      die "lutgen failed on $src"
+# Bundled SVGs are the source of truth, the library holds their renders. Runs at
+# login via `restore`, so it must stay cheap: resvg is only invoked for a PNG
+# that is missing or older than its SVG.
+sync_walls() {
+  local svgs=() svg name png w h have_resvg=0
+  mkdir -p "$WALL_DIR"
+  # nullglob: with no bundled wallpapers the loop below must simply not run.
+  shopt -s nullglob
+  svgs=("$SVG_DIR"/*.svg)
+  shopt -u nullglob
+
+  if ((${#svgs[@]} == 0)) &&
+    ! find "$WALL_DIR" -maxdepth 1 -type f \
+      \( -iname '*.png' -o -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.webp' \) \
+      -print -quit | grep -q .; then
+    die "no wallpapers: bundled SVGs go in $SVG_DIR, images in $WALL_DIR"
+  fi
+  ((${#svgs[@]})) || return 0
+
+  read -r w h <<<"$(monitor_size)"
+  command -v resvg >/dev/null 2>&1 && have_resvg=1
+
+  for svg in "${svgs[@]}"; do
+    name="$(basename "$svg" .svg)"
+    png="$WALL_DIR/$name.png"
+    if [[ -f $png && $png -nt $svg ]]; then
+      continue
+    fi
+    ((have_resvg)) ||
+      die "resvg not installed (package: resvg) — cannot render $svg"
+    # Render beside the target, then move: an interrupted or failed render must
+    # not leave a truncated PNG whose fresh mtime makes it look up to date.
+    resvg -w "$w" -h "$h" "$svg" "$png.part" ||
+      { rm -f "$png.part"; die "resvg failed on $svg"; }
+    mv -f "$png.part" "$png"
   done
 }
 
 next() {
-  seed
+  sync_walls
   local walls=() i current
   while IFS= read -r wall; do
     walls+=("$wall")
@@ -113,6 +148,7 @@ next() {
 
 restore() {
   local last
+  sync_walls
   last="$(cat "$STATE_FILE" 2>/dev/null || true)"
   if [[ -n $last && -f $last ]]; then
     show "$last" fade

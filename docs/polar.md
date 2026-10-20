@@ -111,7 +111,89 @@ Log in. The wallpaper fades in, the ironbar appears at the top, and mako pops a
 | `SUPER+Z` | focus mode |
 | `SUPER+Escape` | lock screen (hyprlock) |
 | `Print` | screenshot region |
-| `XF86` volume keys | volume up/down, mute output/mic (work on the lock screen) |
+| `XF86` volume keys | `polar-volume up/down/mute/mic-mute` (work on the lock screen) |
+
+### Volume and mic OSD
+
+The volume keys run `bin/polar-volume`, which drives `wpctl` (so it follows the
+default sink/source when PipeWire switches devices) and then shows the result
+as a compact mako popup anchored top-centre: an icon, the level as a progress
+bar, and a one-line label (`Volume 45%`, `Muted`, `Mic muted`). Pressing again
+replaces the same popup instead of stacking — `polar-volume` keeps the
+notification id in `${XDG_RUNTIME_DIR}/polar-osd` and passes it back with
+`--replace-id`, the only reliable single-popup mechanism mako offers. A
+`[app-name=polar-osd]` block in `.config/mako/config` styles it (no border,
+short 1.2 s timeout), and a follow-up rule keeps it visible even in
+do-not-disturb, since your own key presses are feedback, not an alert.
+
+## Look
+
+`.config/hypr/look.lua` and `rules.lua` give the desktop a consistent surface
+treatment:
+
+- **Glass** — Ghostty and the five drop-down TUIs are translucent
+  (background-opacity 0.94) and blurred by the compositor. Blur is global with
+  `xray` on (it blurs the wallpaper layer only, so the cost is constant);
+  normal windows opt out, while the layer surfaces that float over real
+  windows — bar, launcher, notifications, which-key popup — turn `xray` back
+  off per layer so they blur what is actually behind them.
+- **Shadows** — floating windows get a soft shadow so they read against the
+  wallpaper; tiled ones are flat, where a shadow is pure GPU cost on top of the
+  dark seam the gaps already draw.
+- **Motion** — the launcher pops in from its centre, notifications slide in
+  from the right edge (mako is anchored there), and the bar never animates
+  because it is permanent furniture.
+- **Details** — the cursor hides while typing and returns on the next mouse
+  move; the pre-wallpaper frame is Nord0 (`#2E3440`) instead of near-black.
+- **GTK theming** — install.sh applies the Nordic theme (and Papirus-Dark
+  icons, Nordzy cursors, dark colour scheme) through `gsettings`; the
+  `GTK_THEME` environment override was removed from `env.lua` because it would
+  win over gsettings for every GTK app. Apps pick the theme up after re-login.
+
+## Wallpapers
+
+Polar ships eight bundled wallpapers as SVGs in
+`.config/polar/wallpapers/`: `aurora-lines`, `git-graph`, `oscilloscope`,
+`dag-grid`, `code-minimap`, `iso-stack`, `prompt-cursor`, `braces-light`.
+`polar-wall next` and `polar-wall restore` render each one to a PNG in
+`~/.local/share/polar/wallpapers` at the focused monitor's pixel size with
+`resvg`, and only when the PNG is missing or older than its SVG — login stays
+cheap on later boots. The old first-run seeding from `/usr/share/hypr` is
+gone; the bundled SVGs are the source of truth. `polar-wall nordify <image>`
+still recolours any image into the Nord palette with `lutgen` and keeps it in
+the same library, so custom wallpapers cycle alongside the bundled ones.
+
+## Night light
+
+`hyprsunset` runs from `.config/hypr/autostart.lua` (started on
+`hyprland.start` so the CTM protocol global exists before it connects) and
+reads `.config/hypr/hyprsunset.conf`: full colour from 07:00, 4500 K from
+20:30, and the 20:30 profile holds through midnight. Caveat on NVIDIA: the
+temperature is applied as a colour transform, which depends on CTM support in
+the driver — if the screen never warms up, check
+`hyprctl monitors -j | jq '.[].ctm'`.
+
+## Session and system
+
+- **Polkit** — `install.sh` runs `systemctl --user enable
+  hyprpolkitagent.service`. The unit ships disabled, so without this no
+  password prompt ever appears (mounting a drive, privileged GUI tools). It is
+  a session service bound to `graphical-session.target`, not a Hyprland child,
+  hence enabled at install rather than listed in `autostart.lua`.
+- **Lock screen** — hyprlock renders the last frame itself (blurred, dimmed)
+  and fades in on lock and out on unlock using Polar's shared `polarFade`
+  curve; the cursor is hidden on the lock screen
+  (`.config/hypr/hyprlock.conf`).
+- **Console palette** — `system/etc/vtrgb` and
+  `system/etc/systemd/system/polar-console-palette.service` give the Linux
+  console (ly on tty1 and the plain TTYs) the same Nord palette as the
+  desktop; install.sh copies both to `/etc` with sudo and enables the unit. It
+  is a runtime unit rather than `vt.default_*` kernel parameters because those
+  would live in the Secure Boot signed UKI's embedded cmdline and need a
+  rebuild and re-sign on every palette change.
+
+The new packages this depends on are in `packages/arch.txt`: `hyprpolkitagent`,
+`hyprsunset` and `resvg`.
 
 ## Testing checklist
 
@@ -138,6 +220,9 @@ Run through this after install or after editing the config.
 | 17 | `SUPER+Escape`, type password | hyprlock unlocks |
 | 18 | Idle 5 / 10 / 11 min | screen blanks at 5, locks at 10, DPMS off at 11; input resumes cleanly |
 | 19 | `SUPER+Space h o` then `h O` | daily tips stop / resume (`h t` still shows one now) |
+| 20 | Press volume up/down, then mute / mic-mute | top-centre OSD shows the level as a bar; repeated presses replace the same popup; it stays visible in DND |
+| 21 | Delete a PNG in `~/.local/share/polar/wallpapers`, run `polar-wall next` | the PNG is re-rendered from its SVG at the monitor's size, then shown |
+| 22 | After 20:30 (or temporarily set an earlier time in `hyprsunset.conf`) | screen warms to 4500 K; check `hyprctl monitors -j \| jq '.[].ctm'` if not |
 
 **If something fails:** `hyprctl configerrors` for config mistakes,
 `hyprctl reload` to reapply (it also regenerates the cheat sheet). ironbar
