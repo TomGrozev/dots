@@ -29,3 +29,4 @@ ffmpeg
 ghostty
 ttf-meslo-nerd
 chromium
+firefox
