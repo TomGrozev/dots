@@ -10,7 +10,9 @@ local FOCUS_ON  = { gaps_in = 0, gaps_out = 0, border_size = 1 }
 local FOCUS_OFF = { gaps_in = 4, gaps_out = 8, border_size = 2 }
 
 local TUIS = {
-    term  = "ghostty --class=polar.tui.term",
+    -- ~/.zshrc auto-attaches the `main` zellij session, which is wrong inside the
+    -- drop-down; the env opt-out skips it (the .zshrc guard reads ZELLIJ_AUTOATTACH).
+    term  = "ghostty --class=polar.tui.term -e env ZELLIJ_AUTOATTACH=0 zsh",
     files = "ghostty --class=polar.tui.files -e yazi",
     top   = "ghostty --class=polar.tui.top -e btop",
     audio = "ghostty --class=polar.tui.audio -e wiremix",
@@ -50,12 +52,15 @@ function Polar.tui(name)
         error("Polar.tui: unknown scratchpad '" .. tostring(name) .. "'")
     end
 
+    -- Show the workspace before the app maps: a window that appears on an
+    -- already-visible special is focused by the window.open handler below,
+    -- whereas one that maps on a hidden special loses that focus race.
+    hl.dispatch(hl.dsp.workspace.toggle_special(name))
+
     if not launched[name] then
         launched[name] = true
         hl.exec_cmd(cmd)
     end
-
-    hl.dispatch(hl.dsp.workspace.toggle_special(name))
 end
 
 --- Set a boolean desktop state; `focus` also changes gaps, border and dimming.
@@ -92,4 +97,15 @@ hl.on("window.active", function()
         urgent = false
         refresh()
     end
+end)
+
+-- A scratchpad launched while its special workspace is already showing maps
+-- unfocused (Hyprland leaves focus on the previous window), so the first
+-- keystrokes land behind the overlay. Take focus as soon as it appears.
+hl.on("window.open", function(win)
+    local special = hl.get_active_special_workspace()
+    if not special or not win.workspace then return end
+    if win.workspace.name ~= special.name then return end
+    if not win.class:match("^polar%.tui%.") then return end
+    hl.dispatch(hl.dsp.focus({ window = win }))
 end)

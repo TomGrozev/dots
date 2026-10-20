@@ -37,13 +37,16 @@ hl.window_rule({
 
 -- Drop-down TUIs: one class per scratchpad, mapped to its special workspace.
 -- size/center are monitor-relative so the scratchpad looks the same on any output.
+-- The size must be hwlang expressions: Hyprland 0.56 silently ignores `%` sizes
+-- and the window then falls back to the app's requested 800x600 default. It stays
+-- at 80% so btop gets well over its 80x24 cell minimum.
 for _, name in ipairs({ "term", "files", "top", "audio", "git" }) do
     hl.window_rule({
         name      = "polar-tui-" .. name,
         match     = { class = "^polar\\.tui\\." .. name .. "$" },
         float     = true,
         center    = true,
-        size      = "70% 70%",
+        size      = "(monitor_w*0.8) (monitor_h*0.8)",
         workspace = "special:" .. name,
         animation = "popin 90%",
     })

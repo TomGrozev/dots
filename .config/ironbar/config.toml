@@ -62,7 +62,9 @@ class = "mode"
 type = "custom"
 name = "mode-hint"
 class = "mode-hint"
-show_if = 'test -n "$(hyprctl submap)"'
+# `hyprctl submap` prints `default` outside a submap. The `500:` prefix
+# overrides ironbar's 5s default poll so the hint tracks bindmode closely.
+show_if = '500:test "$(hyprctl submap)" != default'
 bar = [
   { type = "label", label = " · Esc" },
 ]

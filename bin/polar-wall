@@ -41,11 +41,15 @@ notify() {
 
 # awww's transitions: grow for an explicit pick, fade for cycling/restore.
 show() {
-  local img="$1" type="$2"
+  local img="$1" type="$2" attempt=0
   [[ -f $img ]] || die "no such image: $img"
-  awww img --transition-type "$type" --transition-duration 0.8 --transition-fps 60 \
-    --resize crop "$img" ||
-    die "awww failed (is awww-daemon running?)"
+  # Autostart starts awww-daemon and `polar-wall restore` at the same time, so the
+  # first frames can arrive before the daemon's socket exists. Retry for ~10s.
+  until awww img --transition-type "$type" --transition-duration 0.8 --transition-fps 60 \
+    --resize crop "$img" 2>/dev/null; do
+    ((++attempt < 40)) || die "awww failed (is awww-daemon running?)"
+    sleep 0.25
+  done
   mkdir -p "$STATE_DIR"
   printf '%s\n' "$img" >"$STATE_FILE"
 }
@@ -71,6 +75,9 @@ nordify() {
 # First run: turn the compositor's bundled walls into the Nord library.
 seed() {
   local found
+  # Must exist before the find below: a missing dir makes find exit 1, which
+  # `set -e` turns into a hard failure on a fresh install.
+  mkdir -p "$WALL_DIR"
   found="$(find "$WALL_DIR" -maxdepth 1 -type f 2>/dev/null | head -n 1)"
   [[ -n $found ]] && return 0
   command -v lutgen >/dev/null 2>&1 ||
@@ -78,7 +85,6 @@ seed() {
 
   local srcs=(/usr/share/hypr/wall*.png)
   [[ -e ${srcs[0]} ]] || die "no wallpapers yet and no /usr/share/hypr/wall*.png to seed from"
-  mkdir -p "$WALL_DIR"
   for src in "${srcs[@]}"; do
     local name="${src##*/}"
     lutgen apply --palette nord --preserve -o "$WALL_DIR/${name%.*}.png" "$src" ||
