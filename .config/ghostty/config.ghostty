@@ -64,7 +64,8 @@ keybind = cmd+shift+d=new_split:down
 keybind = cmd+shift+enter=toggle_split_zoom
 
 # Terminal keybindings (for Zellij interoperability)
-keybind = ctrl+h=raw:Ctrl+h
+# `raw:` is not a valid action; text:\x08 sends the Ctrl+H byte to the pty.
+keybind = ctrl+h=text:\x08
 # Tab navigation
 keybind = cmd+1=goto_tab:1
 keybind = cmd+2=goto_tab:2
