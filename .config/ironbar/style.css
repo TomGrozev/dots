@@ -172,18 +172,33 @@
   color: @nord8;
 }
 
+/* Resource readout: the glyphs are as loud as the numbers, so keep the pair
+ * on the bar's normal foreground instead of the old Nord3 dim.
+ * The bar hides in focus mode, so these never need a background of their own. */
 .sysinfo {
-  color: @nord3;
+  color: @nord4;
+}
+
+/* Both labels are the same width, so a value going 9% -> 10% grows inside the
+ * slot instead of shoving the tray sideways. 12px is the gap between them. */
+.sysinfo .item {
+  min-width: 42px;
 }
 
 .sysinfo .item + .item {
-  margin-left: 6px;
+  margin-left: 12px;
 }
 
 /* --- Tray --- */
 
+/* Tray icons are app-provided pixmaps that CSS cannot recolor, so the tray is
+ * framed instead: a quiet Nord rail makes the brand colours read as contents
+ * rather than stray blue squares on the bar. */
 .tray {
-  margin-left: 4px;
+  margin: 3px 0;
+  padding: 0 4px;
+  background-color: alpha(@nord1, 0.65);
+  border-radius: 4px;
 }
 
 .tray .item {
@@ -191,8 +206,12 @@
   border-radius: 3px;
 }
 
+.tray .item image {
+  opacity: 0.9;
+}
+
 .tray .item:hover {
-  background-color: @nord2;
+  background-color: alpha(@nord2, 0.9);
 }
 
 /* --- Popups (calendar, volume mixer) --- */

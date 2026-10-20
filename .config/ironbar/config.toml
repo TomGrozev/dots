@@ -110,7 +110,11 @@ muted = "󰝟"
 
 [[end]]
 type = "sys_info"
-format = ["{cpu_percent}%", "{memory_percent}%"]
+# No labels on the bar, so each number carries a glyph: microchip for CPU,
+# RAM stick for memory. `1.0` clears ironbar's default leading-zero padding
+# (width 2 for CPU, 4 with a decimal for memory); the fixed label width that
+# stops the pair shifting as values change lives in style.css.
+format = ["\uF2DB {cpu_percent:1.0}%", "\uEFC5 {memory_percent:1.0}%"]
 
 [end.interval]
 cpu = 2
@@ -118,6 +122,9 @@ memory = 10
 
 [[end]]
 type = "tray"
-icon_size = 16
+# Electron apps (Bitwarden, OpenWhispr) publish their tray icons as raw
+# pixmaps, so ironbar cannot recolor them. 14px on a Nord rail is the closest
+# fit: the chrome is ours, the glyphs stay the apps' own.
+icon_size = 14
 direction = "horizontal"
 prefer_theme_icons = true
