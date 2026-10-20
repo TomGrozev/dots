@@ -152,9 +152,11 @@ treatment:
 
 ## Wallpapers
 
-Polar ships eight bundled wallpapers as SVGs in
-`.config/polar/wallpapers/`: `aurora-lines`, `git-graph`, `oscilloscope`,
-`dag-grid`, `code-minimap`, `iso-stack`, `prompt-cursor`, `braces-light`.
+Polar ships eight bundled full-frame wallpapers as SVGs in
+`.config/polar/wallpapers/`: `signal-terrain`, `aurora-ranges`, `fjord-moon`,
+`curl-current`, `ice-sheet-history`, `glacier-topo-network`, `circuit-horizon`,
+`rack-city`. Each takes about 1–3 s to render, so the first run after adding
+them takes a while.
 `polar-wall next` and `polar-wall restore` render each one to a PNG in
 `~/.local/share/polar/wallpapers` at the focused monitor's pixel size with
 `resvg`, and only when the PNG is missing or older than its SVG — login stays
