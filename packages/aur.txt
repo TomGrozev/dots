@@ -5,3 +5,4 @@ lutgen-bin
 nordic-theme
 nordzy-cursors
 papirus-folders
+sidra-bin
