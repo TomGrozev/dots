@@ -107,6 +107,50 @@ if [ -f /etc/arch-release ] &&
   fi
 fi
 
+# --- OpenWhispr + Soniox proxy (Linux desktop only) ---
+# Soniox ships no Linux desktop app (its installers are macOS/Windows only), so
+# the dictation UI here is OpenWhispr. OpenWhispr's Custom provider speaks the
+# OpenAI /v1/audio/transcriptions shape, while Soniox's API is job-based async
+# (upload → create → poll → fetch); openwhispr-soniox-proxy translates between
+# the two on localhost. Skipped on macOS (official Soniox app), in devcontainers
+# and agent pods (no audio stack), and on headless Linux hosts.
+if [ "$UNAME_OS" = "linux" ] &&
+  [ "${DEVCONTAINER:-}" != "true" ] &&
+  [ "$AGENT_POD" != "true" ] &&
+  [ -n "${DISPLAY:-}${WAYLAND_DISPLAY:-}" ]; then
+  echo ""
+  echo "Installing OpenWhispr + Soniox proxy..."
+
+  if [ -f /etc/arch-release ]; then
+    # AUR-only package: yay was bootstrapped by the Arch block above.
+    yay -S --needed --noconfirm openwhispr-bin
+
+    # Proxy source lives in this repo. Link it before starting the unit so its
+    # %h/.config WorkingDirectory resolves; the generic .config link loop runs
+    # later, after this service has already restarted.
+    link_entry "$DOTFILES_DIR/.config/openwhispr-soniox-proxy" \
+      "$HOME/.config/openwhispr-soniox-proxy" ".config/openwhispr-soniox-proxy"
+
+    # User unit: starts with the session and restarts on failure. The Soniox key
+    # stays out of the unit — the proxy forwards each request's Bearer token.
+    link_entry "$DOTFILES_DIR/.config/systemd/user/openwhispr-soniox-proxy.service" \
+      "$HOME/.config/systemd/user/openwhispr-soniox-proxy.service" \
+      ".config/systemd/user/openwhispr-soniox-proxy.service"
+    if command -v systemctl >/dev/null 2>&1; then
+      systemctl --user daemon-reload
+      systemctl --user enable openwhispr-soniox-proxy.service
+      # Restart (not just start) so a re-run picks up source edits.
+      systemctl --user restart openwhispr-soniox-proxy.service
+      echo "  Proxy listening on http://127.0.0.1:8788"
+    else
+      echo "  WARNING: systemctl not found; start the proxy manually with:"
+      echo "    (cd \"$HOME/.config/openwhispr-soniox-proxy\" && bun run src/server.ts)"
+    fi
+  else
+    echo "  Skipping OpenWhispr + Soniox proxy: only the Arch package is automated"
+  fi
+fi
+
 # --- Install Oh My Zsh ---
 # Skipped in AGENT_POD mode: the pod's image ships its own shell.
 if [ "$AGENT_POD" != "true" ]; then

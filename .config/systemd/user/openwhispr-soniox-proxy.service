@@ -1,0 +1,17 @@
+[Unit]
+Description=OpenAI-compatible Soniox STT proxy for OpenWhispr
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=%h/.config/openwhispr-soniox-proxy
+ExecStart=/usr/bin/bun run src/server.ts
+Environment=PORT=8788
+# Soniox project region: us, eu, jp, or in. A regional key only works
+# against its own region's API domain.
+Environment=SONIOX_REGION=jp
+Restart=on-failure
+RestartSec=2
+
+[Install]
+WantedBy=default.target
