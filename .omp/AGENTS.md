@@ -32,8 +32,7 @@ repo-root docs (`GLOSSARY.md`, `CODING_STANDARDS.md`, the ADR directory) live un
 instead (`skill://onboard/FORK.md`).
 
 # Talking to the user
-- **Answer first**: open with the answer in one plain sentence, then the detail. Short
-  sentences, one idea each.
+- **Answer first**: open with the answer in one plain sentence, then the detail.
 - **Plain words for project specifics**: assume general software knowledge; common
   programming, tooling and computing terms are fine. Anything specific to this codebase,
   workflow or a tool's internals (a module name, a coined label, a config key) gets a few

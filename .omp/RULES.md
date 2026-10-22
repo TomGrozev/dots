@@ -23,6 +23,18 @@ Bind every agent: the main session and every subagent. "Escalate" means: subagen
   ordering invisible from the spot, the obvious alternative and why it fails, a `ponytail:`
   ceiling. Public API contracts get doc comments. What the code does lives in its names; its
   provenance (what it replaced, which chat or ticket decided it) lives in the commit message.
+- **Simplified Technical English (ASD-STE100)** for all prose a person reads: chat replies,
+  `ask` questions, code comments, commit messages, PR bodies, r3 and review comments, docs.
+  - Sentences: 20 words at most for instructions, 25 for descriptions. One idea per sentence;
+    one topic per paragraph, 6 sentences at most.
+  - Verbs: active voice; simple present, past, future or imperative ("the test fails").
+  - Words: common words in their first meaning; one word for one thing, kept through the text;
+    plain verbs over phrasal verbs and idioms ("start", "find"); three nouns in a row at most.
+  - Full sentences with their articles ("the", "a") and small words.
+  - Instructions: one action per sentence, in the order the reader does them; a warning goes
+    before the step it applies to.
+  - Technical names (code identifiers, paths, commands, product names) stay exact. Format
+    rules (Conventional Commits, a skill's template) still apply; STE governs the words.
 - **Graph before grep.** Structural questions go to `codebase-memory-mcp` first; `grep`/`read`
   for literal text and graph gaps. Indexing operations are human-only: report an unindexed
   project instead.
