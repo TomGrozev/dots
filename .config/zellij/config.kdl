@@ -330,7 +330,9 @@ keybinds clear-defaults=true {
 plugins {
     zjstatus-hints location="file:~/.config/zellij/plugins/zjstatus-hints.wasm" {
         pipe_name "zjstatus_hints"
-        hide_in_base_mode false
+        // Hints show only after a mode key (Ctrl p, Ctrl t, ...). In the base
+        // mode they would push the tabs out of the single zjstatus bar.
+        hide_in_base_mode true
         max_length 100
         overflow_str "…"
     }
@@ -344,10 +346,10 @@ plugins {
 
 // ── Background plugins loaded at session start ────────────────────────────
 
+// zjframes is not loaded. With `pane_frames false` and no hide option set, it
+// changed nothing. Next to zjstatus, it made the Zellij 0.45.1 server leak
+// about 0.3 MB per tab switch.
 load_plugins {
     zjstatus-hints
-    "file:~/.config/zellij/plugins/zjframes.wasm" {
-        hide_frame_for_single_pane "false"
-    }
     autolock
 }

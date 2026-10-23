@@ -565,10 +565,9 @@ if [ "$AGENT_POD" != "true" ]; then
   # copy carries no version — stamp the resolved release tag next to each file
   # at download time (.<name>.tag) and compare against the latest release on
   # later runs, mirroring the miao/r3 update checks above.
-  ZELLIJ_PLUGIN_NAMES=("zjstatus.wasm" "zjframes.wasm" "zjstatus-hints.wasm" "zellij-autolock.wasm")
+  ZELLIJ_PLUGIN_NAMES=("zjstatus.wasm" "zjstatus-hints.wasm" "zellij-autolock.wasm")
   ZELLIJ_PLUGIN_URLS=(
     "https://github.com/dj95/zjstatus/releases/latest/download/zjstatus.wasm"
-    "https://github.com/dj95/zjstatus/releases/latest/download/zjframes.wasm"
     "https://github.com/b0o/zjstatus-hints/releases/latest/download/zjstatus-hints.wasm"
     "https://github.com/fresh2dev/zellij-autolock/releases/latest/download/zellij-autolock.wasm"
   )
