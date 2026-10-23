@@ -963,6 +963,14 @@ if command -v npm &>/dev/null; then
 
   echo "  Installing apple-design skill..."
   npx skills add https://github.com/emilkowalski/skills --skill apple-design -a universal -y -g
+
+  # The r3 review loop runs on the laptop only, so its skill installs with the
+  # r3 executable above, not in the pod. The skill defers to `r3 guide` for
+  # commands, so an r3 CLI update never makes it stale.
+  if [ "$AGENT_POD" != "true" ]; then
+    echo "  Installing r3 review skill..."
+    npx skills add hyperlogue/r3 --skill publish-artifacts-to-r3 -a universal -y -g
+  fi
 else
   echo "  npm not found. Install Node.js to install agent skills."
 fi

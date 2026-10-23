@@ -77,7 +77,7 @@ Commits in this skill depend on mode:
 
 ## Publishing
 A review or a PR carries the summary when there is one (diagram as a mermaid block) and each note as a comment on its line. The files go in **reading order**: entry point first, down the call path, tests beside the code they cover.
-- **r3**: the diff view shows files in patch order, so build the patch in reading order and publish it as a `diff` artifact (commands: `skill://r3`):
+- **r3**: the diff view shows files in patch order, so build the patch in reading order and publish it as a `diff` artifact (commands: `skill://publish-artifacts-to-r3`):
 
   ```sh
   git add -N <new files>   # untracked files enter `git diff` only as intent-to-add
@@ -93,7 +93,7 @@ A review or a PR carries the summary when there is one (diagram as a mermaid blo
   Then post each note:
 
   ```sh
-  r3 feedback add <artifact> --file <path> --version <seq> --view diff --side new --line <a-b> --quote <exact line text> -m '<note>'
+  r3 thread add <artifact> --file <path> --version <seq> --view diff --side new --line <a-b> --quote '<exact line text>' -m '<note>'
   ```
 
 - **PR**: GitHub lists files alphabetically, so write the reading order as a list of paths under the summary in the PR body, in `skill://pr`'s shape (`gh pr edit <n> --body-file`, or the body of `gh pr create`). Then post each note as a review comment on its line:
