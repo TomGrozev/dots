@@ -101,9 +101,27 @@ keybinds clear-defaults=true {
     }
 
     // ── Navigation + quick actions available in normal AND locked. ──
+    // Reading order: Alt h/j/k/l move focus between panes; at the edge the
+    // same key crosses into the neighbouring tab. Alt 1-9 jump to a tab by
+    // number (Alt 0 → tab 10). Alt Shift h/l step through tabs without
+    // walking pane by pane. Alt Shift n opens a new tab.
     shared_among "normal" "locked" {
-        // Tab 1 is the captain-miao dashboard in the `main` session (layouts/nord.kdl).
+        // Tab 1 is the captain-miao dashboard in the `main` session
+        // (layouts/nord.kdl). `Alt x` stays as its alias.
         bind "Alt x" { GoToTab 1; }
+        bind "Alt 1" { GoToTab 1; }
+        bind "Alt 2" { GoToTab 2; }
+        bind "Alt 3" { GoToTab 3; }
+        bind "Alt 4" { GoToTab 4; }
+        bind "Alt 5" { GoToTab 5; }
+        bind "Alt 6" { GoToTab 6; }
+        bind "Alt 7" { GoToTab 7; }
+        bind "Alt 8" { GoToTab 8; }
+        bind "Alt 9" { GoToTab 9; }
+        bind "Alt 0" { GoToTab 10; }
+        bind "Alt Shift h" { GoToPreviousTab; }
+        bind "Alt Shift l" { GoToNextTab; }
+        bind "Alt Shift n" { NewTab; }
         bind "Alt left" { MoveFocusOrTab "left"; }
         bind "Alt down" { MoveFocus "down"; }
         bind "Alt up" { MoveFocus "up"; }
