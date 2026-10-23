@@ -69,7 +69,7 @@ link_entry() {
 if [ -f /etc/arch-release ] && [ "$AGENT_POD" != "true" ]; then
   echo ""
   echo "Installing Arch packages..."
-  sudo pacman -S --needed --noconfirm - < "$DOTFILES_DIR/packages/arch.txt"
+  sudo pacman -S --needed --noconfirm - <"$DOTFILES_DIR/packages/arch.txt"
 
   # AUR packages go through yay; bootstrap it from the prebuilt yay-bin when absent.
   if ! command -v yay &>/dev/null; then
@@ -79,7 +79,7 @@ if [ -f /etc/arch-release ] && [ "$AGENT_POD" != "true" ]; then
     (cd "$yay_build" && makepkg -si --noconfirm)
     rm -rf "$yay_build"
   fi
-  yay -S --needed --noconfirm - < "$DOTFILES_DIR/packages/aur.txt"
+  yay -S --needed --noconfirm - <"$DOTFILES_DIR/packages/aur.txt"
 fi
 
 # --- GTK / icon theming (Arch desktop only) ---
@@ -154,54 +154,54 @@ fi
 # --- Install Oh My Zsh ---
 # Skipped in AGENT_POD mode: the pod's image ships its own shell.
 if [ "$AGENT_POD" != "true" ]; then
-echo ""
-echo "Installing Oh My Zsh..."
+  echo ""
+  echo "Installing Oh My Zsh..."
 
-if [ -d "$HOME/.oh-my-zsh" ]; then
-  echo "  Oh My Zsh already installed, skipping"
-else
-  echo "  Installing Oh My Zsh..."
-  curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh | sh -s -- --unattended
-fi
-
-# --- Install Oh My Zsh plugins ---
-echo ""
-echo "Installing Oh My Zsh plugins..."
-
-plugins=(
-  "zsh-users/zsh-syntax-highlighting"
-  "zsh-users/zsh-autosuggestions"
-  "MichaelAquilina/zsh-you-should-use"
-  "fdellwing/zsh-bat"
-  "Aloxaf/fzf-tab"
-)
-
-for plugin in "${plugins[@]}"; do
-  plugin_name=$(basename "$plugin")
-  plugin_dir="$ZSH_CUSTOM/plugins/$plugin_name"
-
-  if [ -d "$plugin_dir" ]; then
-    echo "  $plugin_name already installed, updating..."
-    (cd "$plugin_dir" && git pull --quiet)
+  if [ -d "$HOME/.oh-my-zsh" ]; then
+    echo "  Oh My Zsh already installed, skipping"
   else
-    echo "  Installing $plugin_name..."
-    git clone --quiet "https://github.com/$plugin" "$plugin_dir"
+    echo "  Installing Oh My Zsh..."
+    curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh | sh -s -- --unattended
   fi
-done
 
-# --- Install Powerlevel10k theme ---
-echo ""
-echo "Installing Powerlevel10k theme..."
+  # --- Install Oh My Zsh plugins ---
+  echo ""
+  echo "Installing Oh My Zsh plugins..."
 
-p10k_dir="$ZSH_CUSTOM/themes/powerlevel10k"
+  plugins=(
+    "zsh-users/zsh-syntax-highlighting"
+    "zsh-users/zsh-autosuggestions"
+    "MichaelAquilina/zsh-you-should-use"
+    "fdellwing/zsh-bat"
+    "Aloxaf/fzf-tab"
+  )
 
-if [ -d "$p10k_dir" ]; then
-  echo "  Powerlevel10k already installed, updating..."
-  (cd "$p10k_dir" && git pull --quiet)
-else
-  echo "  Installing Powerlevel10k..."
-  git clone --quiet --depth=1 "https://github.com/romkatv/powerlevel10k.git" "$p10k_dir"
-fi
+  for plugin in "${plugins[@]}"; do
+    plugin_name=$(basename "$plugin")
+    plugin_dir="$ZSH_CUSTOM/plugins/$plugin_name"
+
+    if [ -d "$plugin_dir" ]; then
+      echo "  $plugin_name already installed, updating..."
+      (cd "$plugin_dir" && git pull --quiet)
+    else
+      echo "  Installing $plugin_name..."
+      git clone --quiet "https://github.com/$plugin" "$plugin_dir"
+    fi
+  done
+
+  # --- Install Powerlevel10k theme ---
+  echo ""
+  echo "Installing Powerlevel10k theme..."
+
+  p10k_dir="$ZSH_CUSTOM/themes/powerlevel10k"
+
+  if [ -d "$p10k_dir" ]; then
+    echo "  Powerlevel10k already installed, updating..."
+    (cd "$p10k_dir" && git pull --quiet)
+  else
+    echo "  Installing Powerlevel10k..."
+    git clone --quiet --depth=1 "https://github.com/romkatv/powerlevel10k.git" "$p10k_dir"
+  fi
 fi # AGENT_POD guard: shell installs (oh-my-zsh, its plugins, p10k)
 
 # --- Remove targets dropped from the dotfiles ---
@@ -230,9 +230,9 @@ done
 # (b) Paths created by install steps that have since been removed from this
 # script. When you delete an install block, add the paths it created here.
 obsolete_paths=(
-  "$HOME/.pi/agent/stt.json"                                 # pi-voice-stt Soniox STT config (removed 6f153196)
-  "$HOME/.local/share/pi-voice-stt"                          # pi-voice-stt git clone
-  "$HOME/.omp/plugins/node_modules/pi-voice-stt"             # pi-voice-stt omp plugin link
+  "$HOME/.pi/agent/stt.json"                                  # pi-voice-stt Soniox STT config (removed 6f153196)
+  "$HOME/.local/share/pi-voice-stt"                           # pi-voice-stt git clone
+  "$HOME/.omp/plugins/node_modules/pi-voice-stt"              # pi-voice-stt omp plugin link
   "$HOME/.omp/plugins/node_modules/@mikefreno/omp-neuralwatt" # published neuralwatt port, superseded by the fork spec (see OMP_PLUGINS)
 )
 # omp plugins whose install block has been replaced: deregister each so omp
@@ -266,129 +266,129 @@ rmdir "$HOME/.omp/plugins/node_modules/@mikefreno" 2>/dev/null || true
 # from the git-bot-identity extension instead, which composes them per call and
 # shadows the global config (GIT_CONFIG_GLOBAL → its own deny-gitconfig).
 if [ "$AGENT_POD" != "true" ]; then
-echo ""
-echo "Creating symlinks..."
+  echo ""
+  echo "Creating symlinks..."
 
-files=(
-  .gitconfig
-  .gitignore_global
-  .zshrc
-  .zshenv
-  .zprofile
-  .p10k.zsh
-  .bashrc
-  .fzf.zsh
-  .fzf.bash
-  .tool-versions
-)
+  files=(
+    .gitconfig
+    .gitignore_global
+    .zshrc
+    .zshenv
+    .zprofile
+    .p10k.zsh
+    .bashrc
+    .fzf.zsh
+    .fzf.bash
+    .tool-versions
+  )
 
-for file in "${files[@]}"; do
-  link_entry "$DOTFILES_DIR/$file" "$HOME/$file" "$file"
-done
-
-# --- Symlink .config subdirectories ---
-echo ""
-echo "Creating .config symlinks..."
-
-config_dirs=(btop gh ghostty nvim cortexkit yaji zellij)
-
-# The Polar Hyprland desktop only exists on Arch desktops; macOS,
-# devcontainers, agent pods and headless hosts get none of its configs or
-# scripts. Same guards as the GTK theming block above.
-if [ -f /etc/arch-release ] &&
-  [ "${DEVCONTAINER:-}" != "true" ] &&
-  [ "$AGENT_POD" != "true" ] &&
-  [ -n "${DISPLAY:-}${WAYLAND_DISPLAY:-}" ]; then
-  polar_desktop=true
-  config_dirs+=(hypr ironbar mako fuzzel polar)
-else
-  polar_desktop=false
-fi
-
-for dir in "${config_dirs[@]}"; do
-  link_entry "$DOTFILES_DIR/.config/$dir" "$HOME/.config/$dir" ".config/$dir"
-done
-
-# Polar desktop scripts. The glob picks up new scripts without touching this
-# list; Hyprland's config puts ~/.local/bin on PATH so binds call them bare.
-if [ "$polar_desktop" = true ]; then
-  for script in "$DOTFILES_DIR"/bin/polar-*; do
-    [ -e "$script" ] || continue
-    link_entry "$script" "$LOCAL_BIN/$(basename "$script")" "~/.local/bin/$(basename "$script")"
+  for file in "${files[@]}"; do
+    link_entry "$DOTFILES_DIR/$file" "$HOME/$file" "$file"
   done
 
-  # hyprpolkitagent's unit is shipped disabled, so without this no password
-  # prompt ever appears (mounting a drive, any privileged GUI tool). It is a
-  # session service bound to graphical-session.target, not a Hyprland child, so
-  # it is enabled here rather than listed in autostart.lua. `start` (not
-  # restart) so re-running install.sh cannot drop an open prompt.
-  if command -v systemctl >/dev/null 2>&1; then
-    systemctl --user enable hyprpolkitagent.service
-    # The unit is ConditionEnvironment=WAYLAND_DISPLAY, so a first run from a
-    # non-Wayland shell cannot start it. Enabling is what matters; a failure to
-    # start must not abort the install under `set -e`.
-    systemctl --user start hyprpolkitagent.service ||
-      echo "  WARNING: polkit agent did not start; it will start at next login"
-    echo "  Enabled hyprpolkitagent"
-  else
-    echo "  WARNING: systemctl not found; enable the polkit agent manually with:"
-    echo "    systemctl --user enable --now hyprpolkitagent.service"
-  fi
-
-  # Nord on the Linux console, so ly and plain TTYs match the desktop. System
-  # files, hence sudo; the unit's own comment explains why it is not a kernel
-  # parameter.
-  if command -v systemctl >/dev/null 2>&1 && command -v setvtrgb >/dev/null 2>&1; then
-    sudo install -Dm644 "$DOTFILES_DIR/system/etc/vtrgb" /etc/vtrgb
-    sudo install -Dm644 "$DOTFILES_DIR/system/etc/systemd/system/polar-console-palette.service" \
-      /etc/systemd/system/polar-console-palette.service
-    sudo systemctl daemon-reload
-    sudo systemctl enable --now polar-console-palette.service
-    echo "  Applied the Nord console palette"
-  fi
-fi
-
-# --- Link captain-miao config ---
-# config.toml is symlinked on the laptop so `pooled` stays unset (direct-local,
-# the default). Dev containers bake a *copy* with `pooled = true` instead,
-# mirroring the omp config.yml bake: pooling is a per-host role, and it has to
-# live in config.toml itself. dashboard-overrides.json is the dashboard's own
-# runtime store (pin/follow-up/default_agent/…) and gets rewritten by the
-# dashboard on every save — it has no `pooled` key, so a setting written there
-# is both never read and promptly clobbered.
-captain_miao_src="$DOTFILES_DIR/.config/captain-miao"
-captain_miao_dst="$HOME/.config/captain-miao"
-if [ ! -d "$captain_miao_src" ]; then
-  echo "  Skipping .config/captain-miao (source not found: $captain_miao_src)"
-elif [ "${DEVCONTAINER:-}" = "true" ]; then
+  # --- Symlink .config subdirectories ---
   echo ""
-  echo "Baking captain-miao config with pooled mode..."
-  # The destination may be a directory symlink left by an earlier install
-  # (or the laptop path); it must become a real directory, not a link through
-  # which the baked file would land back in ~/dotfiles.
-  if [ -L "$captain_miao_dst" ]; then
-    rm -f "$captain_miao_dst"
+  echo "Creating .config symlinks..."
+
+  config_dirs=(btop gh ghostty nvim cortexkit yaji zellij)
+
+  # The Polar Hyprland desktop only exists on Arch desktops; macOS,
+  # devcontainers, agent pods and headless hosts get none of its configs or
+  # scripts. Same guards as the GTK theming block above.
+  if [ -f /etc/arch-release ] &&
+    [ "${DEVCONTAINER:-}" != "true" ] &&
+    [ "$AGENT_POD" != "true" ] &&
+    [ -n "${DISPLAY:-}${WAYLAND_DISPLAY:-}" ]; then
+    polar_desktop=true
+    config_dirs+=(hypr ironbar mako fuzzel polar)
+  else
+    polar_desktop=false
   fi
-  mkdir -p "$captain_miao_dst"
-  # Back up a real (non-symlink) existing file, matching link_entry.
-  if [ -e "$captain_miao_dst/config.toml" ] && [ ! -L "$captain_miao_dst/config.toml" ]; then
-    mv "$captain_miao_dst/config.toml" "$captain_miao_dst/config.toml.bak"
+
+  for dir in "${config_dirs[@]}"; do
+    link_entry "$DOTFILES_DIR/.config/$dir" "$HOME/.config/$dir" ".config/$dir"
+  done
+
+  # Polar desktop scripts. The glob picks up new scripts without touching this
+  # list; Hyprland's config puts ~/.local/bin on PATH so binds call them bare.
+  if [ "$polar_desktop" = true ]; then
+    for script in "$DOTFILES_DIR"/bin/polar-*; do
+      [ -e "$script" ] || continue
+      link_entry "$script" "$LOCAL_BIN/$(basename "$script")" "~/.local/bin/$(basename "$script")"
+    done
+
+    # hyprpolkitagent's unit is shipped disabled, so without this no password
+    # prompt ever appears (mounting a drive, any privileged GUI tool). It is a
+    # session service bound to graphical-session.target, not a Hyprland child, so
+    # it is enabled here rather than listed in autostart.lua. `start` (not
+    # restart) so re-running install.sh cannot drop an open prompt.
+    if command -v systemctl >/dev/null 2>&1; then
+      systemctl --user enable hyprpolkitagent.service
+      # The unit is ConditionEnvironment=WAYLAND_DISPLAY, so a first run from a
+      # non-Wayland shell cannot start it. Enabling is what matters; a failure to
+      # start must not abort the install under `set -e`.
+      systemctl --user start hyprpolkitagent.service ||
+        echo "  WARNING: polkit agent did not start; it will start at next login"
+      echo "  Enabled hyprpolkitagent"
+    else
+      echo "  WARNING: systemctl not found; enable the polkit agent manually with:"
+      echo "    systemctl --user enable --now hyprpolkitagent.service"
+    fi
+
+    # Nord on the Linux console, so ly and plain TTYs match the desktop. System
+    # files, hence sudo; the unit's own comment explains why it is not a kernel
+    # parameter.
+    if command -v systemctl >/dev/null 2>&1 && command -v setvtrgb >/dev/null 2>&1; then
+      sudo install -Dm644 "$DOTFILES_DIR/system/etc/vtrgb" /etc/vtrgb
+      sudo install -Dm644 "$DOTFILES_DIR/system/etc/systemd/system/polar-console-palette.service" \
+        /etc/systemd/system/polar-console-palette.service
+      sudo systemctl daemon-reload
+      sudo systemctl enable --now polar-console-palette.service
+      echo "  Applied the Nord console palette"
+    fi
   fi
-  if awk -f - "$captain_miao_src/config.toml" >"$captain_miao_dst/config.toml" <<'AWK'; then
+
+  # --- Link captain-miao config ---
+  # config.toml is symlinked on the laptop so `pooled` stays unset (direct-local,
+  # the default). Dev containers bake a *copy* with `pooled = true` instead,
+  # mirroring the omp config.yml bake: pooling is a per-host role, and it has to
+  # live in config.toml itself. dashboard-overrides.json is the dashboard's own
+  # runtime store (pin/follow-up/default_agent/…) and gets rewritten by the
+  # dashboard on every save — it has no `pooled` key, so a setting written there
+  # is both never read and promptly clobbered.
+  captain_miao_src="$DOTFILES_DIR/.config/captain-miao"
+  captain_miao_dst="$HOME/.config/captain-miao"
+  if [ ! -d "$captain_miao_src" ]; then
+    echo "  Skipping .config/captain-miao (source not found: $captain_miao_src)"
+  elif [ "${DEVCONTAINER:-}" = "true" ]; then
+    echo ""
+    echo "Baking captain-miao config with pooled mode..."
+    # The destination may be a directory symlink left by an earlier install
+    # (or the laptop path); it must become a real directory, not a link through
+    # which the baked file would land back in ~/dotfiles.
+    if [ -L "$captain_miao_dst" ]; then
+      rm -f "$captain_miao_dst"
+    fi
+    mkdir -p "$captain_miao_dst"
+    # Back up a real (non-symlink) existing file, matching link_entry.
+    if [ -e "$captain_miao_dst/config.toml" ] && [ ! -L "$captain_miao_dst/config.toml" ]; then
+      mv "$captain_miao_dst/config.toml" "$captain_miao_dst/config.toml.bak"
+    fi
+    if awk -f - "$captain_miao_src/config.toml" >"$captain_miao_dst/config.toml" <<'AWK'; then
 /^[[:space:]]*\[/ && $0 !~ /^[[:space:]]*\[launcher\]/ { in_launcher = 0 }
 /^[[:space:]]*\[launcher\]/ { print; print "pooled = true"; in_launcher = 1; next }
 in_launcher && /^[[:space:]]*pooled[[:space:]]*=/ { next }
 { print }
 AWK
-    echo "  Wrote $captain_miao_dst/config.toml with pooled = true"
+      echo "  Wrote $captain_miao_dst/config.toml with pooled = true"
+    else
+      echo "  WARNING: bake failed, falling back to a plain symlink (pooled stays off)"
+      rm -f "$captain_miao_dst/config.toml"
+      link_entry "$captain_miao_src" "$captain_miao_dst" ".config/captain-miao"
+    fi
   else
-    echo "  WARNING: bake failed, falling back to a plain symlink (pooled stays off)"
-    rm -f "$captain_miao_dst/config.toml"
     link_entry "$captain_miao_src" "$captain_miao_dst" ".config/captain-miao"
   fi
-else
-  link_entry "$captain_miao_src" "$captain_miao_dst" ".config/captain-miao"
-fi
 fi # AGENT_POD guard: dotfile, .config and captain-miao symlinks
 
 # --- Link omp (Oh My Pi) config ---
@@ -511,9 +511,9 @@ echo "  Linked ~/.cc-safety-net/policy.json"
 # afterwards are omp's own job, so this only fetches the latest release once.
 if [ "$UNAME_OS" = "linux" ] && ! command -v omp &>/dev/null; then
   case "$UNAME_ARCH" in
-    x86_64) omp_arch="x64" ;;
-    aarch64|arm64) omp_arch="arm64" ;;
-    *) omp_arch="" ;;
+  x86_64) omp_arch="x64" ;;
+  aarch64 | arm64) omp_arch="arm64" ;;
+  *) omp_arch="" ;;
   esac
   if [ -n "$omp_arch" ]; then
     echo ""
@@ -555,65 +555,65 @@ fi
 # binary but not these plugin WASMs, and they only ever land in
 # ~/.config/zellij — which the pod does not link either.
 if [ "$AGENT_POD" != "true" ]; then
-echo ""
-echo "Downloading Zellij plugins..."
+  echo ""
+  echo "Downloading Zellij plugins..."
 
-ZELLIJ_PLUGIN_DIR="$HOME/.config/zellij/plugins"
-mkdir -p "$ZELLIJ_PLUGIN_DIR"
+  ZELLIJ_PLUGIN_DIR="$HOME/.config/zellij/plugins"
+  mkdir -p "$ZELLIJ_PLUGIN_DIR"
 
-# Plugin WASM assets keep the same filename across releases, so the installed
-# copy carries no version — stamp the resolved release tag next to each file
-# at download time (.<name>.tag) and compare against the latest release on
-# later runs, mirroring the miao/r3 update checks above.
-ZELLIJ_PLUGIN_NAMES=("zjstatus.wasm" "zjframes.wasm" "zjstatus-hints.wasm" "zellij-autolock.wasm")
-ZELLIJ_PLUGIN_URLS=(
-  "https://github.com/dj95/zjstatus/releases/latest/download/zjstatus.wasm"
-  "https://github.com/dj95/zjstatus/releases/latest/download/zjframes.wasm"
-  "https://github.com/b0o/zjstatus-hints/releases/latest/download/zjstatus-hints.wasm"
-  "https://github.com/fresh2dev/zellij-autolock/releases/latest/download/zellij-autolock.wasm"
-)
+  # Plugin WASM assets keep the same filename across releases, so the installed
+  # copy carries no version — stamp the resolved release tag next to each file
+  # at download time (.<name>.tag) and compare against the latest release on
+  # later runs, mirroring the miao/r3 update checks above.
+  ZELLIJ_PLUGIN_NAMES=("zjstatus.wasm" "zjframes.wasm" "zjstatus-hints.wasm" "zellij-autolock.wasm")
+  ZELLIJ_PLUGIN_URLS=(
+    "https://github.com/dj95/zjstatus/releases/latest/download/zjstatus.wasm"
+    "https://github.com/dj95/zjstatus/releases/latest/download/zjframes.wasm"
+    "https://github.com/b0o/zjstatus-hints/releases/latest/download/zjstatus-hints.wasm"
+    "https://github.com/fresh2dev/zellij-autolock/releases/latest/download/zellij-autolock.wasm"
+  )
 
-for i in "${!ZELLIJ_PLUGIN_NAMES[@]}"; do
-  plugin_name="${ZELLIJ_PLUGIN_NAMES[$i]}"
-  plugin_path="$ZELLIJ_PLUGIN_DIR/$plugin_name"
-  plugin_stamp="$ZELLIJ_PLUGIN_DIR/.$plugin_name.tag"
-  # ${url%/releases/*} → https://github.com/<owner>/<repo>
-  plugin_repo="${ZELLIJ_PLUGIN_URLS[$i]%/releases/*}"
+  for i in "${!ZELLIJ_PLUGIN_NAMES[@]}"; do
+    plugin_name="${ZELLIJ_PLUGIN_NAMES[$i]}"
+    plugin_path="$ZELLIJ_PLUGIN_DIR/$plugin_name"
+    plugin_stamp="$ZELLIJ_PLUGIN_DIR/.$plugin_name.tag"
+    # ${url%/releases/*} → https://github.com/<owner>/<repo>
+    plugin_repo="${ZELLIJ_PLUGIN_URLS[$i]%/releases/*}"
 
-  # The latest-download URL 302s to releases/download/<tag>/... — the resolved
-  # tag drives the up-to-date check. Fall back to the GitHub API if the
-  # redirect probe fails.
-  plugin_tag="$(curl -fsSI -o /dev/null -w '%{redirect_url}' "${ZELLIJ_PLUGIN_URLS[$i]}" 2>/dev/null |
-    sed -nE 's#.*/releases/download/([^/]+)/.*#\1#p')"
-  if [ -z "$plugin_tag" ] && command -v jq >/dev/null 2>&1; then
-    plugin_tag="$(curl -fsSL "https://api.github.com/repos/${plugin_repo#https://github.com/}/releases/latest" |
-      jq -r '.tag_name // empty' 2>/dev/null)"
-  fi
+    # The latest-download URL 302s to releases/download/<tag>/... — the resolved
+    # tag drives the up-to-date check. Fall back to the GitHub API if the
+    # redirect probe fails.
+    plugin_tag="$(curl -fsSI -o /dev/null -w '%{redirect_url}' "${ZELLIJ_PLUGIN_URLS[$i]}" 2>/dev/null |
+      sed -nE 's#.*/releases/download/([^/]+)/.*#\1#p')"
+    if [ -z "$plugin_tag" ] && command -v jq >/dev/null 2>&1; then
+      plugin_tag="$(curl -fsSL "https://api.github.com/repos/${plugin_repo#https://github.com/}/releases/latest" |
+        jq -r '.tag_name // empty' 2>/dev/null)"
+    fi
 
-  if [ -f "$plugin_path" ] && [ -f "$plugin_stamp" ] && [ -n "$plugin_tag" ] &&
-    [ "$(cat "$plugin_stamp" 2>/dev/null)" = "$plugin_tag" ]; then
-    echo "  $plugin_name already up to date ($plugin_tag), skipping"
-    continue
-  fi
+    if [ -f "$plugin_path" ] && [ -f "$plugin_stamp" ] && [ -n "$plugin_tag" ] &&
+      [ "$(cat "$plugin_stamp" 2>/dev/null)" = "$plugin_tag" ]; then
+      echo "  $plugin_name already up to date ($plugin_tag), skipping"
+      continue
+    fi
 
-  if [ -f "$plugin_path" ] && [ -n "$plugin_tag" ]; then
-    echo "  $plugin_name installed, latest is $plugin_tag — updating..."
-  else
-    echo "  Downloading $plugin_name..."
-  fi
+    if [ -f "$plugin_path" ] && [ -n "$plugin_tag" ]; then
+      echo "  $plugin_name installed, latest is $plugin_tag — updating..."
+    else
+      echo "  Downloading $plugin_name..."
+    fi
 
-  # Download to a temp file and only replace on success, so a failed update
-  # never leaves a truncated/trashed plugin behind.
-  tmp_plugin="$(mktemp "${plugin_path}.XXXXXX")"
-  if curl -fsSL --progress-bar -o "$tmp_plugin" "${ZELLIJ_PLUGIN_URLS[$i]}"; then
-    mv "$tmp_plugin" "$plugin_path"
-    chmod 644 "$plugin_path"
-    printf '%s\n' "$plugin_tag" >"$plugin_stamp"
-  else
-    echo "    Warning: Failed to download $plugin_name"
-    rm -f "$tmp_plugin"
-  fi
-done
+    # Download to a temp file and only replace on success, so a failed update
+    # never leaves a truncated/trashed plugin behind.
+    tmp_plugin="$(mktemp "${plugin_path}.XXXXXX")"
+    if curl -fsSL --progress-bar -o "$tmp_plugin" "${ZELLIJ_PLUGIN_URLS[$i]}"; then
+      mv "$tmp_plugin" "$plugin_path"
+      chmod 644 "$plugin_path"
+      printf '%s\n' "$plugin_tag" >"$plugin_stamp"
+    else
+      echo "    Warning: Failed to download $plugin_name"
+      rm -f "$tmp_plugin"
+    fi
+  done
 fi # AGENT_POD guard: Zellij WASM plugins
 
 # --- Install codebase-memory-mcp ---
@@ -711,108 +711,108 @@ fi
 # install/update block below: the pod's image ships both binaries, and an
 # unattended run never launches the dashboard.
 if [ "$AGENT_POD" != "true" ]; then
-# Installs the `miao` dashboard binary. The `miao-server` daemon is a separate
-# release asset and ships in the devcontainer image. Release assets embed the
-# version in their filename (miao-bundled-all-server-v0.6.0-<triple>.tar.gz),
-# so the tag is resolved from the GitHub API rather than /latest/download/.
-# Upstream ships no checksums file, so this block does not verify a digest.
-echo ""
-echo "Installing captain-miao..."
+  # Installs the `miao` dashboard binary. The `miao-server` daemon is a separate
+  # release asset and ships in the devcontainer image. Release assets embed the
+  # version in their filename (miao-bundled-all-server-v0.6.0-<triple>.tar.gz),
+  # so the tag is resolved from the GitHub API rather than /latest/download/.
+  # Upstream ships no checksums file, so this block does not verify a digest.
+  echo ""
+  echo "Installing captain-miao..."
 
-MIAO_BIN="$LOCAL_BIN/miao"
+  MIAO_BIN="$LOCAL_BIN/miao"
 
-# Resolve the latest release tag first — it drives both the up-to-date check
-# below and the download URL.
-echo "  Resolving latest captain-miao release..."
-MIAO_TAG="$(curl -fsSL https://api.github.com/repos/hyperlogue/captain-miao/releases/latest |
-  grep -m1 '"tag_name"' | sed -E 's/.*"([^"]+)".*/\1/')"
-if [ -z "$MIAO_TAG" ]; then
-  echo "    Error: could not resolve latest captain-miao release tag" >&2
-  exit 1
-fi
+  # Resolve the latest release tag first — it drives both the up-to-date check
+  # below and the download URL.
+  echo "  Resolving latest captain-miao release..."
+  MIAO_TAG="$(curl -fsSL https://api.github.com/repos/hyperlogue/captain-miao/releases/latest |
+    grep -m1 '"tag_name"' | sed -E 's/.*"([^"]+)".*/\1/')"
+  if [ -z "$MIAO_TAG" ]; then
+    echo "    Error: could not resolve latest captain-miao release tag" >&2
+    exit 1
+  fi
 
-# --- Up-to-date check ---
-# `miao -V` prints the bare SemVer (no leading "v", e.g. "0.8.0"), while the
-# GitHub tag carries a "v" prefix (e.g. "v0.8.0") — strip it before comparing.
-# The -V output format varies with the clap version miao was built with: newer
-# builds print just "0.8.0", older ones print "miao 0.8.0", so we extract the
-# trailing SemVer rather than doing exact-string equality.
-# Query the binary we own in ~/.local/bin, else whatever is on PATH (e.g. the
-# devcontainer image's miao). Reinstall only when the installed version differs
-# from the latest release.
-if [ -x "$MIAO_BIN" ]; then
-  MIAO_VERSION_CMD="$MIAO_BIN"
-elif command -v miao >/dev/null 2>&1; then
-  MIAO_VERSION_CMD="$(command -v miao)"
-else
-  MIAO_VERSION_CMD=""
-fi
-
-INSTALL_MIAO=0
-if [ -n "$MIAO_VERSION_CMD" ]; then
-  INSTALLED_VERSION="$("$MIAO_VERSION_CMD" -V 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -n1)"
-  LATEST_VERSION="${MIAO_TAG#v}"
-  if [ -n "$INSTALLED_VERSION" ] && [ "$INSTALLED_VERSION" = "$LATEST_VERSION" ]; then
-    echo "  captain-miao already up to date ($INSTALLED_VERSION), skipping"
+  # --- Up-to-date check ---
+  # `miao -V` prints the bare SemVer (no leading "v", e.g. "0.8.0"), while the
+  # GitHub tag carries a "v" prefix (e.g. "v0.8.0") — strip it before comparing.
+  # The -V output format varies with the clap version miao was built with: newer
+  # builds print just "0.8.0", older ones print "miao 0.8.0", so we extract the
+  # trailing SemVer rather than doing exact-string equality.
+  # Query the binary we own in ~/.local/bin, else whatever is on PATH (e.g. the
+  # devcontainer image's miao). Reinstall only when the installed version differs
+  # from the latest release.
+  if [ -x "$MIAO_BIN" ]; then
+    MIAO_VERSION_CMD="$MIAO_BIN"
+  elif command -v miao >/dev/null 2>&1; then
+    MIAO_VERSION_CMD="$(command -v miao)"
   else
-    if [ -n "$INSTALLED_VERSION" ]; then
-      echo "  captain-miao $INSTALLED_VERSION installed, latest is $LATEST_VERSION — updating..."
+    MIAO_VERSION_CMD=""
+  fi
+
+  INSTALL_MIAO=0
+  if [ -n "$MIAO_VERSION_CMD" ]; then
+    INSTALLED_VERSION="$("$MIAO_VERSION_CMD" -V 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -n1)"
+    LATEST_VERSION="${MIAO_TAG#v}"
+    if [ -n "$INSTALLED_VERSION" ] && [ "$INSTALLED_VERSION" = "$LATEST_VERSION" ]; then
+      echo "  captain-miao already up to date ($INSTALLED_VERSION), skipping"
     else
-      echo "  No installed captain-miao version detected, installing $LATEST_VERSION..."
+      if [ -n "$INSTALLED_VERSION" ]; then
+        echo "  captain-miao $INSTALLED_VERSION installed, latest is $LATEST_VERSION — updating..."
+      else
+        echo "  No installed captain-miao version detected, installing $LATEST_VERSION..."
+      fi
+      INSTALL_MIAO=1
     fi
+  else
     INSTALL_MIAO=1
   fi
-else
-  INSTALL_MIAO=1
-fi
 
-# --- Install / update ---
-if [ "$INSTALL_MIAO" = "1" ]; then
-  # Detect OS → target-triple OS/vendor segment
-  case "$UNAME_OS" in
-  darwin) OS_PART="apple-darwin" ;;
-  linux) OS_PART="unknown-linux-gnu" ;;
-  *)
-    echo "    Error: unsupported OS '$UNAME_OS' (only darwin and linux are supported)" >&2
-    exit 1
-    ;;
-  esac
-
-  case "$UNAME_ARCH" in
-  arm64 | aarch64) ARCH_PART="aarch64" ;;
-  x86_64 | amd64) ARCH_PART="x86_64" ;;
-  *)
-    echo "    Error: unsupported architecture '$UNAME_ARCH'" >&2
-    exit 1
-    ;;
-  esac
-
-  ARCHIVE_NAME="miao-bundled-all-server-${MIAO_TAG}-${ARCH_PART}-${OS_PART}.tar.gz"
-  ARCHIVE_URL="https://github.com/hyperlogue/captain-miao/releases/download/${MIAO_TAG}/${ARCHIVE_NAME}"
-
-  # Subshell-local temp dir + EXIT trap: nothing leaks on failure under set -e.
-  (
-    set -e
-    TMPDIR="$(mktemp -d)"
-    trap 'rm -rf "$TMPDIR"' EXIT
-    ARCHIVE_PATH="$TMPDIR/$ARCHIVE_NAME"
-
-    echo "  Downloading captain-miao ${MIAO_TAG}..."
-    curl -fL --progress-bar -o "$ARCHIVE_PATH" "$ARCHIVE_URL"
-
-    # Archive layout: miao-bundled-all-server-<tag>-<triple>/miao
-    tar -xzf "$ARCHIVE_PATH" -C "$TMPDIR"
-    EXTRACTED_BIN="$TMPDIR/miao-bundled-all-server-${MIAO_TAG}-${ARCH_PART}-${OS_PART}/miao"
-    if [ ! -f "$EXTRACTED_BIN" ]; then
-      echo "    Error: archive did not contain the miao binary at expected path" >&2
+  # --- Install / update ---
+  if [ "$INSTALL_MIAO" = "1" ]; then
+    # Detect OS → target-triple OS/vendor segment
+    case "$UNAME_OS" in
+    darwin) OS_PART="apple-darwin" ;;
+    linux) OS_PART="unknown-linux-gnu" ;;
+    *)
+      echo "    Error: unsupported OS '$UNAME_OS' (only darwin and linux are supported)" >&2
       exit 1
-    fi
-    mv "$EXTRACTED_BIN" "$MIAO_BIN"
-    chmod +x "$MIAO_BIN"
-  )
+      ;;
+    esac
 
-  echo "  captain-miao installed to ~/.local/bin/miao"
-fi
+    case "$UNAME_ARCH" in
+    arm64 | aarch64) ARCH_PART="aarch64" ;;
+    x86_64 | amd64) ARCH_PART="x86_64" ;;
+    *)
+      echo "    Error: unsupported architecture '$UNAME_ARCH'" >&2
+      exit 1
+      ;;
+    esac
+
+    ARCHIVE_NAME="miao-bundled-all-server-${MIAO_TAG}-${ARCH_PART}-${OS_PART}.tar.gz"
+    ARCHIVE_URL="https://github.com/hyperlogue/captain-miao/releases/download/${MIAO_TAG}/${ARCHIVE_NAME}"
+
+    # Subshell-local temp dir + EXIT trap: nothing leaks on failure under set -e.
+    (
+      set -e
+      TMPDIR="$(mktemp -d)"
+      trap 'rm -rf "$TMPDIR"' EXIT
+      ARCHIVE_PATH="$TMPDIR/$ARCHIVE_NAME"
+
+      echo "  Downloading captain-miao ${MIAO_TAG}..."
+      curl -fL --progress-bar -o "$ARCHIVE_PATH" "$ARCHIVE_URL"
+
+      # Archive layout: miao-bundled-all-server-<tag>-<triple>/miao
+      tar -xzf "$ARCHIVE_PATH" -C "$TMPDIR"
+      EXTRACTED_BIN="$TMPDIR/miao-bundled-all-server-${MIAO_TAG}-${ARCH_PART}-${OS_PART}/miao"
+      if [ ! -f "$EXTRACTED_BIN" ]; then
+        echo "    Error: archive did not contain the miao binary at expected path" >&2
+        exit 1
+      fi
+      mv "$EXTRACTED_BIN" "$MIAO_BIN"
+      chmod +x "$MIAO_BIN"
+    )
+
+    echo "  captain-miao installed to ~/.local/bin/miao"
+  fi
 fi # AGENT_POD guard: captain-miao, its up-to-date check and install/update
 
 # --- Link the diagram helper ---
@@ -826,53 +826,53 @@ link_entry "$DOTFILES_DIR/bin/diagram" "$LOCAL_BIN/diagram" "~/.local/bin/diagra
 # Skipped in AGENT_POD mode, with the r3 blocks below: the pod runs none of
 # these tools.
 if [ "$AGENT_POD" != "true" ]; then
-if [ -f "$LOCAL_BIN/plannotator" ]; then
-  echo ""
-  echo "Removing old Plannotator (replaced by r3)..."
-  rm -f "$LOCAL_BIN/plannotator"
-  echo "  plannotator removed"
-fi
-
-# --- Install r3 (review tool) ---
-# r3 ships no CLI version flag, so the installed version is read from its npm
-# package.json and compared against the latest published version; reinstall
-# only when they differ.
-echo ""
-echo "Installing r3..."
-
-R3_INSTALLED_VERSION="$(grep -oE '"version"[[:space:]]*:[[:space:]]*"[^"]+"' \
-  "$HOME/.local/lib/node_modules/@hyperlogue/r3/package.json" 2>/dev/null |
-  head -n1 | sed -E 's/.*"([^"]+)".*/\1/')"
-R3_LATEST_VERSION="$(npm view @hyperlogue/r3 version 2>/dev/null)"
-
-if [ -z "$R3_LATEST_VERSION" ]; then
-  echo "  Could not resolve latest r3 version; leaving installed version as-is"
-elif [ -n "$R3_INSTALLED_VERSION" ] && [ "$R3_INSTALLED_VERSION" = "$R3_LATEST_VERSION" ]; then
-  echo "  r3 already up to date ($R3_INSTALLED_VERSION), skipping"
-else
-  if [ -n "$R3_INSTALLED_VERSION" ]; then
-    echo "  r3 $R3_INSTALLED_VERSION installed, latest is $R3_LATEST_VERSION — updating..."
-  else
-    echo "  No installed r3 version detected, installing $R3_LATEST_VERSION..."
+  if [ -f "$LOCAL_BIN/plannotator" ]; then
+    echo ""
+    echo "Removing old Plannotator (replaced by r3)..."
+    rm -f "$LOCAL_BIN/plannotator"
+    echo "  plannotator removed"
   fi
-  npm install -g --prefix "$HOME/.local" @hyperlogue/r3
-  echo "  r3 installed (${R3_LATEST_VERSION}) to ~/.local/bin/r3"
-fi
 
-# --- Point r3 at the shared review server ---
-# One r3 server serves every machine, so this config makes the CLI a client
-# of r3.theg.house rather than a per-workspace server. R3_URL is r3's own
-# backend override, resolved as R3_URL > nearest .r3.json backendUrl > user
-# backendUrl > a local server. A shell that exports R3_URL therefore needs no
-# config; backendUrl is set for the tools that do not inherit the variable.
-# The call edits local config even while R3_URL is set, so it needs no network.
-R3_BACKEND_URL="${R3_URL:-https://r3.theg.house}"
-if r3 config set backendUrl "$R3_BACKEND_URL" >/dev/null 2>&1; then
-  echo "  r3 backend: $R3_BACKEND_URL"
-else
-  echo "  WARNING: could not set r3 backendUrl to $R3_BACKEND_URL"
-  echo "  (run: r3 config set backendUrl $R3_BACKEND_URL)"
-fi
+  # --- Install r3 (review tool) ---
+  # r3 ships no CLI version flag, so the installed version is read from its npm
+  # package.json and compared against the latest published version; reinstall
+  # only when they differ.
+  echo ""
+  echo "Installing r3..."
+
+  R3_INSTALLED_VERSION="$(grep -oE '"version"[[:space:]]*:[[:space:]]*"[^"]+"' \
+    "$HOME/.local/lib/node_modules/@hyperlogue/r3/package.json" 2>/dev/null |
+    head -n1 | sed -E 's/.*"([^"]+)".*/\1/')"
+  R3_LATEST_VERSION="$(npm view @hyperlogue/r3 version 2>/dev/null)"
+
+  if [ -z "$R3_LATEST_VERSION" ]; then
+    echo "  Could not resolve latest r3 version; leaving installed version as-is"
+  elif [ -n "$R3_INSTALLED_VERSION" ] && [ "$R3_INSTALLED_VERSION" = "$R3_LATEST_VERSION" ]; then
+    echo "  r3 already up to date ($R3_INSTALLED_VERSION), skipping"
+  else
+    if [ -n "$R3_INSTALLED_VERSION" ]; then
+      echo "  r3 $R3_INSTALLED_VERSION installed, latest is $R3_LATEST_VERSION — updating..."
+    else
+      echo "  No installed r3 version detected, installing $R3_LATEST_VERSION..."
+    fi
+    npm install -g --prefix "$HOME/.local" @hyperlogue/r3
+    echo "  r3 installed (${R3_LATEST_VERSION}) to ~/.local/bin/r3"
+  fi
+
+  # --- Point r3 at the shared review server ---
+  # One r3 server serves every machine, so this config makes the CLI a client
+  # of r3.theg.house rather than a per-workspace server. R3_URL is r3's own
+  # backend override, resolved as R3_URL > nearest .r3.json backendUrl > user
+  # backendUrl > a local server. A shell that exports R3_URL therefore needs no
+  # config; backendUrl is set for the tools that do not inherit the variable.
+  # The call edits local config even while R3_URL is set, so it needs no network.
+  R3_BACKEND_URL="${R3_URL:-https://r3.theg.house}"
+  if r3 config set backendUrl "$R3_BACKEND_URL" >/dev/null 2>&1; then
+    echo "  r3 backend: $R3_BACKEND_URL"
+  else
+    echo "  WARNING: could not set r3 backendUrl to $R3_BACKEND_URL"
+    echo "  (run: r3 config set backendUrl $R3_BACKEND_URL)"
+  fi
 
 fi # AGENT_POD guard: Plannotator cleanup, r3
 
