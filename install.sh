@@ -859,31 +859,19 @@ else
   echo "  r3 installed (${R3_LATEST_VERSION}) to ~/.local/bin/r3"
 fi
 
-# --- Auto-configure r3 for Coder public URL ---
-# Inside a Coder workspace, construct the workspace proxy URL for r3.
-# Pattern: https://{port}--{agent}--{workspace}--{owner}.{domain}
-if [ -n "${CODER_AGENT_URL:-}" ] && [ -n "${CODER_WORKSPACE_NAME:-}" ] && [ -n "${CODER_WORKSPACE_OWNER_NAME:-}" ]; then
-  # Extract domain from CODER_AGENT_URL (e.g., https://dev.theg.house/ → dev.theg.house)
-  CODER_DOMAIN="${CODER_AGENT_URL#*://}"
-  CODER_DOMAIN="${CODER_DOMAIN%%/*}"
-  CODER_DOMAIN="${CODER_DOMAIN%/}"
-
-  # Lowercase all components — Coder proxy URLs are always lowercase
-  AGENT_NAME=$(echo "${CODER_WORKSPACE_AGENT_NAME:-main}" | tr '[:upper:]' '[:lower:]')
-  WS_NAME=$(echo "$CODER_WORKSPACE_NAME" | tr '[:upper:]' '[:lower:]')
-  OWNER_NAME=$(echo "$CODER_WORKSPACE_OWNER_NAME" | tr '[:upper:]' '[:lower:]')
-
-  # Read r3's configured port; fall back to r3's default (8791) if unset
-  R3_PORT=$(r3 config get port 2>/dev/null)
-  R3_PORT="${R3_PORT:-8791}"
-  R3_URL="https://${R3_PORT}--${AGENT_NAME}--${WS_NAME}--${OWNER_NAME}.${CODER_DOMAIN}"
-
-  r3 config set publicUrl "$R3_URL" 2>/dev/null
-  r3 config set requireLogin 0 2>/dev/null
-  echo "  r3 configured for Coder at $R3_URL"
+# --- Point r3 at the shared review server ---
+# One r3 server serves every machine, so this config makes the CLI a client
+# of r3.theg.house rather than a per-workspace server. R3_URL is r3's own
+# backend override, resolved as R3_URL > nearest .r3.json backendUrl > user
+# backendUrl > a local server. A shell that exports R3_URL therefore needs no
+# config; backendUrl is set for the tools that do not inherit the variable.
+# The call edits local config even while R3_URL is set, so it needs no network.
+R3_BACKEND_URL="${R3_URL:-https://r3.theg.house}"
+if r3 config set backendUrl "$R3_BACKEND_URL" >/dev/null 2>&1; then
+  echo "  r3 backend: $R3_BACKEND_URL"
 else
-  echo "  Not inside Coder — skipping r3 public URL config"
-  echo "  (run: r3 config set publicUrl <url> && r3 config set requireLogin 0)"
+  echo "  WARNING: could not set r3 backendUrl to $R3_BACKEND_URL"
+  echo "  (run: r3 config set backendUrl $R3_BACKEND_URL)"
 fi
 
 fi # AGENT_POD guard: Plannotator cleanup, r3
