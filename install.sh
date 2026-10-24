@@ -951,6 +951,12 @@ if command -v npm &>/dev/null; then
   echo "  Installing apple-design skill..."
   npx skills add https://github.com/emilkowalski/skills --skill apple-design -a universal -y -g
 
+  # On-demand prose review (MIT). Its companion npm package
+  # avoid-ai-writing-detector supplies the prose gate in the Makefile `check`
+  # target; `npx` fetches it at gate time, so no global install is needed.
+  echo "  Installing avoid-ai-writing skill..."
+  npx skills add conorbronsdon/avoid-ai-writing --skill avoid-ai-writing -a universal -y -g
+
   # The r3 review loop runs on the laptop only, so its skill installs with the
   # r3 executable above, not in the pod. The skill defers to `r3 guide` for
   # commands, so an r3 CLI update never makes it stale.

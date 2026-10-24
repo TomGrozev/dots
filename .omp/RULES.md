@@ -35,6 +35,19 @@ Bind every agent: the main session and every subagent. "Escalate" means: subagen
     before the step it applies to.
   - Technical names (code identifiers, paths, commands, product names) stay exact. Format
     rules (Conventional Commits, a skill's template) still apply; STE governs the words.
+- **No AI slop** in the same prose. Quoted text, code and technical names are exempt.
+  - No em dashes (—); use a period, comma, colon or parentheses.
+  - No praise or filler at the start or end: "Great question", "You're right", "I hope this
+    helps", "Let me know if…". No narration of your own steps ("Let me…", "Now I will…").
+  - No AI-typical words: delve, seamless, tapestry, testament, pivotal, crucial, vibrant,
+    showcase, underscore, landscape, realm, elevate, unlock, game-changer; "leverage" and
+    "utilize" become "use".
+  - No stock shapes: "not just X, it's Y", forced lists of three, a closing recap or moral.
+  - No padding or stacked hedges: "very", "really", "truly", "it is worth noting",
+    "arguably", "may potentially".
+  - Formatting: no emoji in durable text; no bold label on every bullet; no heading for a
+    section of one or two sentences.
+  - No tool artifacts: placeholder text, leftover citation markers, `utm_` tracking parameters.
 - **Graph before grep.** Structural questions go to `codebase-memory-mcp` first; `grep`/`read`
   for literal text and graph gaps. Indexing operations are human-only: report an unindexed
   project instead.

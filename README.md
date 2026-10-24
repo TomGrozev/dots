@@ -43,7 +43,7 @@ The install script performs the following:
 2. **Shell**: Installs Oh My Zsh and required plugins (syntax highlighting, autosuggestions) and Powerlevel10k.
 3. **Tooling**: Installs binaries for `codebase-memory-mcp`, `captain-miao`, and `r3`.
 4. **Configuration**: Sets up `.config/` subdirectories for `gh`, `nvim`, `ghostty`, `yazi`, `zellij`, `btop`, `cortexkit`, and `captain-miao`.
-5. **Agents**: Installs essential agent skills (Matt Pocock engineering skills, conventional-commit, frontend-design) via npm.
+5. **Agents**: Installs essential agent skills (Matt Pocock engineering skills, conventional-commit, frontend-design, avoid-ai-writing) via npm.
 6. **Integration**: Configures `r3` public URLs for Coder workspaces.
 7. **Arch Linux packages**: On Arch hosts only, installs `packages/arch.txt` with pacman and `packages/aur.txt` with yay (bootstrapped if missing), and on any Linux host without omp, downloads the latest omp release into `~/.local/bin`. Find packages installed outside the lists with `pacman -Qqen` (repo) and `pacman -Qqem` (AUR).
 8. **Dictation (Arch Linux desktop)**: On Arch desktops only (not macOS, devcontainers, agent pods or headless hosts), installs OpenWhispr from the AUR and a systemd user service running the vendored `openwhispr-soniox-proxy` in `.config/openwhispr-soniox-proxy/` (MIT; see its `LICENSE`). In OpenWhispr, set **Settings → Speech to Text → Custom** to endpoint `http://127.0.0.1:8788/v1`, model `stt-async-v5`, and your Soniox API key. The unit sets `SONIOX_REGION=jp`; the API key must come from a project in that region (supported values: `us`, `eu`, `jp`, `in`).
