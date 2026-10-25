@@ -41,6 +41,10 @@ Log in. The wallpaper fades in, the ironbar appears at the top, and mako pops a
    `SUPER+Space t` again — it hides, but keeps running (shell history, btop
    scroll position, yazi directory all survive). The same works for `f` (yazi),
    `b` (btop), `a` (wiremix), `g` (lazygit).
+   In the yazi drop-down, pressing `Enter` on a file hides the drop-down and
+   opens the file in a normal window, so it stays visible when the drop-down
+   comes back. A text file opens in nvim in a new ghostty window; other files
+   open with `xdg-open`, and yazi keeps running in the drop-down.
 4. **Move around:** `SUPER+hjkl` moves focus one step in that direction —
    between Hyprland windows, zellij panes, even nvim splits. At an edge it
    crosses into the neighbouring window, so one motion set covers the whole

@@ -290,7 +290,7 @@ if [ "$AGENT_POD" != "true" ]; then
   echo ""
   echo "Creating .config symlinks..."
 
-  config_dirs=(btop gh ghostty nvim cortexkit yaji zellij)
+  config_dirs=(btop gh ghostty nvim cortexkit yazi zellij)
 
   # The Polar Hyprland desktop only exists on Arch desktops; macOS,
   # devcontainers, agent pods and headless hosts get none of its configs or
@@ -390,6 +390,24 @@ AWK
     link_entry "$captain_miao_src" "$captain_miao_dst" ".config/captain-miao"
   fi
 fi # AGENT_POD guard: dotfile, .config and captain-miao symlinks
+
+# --- Erlang + Elixir via asdf (Arch only) ---
+# Versions come from ~/.tool-versions (linked above). asdf-vm is in aur.txt;
+# the Erlang build deps (base-devel, ncurses, openssl) are in arch.txt.
+# Erlang compiles from source (several minutes); the install skips an
+# existing version, so re-runs are fast.
+if [ -f /etc/arch-release ] && [ "$AGENT_POD" != "true" ] && command -v asdf >/dev/null 2>&1; then
+  echo ""
+  echo "Installing Erlang + Elixir via asdf..."
+  for plugin in erlang elixir; do
+    asdf plugin list 2>/dev/null | grep -qx "$plugin" || asdf plugin add "$plugin"
+  done
+  # wx (observer GUI), ODBC and Java bindings need extra system libs; skip them.
+  # Erlang must install first: the Elixir build is tied to its OTP release.
+  (cd "$HOME" &&
+    KERL_CONFIGURE_OPTIONS="--without-wx --without-odbc --without-javac" asdf install erlang &&
+    asdf install elixir)
+fi
 
 # --- Link omp (Oh My Pi) config ---
 # ~/.omp/agent/ holds runtime state (agent.db, sessions/, memories/) alongside

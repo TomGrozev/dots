@@ -8,6 +8,8 @@ less
 file
 procps-ng
 unzip
+ncurses
+openssl
 jq
 fzf
 zoxide
@@ -18,6 +20,7 @@ git-delta
 neovim
 zellij
 yazi
+poppler
 github-cli
 nodejs
 npm
@@ -50,3 +53,4 @@ nwg-look
 qt6ct
 mission-center
 libnotify
+inotify-tools

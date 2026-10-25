@@ -11,8 +11,17 @@ max_width  = 800
 max_height = 900
 
 [opener]
+# yazi's [open] rules send text to `edit`, images to `open` and media to `play`.
+# All three route through polar-open, which hides the files drop-down before a
+# new window appears; without that the window stays behind the overlay.
 edit = [
-  { run = 'nvim "$@"', block = true },
+  { run = 'polar-open --edit %s', desc = "Neovim", block = true },
+]
+open = [
+  { run = 'polar-open %s', desc = "Open" },
+]
+play = [
+  { run = 'polar-open %s', desc = "Play" },
 ]
 
 [tasks]

@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+# yazi's opener. `--edit` puts text in nvim, a bare call hands files to
+# xdg-open. In the files drop-down the overlay is hidden first: a window created
+# while `special:files` is up stays behind it, and an editor started inline in
+# the drop-down's terminal dies when the overlay hides.
+set -euo pipefail
+
+editor=false
+if [ "${1:-}" = "--edit" ]; then
+  editor=true
+  shift
+fi
+
+[ $# -ge 1 ] || {
+  printf 'Usage: polar-open [--edit] FILE...\n' >&2
+  exit 2
+}
+
+# The class comes from state.lua TUIS.files and is what rules.lua matches.
+overlay=false
+if [ "$(hyprctl activewindow -j 2>/dev/null | jq -r '.class // empty')" = "polar.tui.files" ]; then
+  overlay=true
+  # Hyprland 0.56 Lua config: the toggle must go through eval. `hyprctl
+  # dispatch` returns ok for this dispatcher and changes nothing.
+  hyprctl eval 'hl.dispatch(hl.dsp.workspace.toggle_special("files"))' >/dev/null
+fi
+
+if $editor; then
+  if $overlay; then
+    # setsid keeps the window independent of yazi and of this script.
+    setsid -f ghostty -e nvim "$@" </dev/null
+  else
+    exec nvim "$@"
+  fi
+  exit 0
+fi
+
+exec xdg-open "$@"
