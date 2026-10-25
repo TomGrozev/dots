@@ -723,6 +723,101 @@ else
   echo "  codebase-memory-mcp installed to ~/.local/bin/codebase-memory-mcp"
 fi
 
+# --- Install flate (Flux GitOps renderer) ---
+# Arch hosts only, like the arch.txt packages above: a macOS host gets flate from
+# Homebrew if it ever needs it. Skipped in AGENT_POD mode: an agent pod holds no
+# Flux repositories, so flate has nothing to render.
+if [ -f /etc/arch-release ] && [ "$AGENT_POD" != "true" ]; then
+  echo ""
+  echo "Installing flate..."
+
+  FLATE_BIN="$LOCAL_BIN/flate"
+
+  if [ -x "$FLATE_BIN" ]; then
+    echo "  flate already installed, skipping"
+  else
+    # Upstream publishes no Arch or AUR package, so the release archive is the
+    # only install source. The guard above limits this block to Arch, so the
+    # linux asset is the only one needed.
+    OS_PART="linux"
+
+    case "$UNAME_ARCH" in
+    arm64 | aarch64) ARCH_PART="arm64" ;;
+    x86_64 | amd64) ARCH_PART="amd64" ;;
+    *)
+      echo "    Error: unsupported architecture '$UNAME_ARCH'" >&2
+      exit 1
+      ;;
+    esac
+
+    # The asset name embeds the release version with its leading "v" removed
+    # (flate_0.6.5_linux_amd64.tar.gz), so /latest/download/ cannot build this
+    # URL. Resolve the tag from the GitHub API and derive the asset name.
+    echo "  Resolving latest flate release..."
+    # sed reads the whole body: an early-exiting reader (grep -m1) closes the
+    # pipe and makes curl report a write failure on stderr.
+    FLATE_TAG="$(curl -fsSL https://api.github.com/repos/home-operations/flate/releases/latest |
+      sed -nE 's/.*"tag_name":[[:space:]]*"([^"]+)".*/\1/p')"
+    if [ -z "$FLATE_TAG" ]; then
+      echo "    Error: could not resolve latest flate release tag" >&2
+      exit 1
+    fi
+
+    ARCHIVE_NAME="flate_${FLATE_TAG#v}_${OS_PART}_${ARCH_PART}.tar.gz"
+    RELEASE_BASE="https://github.com/home-operations/flate/releases/download/${FLATE_TAG}"
+    ARCHIVE_URL="$RELEASE_BASE/$ARCHIVE_NAME"
+    # Upstream publishes one digest file beside each archive. It holds the hex
+    # hash alone, with no file name field to match against.
+    CHECKSUM_URL="$ARCHIVE_URL.sha256"
+
+    # Subshell-local temp dir + EXIT trap: nothing leaks on failure under set -e,
+    # and the trap stays scoped to this block instead of lingering script-wide.
+    (
+      set -e
+      TMPDIR="$(mktemp -d)"
+      trap 'rm -rf "$TMPDIR"' EXIT
+      ARCHIVE_PATH="$TMPDIR/$ARCHIVE_NAME"
+      CHECKSUM_PATH="$TMPDIR/$ARCHIVE_NAME.sha256"
+
+      echo "  Downloading flate ${FLATE_TAG}..."
+      curl -fL --progress-bar -o "$ARCHIVE_PATH" "$ARCHIVE_URL"
+      curl -fL --progress-bar -o "$CHECKSUM_PATH" "$CHECKSUM_URL"
+
+      if command -v sha256sum >/dev/null 2>&1; then
+        ACTUAL_SHA="$(sha256sum "$ARCHIVE_PATH" | awk '{print $1}')"
+      elif command -v shasum >/dev/null 2>&1; then
+        ACTUAL_SHA="$(shasum -a 256 "$ARCHIVE_PATH" | awk '{print $1}')"
+      else
+        echo "    Error: neither sha256sum nor shasum found; cannot verify checksum" >&2
+        exit 1
+      fi
+
+      EXPECTED_SHA="$(tr -d '[:space:]' <"$CHECKSUM_PATH")"
+      if [ -z "$EXPECTED_SHA" ]; then
+        echo "    Error: checksum file for $ARCHIVE_NAME is empty" >&2
+        exit 1
+      fi
+
+      if [ "$ACTUAL_SHA" != "$EXPECTED_SHA" ]; then
+        echo "    Error: SHA-256 mismatch for $ARCHIVE_NAME" >&2
+        echo "      expected: $EXPECTED_SHA" >&2
+        echo "      actual:   $ACTUAL_SHA" >&2
+        exit 1
+      fi
+
+      tar -xzf "$ARCHIVE_PATH" -C "$TMPDIR"
+      if [ ! -f "$TMPDIR/flate" ]; then
+        echo "    Error: archive did not contain a 'flate' binary" >&2
+        exit 1
+      fi
+      mv "$TMPDIR/flate" "$FLATE_BIN"
+      chmod +x "$FLATE_BIN"
+    )
+
+    echo "  flate installed to ~/.local/bin/flate"
+  fi
+fi # AGENT_POD guard: flate
+
 # --- Install captain-miao (coding agent session manager) ---
 # Skipped in AGENT_POD mode, together with the up-to-date check and the
 # install/update block below: the pod's image ships both binaries, and an

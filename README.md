@@ -41,7 +41,7 @@ cd dotfiles
 The install script performs the following:
 1. **Symlinks**: Maps dotfiles from `~/dotfiles` to home directory, backing up existing files with `.bak`.
 2. **Shell**: Installs Oh My Zsh and required plugins (syntax highlighting, autosuggestions) and Powerlevel10k.
-3. **Tooling**: Installs binaries for `codebase-memory-mcp`, `captain-miao`, and `r3`.
+3. **Tooling**: Installs binaries for `codebase-memory-mcp`, `captain-miao`, `flate`, and `r3`.
 4. **Configuration**: Sets up `.config/` subdirectories for `gh`, `nvim`, `ghostty`, `yazi`, `zellij`, `btop`, `cortexkit`, and `captain-miao`.
 5. **Agents**: Installs essential agent skills (Matt Pocock engineering skills, conventional-commit, frontend-design, avoid-ai-writing) via npm.
 6. **Integration**: Configures `r3` public URLs for Coder workspaces.
