@@ -7,3 +7,4 @@ nordzy-cursors
 papirus-folders
 sidra-bin
 coder-bin
+lens-bin
