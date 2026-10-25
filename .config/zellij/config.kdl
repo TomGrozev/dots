@@ -9,8 +9,9 @@ on_force_close "detach"
 show_startup_tips false
 show_release_notes false
 session_serialization true
-pane_viewport_serialization true
-serialization_interval 1
+pane_viewport_serialization false
+serialization_interval 60
+scroll_buffer_size 3000
 focus_follows_mouse false
 mouse_click_through false
 
