@@ -56,5 +56,8 @@ libnotify
 inotify-tools
 talosctl
 kubectl
+kubeseal
 fluxcd
 go-task
+yamllint
+opentofu
