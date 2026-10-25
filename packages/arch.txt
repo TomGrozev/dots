@@ -56,3 +56,5 @@ libnotify
 inotify-tools
 talosctl
 kubectl
+fluxcd
+go-task
