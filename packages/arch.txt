@@ -54,3 +54,4 @@ qt6ct
 mission-center
 libnotify
 inotify-tools
+talosctl
