@@ -55,3 +55,4 @@ mission-center
 libnotify
 inotify-tools
 talosctl
+kubectl
