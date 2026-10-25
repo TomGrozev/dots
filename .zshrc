@@ -162,3 +162,9 @@ alias zja='zellij attach'
 alias zjls='zellij list-sessions'
 alias zjk='zellij kill-session'
 alias zjka='zellij kill-all-sessions'
+
+# Arch packages Task (taskfile.dev) as `go-task`, because `task` belongs to the
+# taskwarrior package in the same repo. Upstream docs and CI use `task`, so
+# expose the upstream name here. Interactive shells only: scripts and git hooks
+# see no aliases, so those must call `go-task` or resolve it themselves.
+alias task='go-task'
