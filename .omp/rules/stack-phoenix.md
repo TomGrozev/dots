@@ -14,7 +14,7 @@ Rules for Phoenix apps and libraries with a Phoenix web layer. Generic Elixir ru
 - A context module (`MyApp.Accounts`) and its public functions are the cross-module contract; its internal modules (`MyApp.Accounts.*`) are private unless exported.
 - The web layer (`MyAppWeb`) calls context functions, never `Repo` or a context's internal modules.
 - In the web layer, `Ecto.Changeset` is the only Ecto module used; keep `import Ecto.Query`, schemas, and `Repo` inside contexts.
-- Ecto schemas and migrations are persisted data shape: part of the surface, and a change to them stops for the user. PubSub message structs, behaviours, and protocols are contracts.
+- Ecto schemas and migrations are persisted data shape: a **new** schema or a **change** to one triggers `surface` and stops for the user (HITL.md § Triggers). PubSub message structs, behaviours, and protocols are contracts: a new one across a boundary with no existing example also triggers `structure`.
 - One context per domain area, named for the noun (`Accounts`, `Billing`); its schema's `changeset/2` stays `@doc false`, and its public functions return tagged tuples.
 
 ## Conventions

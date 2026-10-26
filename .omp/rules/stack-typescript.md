@@ -30,7 +30,7 @@ export async function updateBio(
 
 - The `exports` map in `package.json` is the cross-module contract (it supersedes `main` as the entry gate); deep imports a consumer can reach are the surface, everything else is private.
 - Avoid barrel-re-export through folder `index.ts` files except at the package entry: each re-export inflates the module graph and slows bundling, linting and tests.
-- A module's exported functions and types are its API: a signature change is a surface change that stops for the user; internal modules stay unexported.
+- A module's exported functions and types are its API: a signature change **inside** an existing module, with its boundary and callers unchanged, is not a stop; a **new** cross-module boundary with no existing example, or a **change** to the persisted data shape or an outside contract, is (`implement` § Surface, HITL.md § Triggers). Internal modules stay unexported.
 - Types are part of the surface: `import type` at the boundary, and a public type change (a `types` entry, a discriminated-union variant) is a breaking change.
 
 ## Conventions

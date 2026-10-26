@@ -58,4 +58,5 @@ Bind every agent: the main session and every subagent. "Escalate" means: subagen
 - **Subagents only:** `.md`/`.mdx` is `docs-writer`'s lane; flag doc needs instead. A skill step
   addressed to the user (a checkpoint, a question) is an escalation. Report as
   `### Done` (file: change) · `### Verified` (command: result) · `### Issues` (finds and
-  blockers, with options) · `### Surface additions` (only if the public surface grew).
+  blockers, with options) · `### Surface additions` (only if the public surface grew) ·
+  `### Defaults` (each choice made without asking, one line each; omit when none).

@@ -1032,6 +1032,14 @@ if [ "$AGENT_POD" = "true" ]; then
   MATT_POCOCK_SKILLS=(tdd code-review)
 fi
 
+# --- Link the diagram-design profile ---
+# A profile is a full style guide kept outside the skill install, so an update of
+# the skill cannot erase it. The install step below copies it into the installed
+# working copy; that copy is what suppresses the skill's first-run style question.
+# Only nord.md is linked, so profiles saved for other clients stay off this repo.
+link_entry "$DOTFILES_DIR/.diagram-design/profiles/nord.md" \
+  "$HOME/.diagram-design/profiles/nord.md" ".diagram-design/profiles/nord.md"
+
 if command -v npm &>/dev/null; then
   echo ""
   echo "Installing skills..."
@@ -1076,6 +1084,42 @@ if command -v npm &>/dev/null; then
   if [ "$AGENT_POD" != "true" ]; then
     echo "  Installing r3 review skill..."
     npx skills add hyperlogue/r3 --skill publish-artifacts-to-r3 -a universal -y -g
+  fi
+
+  # Diagram design (MIT) draws the placement map in implement/PLACEMENT-MAP.md and
+  # the PR page. Installing the skill writes a pristine references/style-guide.md,
+  # so the `nord` profile is copied over it after every install. A leading profile
+  # header in that file marks the guide as customized, which skips the first-run
+  # style question in every repository without a `.diagram-design` marker (see the
+  # skill's references/profiles.md, "Resolve without a valid marker").
+  echo "  Installing diagram-design skill..."
+  npx skills add cathrynlavery/diagram-design --skill diagram-design -a universal -y -g
+
+  # `npx skills add` ships the skill's other scripts but not this one. The guide
+  # runs it from here to check a placement map, so fetch it from the repo's
+  # default branch. It imports only the standard library, so it needs no sibling.
+  diagram_scripts="$HOME/.agents/skills/diagram-design/scripts"
+  if [ -d "$diagram_scripts" ]; then
+    diagram_geometry="$diagram_scripts/verify-geometry.py"
+    if curl -fsSL -o "$diagram_geometry.tmp" \
+      "https://raw.githubusercontent.com/cathrynlavery/diagram-design/main/scripts/verify-geometry.py"; then
+      mv "$diagram_geometry.tmp" "$diagram_geometry"
+      echo "  Installed diagram-design geometry check"
+    else
+      rm -f "$diagram_geometry.tmp"
+      echo "  WARNING: could not download the diagram-design geometry check"
+    fi
+  else
+    echo "  WARNING: diagram-design scripts directory is missing"
+  fi
+
+  diagram_profile="$HOME/.diagram-design/profiles/nord.md"
+  diagram_guide="$HOME/.agents/skills/diagram-design/references/style-guide.md"
+  if [ -f "$diagram_profile" ] && [ -d "$(dirname "$diagram_guide")" ]; then
+    cp "$diagram_profile" "$diagram_guide"
+    echo "  Selected diagram-design profile nord"
+  else
+    echo "  WARNING: could not select the nord profile for diagram-design"
   fi
 else
   echo "  npm not found. Install Node.js to install agent skills."

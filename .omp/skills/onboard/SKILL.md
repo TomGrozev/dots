@@ -77,4 +77,4 @@ A **stack pack** is a rule file `~/.omp/agent/rules/stack-<name>.md` (source: do
 
 - **Pack exists** → use its tools and gate as defaults in steps 5–6.
 - **No pack** → pick the ecosystem's standard tool for each guardrail category; record choices in the repo only.
-- **Promote to a pack** when there is enough to say: 3+ stack-generic conventions (recorded during `implement`'s skeleton review, or found in step 4) recurring across 2+ repos of that stack. Propose the new pack or additions as a menu item; the user decides. Repo-specific conventions stay out of packs.
+- **Promote to a pack** when there is enough to say: 3+ stack-generic conventions (recorded during `implement`'s shape review, or found in step 4) recurring across 2+ repos of that stack. Propose the new pack or additions as a menu item; the user decides. Repo-specific conventions stay out of packs.

@@ -38,7 +38,7 @@ When the work is already on an open PR (`implement-spec` opens one), skip the `a
 
 Otherwise, one `ask`, saying how many notes there are. When mode is hitl, the review is required, so offer only these two:
 - **review, tidy, then commit**: run steps 3 Review and 4 Tidy, then step 5 Gate, and land as a commit (see Landing rules), citing the ticket.
-- **PR**: a `feat/…`, `fix/…` or `chore/…` branch, step 5 Gate, land as a commit, run `gh pr create`, then publish to it (§ Publishing, PR), surface the URL and go to step 6.
+- **PR**: a `feat/…`, `fix/…` or `chore/…` branch, step 5 Gate, land as a commit, run `gh pr create`, then publish to it (§ Publishing, PR), surface the URL and go to step 6. When mode is hitl, the PR still waits for the user's review before it merges (§ Publishing, PR).
 
 Otherwise offer four options:
 - **commit**: run step 5 Gate, land as a commit (see Landing rules), citing the ticket, and print the notes in chat, one line each. Recommended for small, contained work reviewable in one sitting.
@@ -53,7 +53,7 @@ When there is at least one note, recommend "review, tidy, then commit" (or PR fo
 ### 3. Review
 Only for **review, tidy, then commit**. Publish to r3 (§ Publishing, r3). The user annotates the diff and resolves or replies to the notes; revise and reply until the user archives it.
 
-Then propose what the annotations teach, one line each filed by kind (onboard § What goes where), and for a ticket with `review: pattern <name>` one `CODING_STANDARDS.md` line naming the file as the pattern's reference instance. Write only the lines the user accepts.
+Then propose what the annotations teach, one line each filed by kind (onboard § What goes where). Write only the lines the user accepts.
 
 **Done when** the user has archived the review artifact and the accepted lines are written.
 
@@ -84,7 +84,12 @@ A review or a PR carries the summary when there is one (diagram as a mermaid blo
   git diff -O<order file> <start commit> | r3 create --kind diff --stdin-diff --title '<ticket>' --summary '<summary>'
   ```
 
-  `<order file>` lists the changed paths in reading order, one per line. For a revision of an existing artifact, publish to it instead:
+  `<order file>` lists the changed paths in reading order, one per line. The `--summary` is the
+  review page's summary: a diagram as a mermaid block, then the **defaults** and the **claims**
+  lists, worded as the PR page's (`land` § Publishing, PR). A long list reads better as a link:
+  publish the page there instead and link its section.
+
+  For a revision of an existing artifact, publish to it instead:
 
   ```sh
   git diff -O<order file> <start commit> | r3 publish <artifact> --stdin-diff --summary '<summary>'
@@ -96,10 +101,15 @@ A review or a PR carries the summary when there is one (diagram as a mermaid blo
   r3 thread add <artifact> --file <path> --version <seq> --view diff --side new --line <a-b> --quote '<exact line text>' -m '<note>'
   ```
 
-- **PR**: GitHub lists files alphabetically, so write the reading order as a list of paths under the summary in the PR body, in `skill://pr`'s shape (`gh pr edit <n> --body-file`, or the body of `gh pr create`). Then post each note as a review comment on its line:
+- **PR**: GitHub lists files alphabetically, so write the reading order as a list of paths under the summary in the PR body, in `skill://pr`'s shape (`gh pr edit <n> --body-file`, or the body of `gh pr create`). The PR body is the end-of-work page: after the summary and reading order it carries the **placement map**, the **defaults**, and the **claims**:
+  - **Placement map**: one map for the whole change, at most 9 boxes, each box marked NEW, CHANGED, REUSED, REMOVED or STORED. With more than 9 boxes, an overview map plus one detail map per area. Built like the shape-review page: one content brief to a `designer` subagent, published as an r3 `html` artifact. How: `implement/PLACEMENT-MAP.md`.
+  - **Defaults**: each choice the agent made without asking the user, one line each, with the alternative as a question. Collected from the workers' `### Defaults` report sections (`.omp/RULES.md`) plus the main agent's own choices.
+  - **Claims**: each claim the work makes with its proof (command and output, or a link), or marked "unverified".
+
+  Then post each note as a review comment on its line:
 
   ```sh
   gh api repos/{owner}/{repo}/pulls/<n>/comments -f body=... -f path=... -F line=... -f side=RIGHT -f commit_id=<head sha>
   ```
 
-  The PR review and the user's tidy (their own commits on the branch, covered by CI) happen in their own session; `land` ends once the PR is published.
+  The PR review and the user's tidy (their own commits on the branch, covered by CI) happen in their own session. A hitl ticket on this branch keeps its stop: the user's review of its `**Human:**` question must land before the PR merges, on the commit path and on the PR path. For `see-it-run`, show the running result (screenshot, recording, or real command output) in the PR review. When a `**Human:**` answer is still owed, post the open questions as one PR comment. `land` ends at publication; the merge waits on the answers.

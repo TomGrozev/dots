@@ -17,14 +17,20 @@ Agent Rules (`.omp/RULES.md`), which bind you and every subagent.
 3. changing persisted data, a public contract, or an external system (deploys, messages, paid services);
 4. anything involving secrets or credentials.
 
-Workflow skills add their own stops: `implement` stops for load-bearing surface changes
-(skeleton review; term: `implement` § Surface), and `land` requires the user's review before
+Workflow skills add their own stops: a hitl ticket stops for each trigger on its
+`**Human:**` lines (`structure`, `surface` and `decision` stop at the shape review before
+build; `see-it-run` after build; `one-way-door` immediately before the action;
+`implement` § Triggers), and `land` requires the user's review before
 landing on hitl work (land § Review). Everything else: decide, state the assumption, and record
 it as a note (`land` § Notes). Batch questions into one `ask`.
 
 Every task that changes files ends with `skill://walkthrough`. `implement-spec` always runs
 with a PR: it builds the work on a branch and opens one, and the user reviews and tidies on
-that PR (`land` § Publishing). When the user is unsure what
+that PR (`land` § Publishing). After `implement-spec` finishes, run `walkthrough`, then
+`land` on its PR: `land` writes the end-of-work page into that PR body. Before starting
+`implement-spec`, list the spec's open `ready-for-human` tickets; if any exist, stop and name
+them. An afk prep ticket that must land before a hitl ticket runs with `implement`, one at a
+time: `implement-spec` cannot start while a hitl ticket is open. When the user is unsure what
 comes next, suggest the next step in one line; for a visual map, point them to
 `~/.omp/agent/pairing-workflow.html` (linked there by the dotfiles `install.sh`).
 `docs/agents/…` paths in skills mean the project repo being worked on. In a fork, those and the

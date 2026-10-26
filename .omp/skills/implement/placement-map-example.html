@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Shape review · shh_ai #68 · placement map</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --paper: #ECEFF4;
+    --paper-2: #E5E9F0;
+    --ink: #2E3440;
+    --ink-strong: #ECEFF4;
+    --muted: #434C5E;
+    --soft: #55637D;
+    --rule: rgba(46,52,64,0.12);
+    --rule-solid: #C2C8D4;
+    --accent: #8C2F3C;
+    --accent-tint: rgba(140,47,60,0.08);
+    --link: #3F5C88;
+    --font-serif: 'Iowan Old Style', Georgia, serif;
+    --font-sans: system-ui, -apple-system, 'Segoe UI', sans-serif;
+    --font-mono: ui-monospace, 'SFMono-Regular', Menlo, monospace;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --paper: #2E3440;
+      --paper-2: #3B4252;
+      --ink: #ECEFF4;
+      --ink-strong: #10131A;
+      --muted: #C0C8D6;
+      --soft: #A7B1C2;
+      --rule: rgba(236,239,244,0.12);
+      --rule-solid: rgba(192,200,214,0.25);
+      --accent: #D98E96;
+      --accent-tint: rgba(217,142,150,0.10);
+      --link: #A3BEDC;
+    }
+  }
+
+  body {
+    font-family: var(--font-sans);
+    background: var(--paper);
+    color: var(--ink);
+    padding: 28px 32px 64px;
+  }
+
+  .frame { max-width: 1080px; margin: 0 auto; }
+
+  .eyebrow {
+    font-family: var(--font-mono);
+    font-size: 0.66rem;
+    font-weight: 500;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--soft);
+    margin-bottom: 8px;
+  }
+
+  h1 {
+    font-family: var(--font-serif);
+    font-size: clamp(1.5rem, 2.4vw + 0.75rem, 2.1rem);
+    font-weight: 400;
+    letter-spacing: -0.02em;
+    line-height: 1.15;
+    margin-bottom: 16px;
+  }
+
+  .triggers { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }
+
+  .trigger {
+    border: 1px solid var(--rule-solid);
+    border-radius: 4px;
+    padding: 6px 10px 7px;
+    max-width: 500px;
+  }
+  .trigger .tag {
+    font-family: var(--font-mono);
+    font-size: 7.5px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--soft);
+    display: block;
+    margin-bottom: 3px;
+  }
+  .trigger .q { font-size: 12.5px; line-height: 1.4; }
+  .trigger .q .human {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--accent);
+    letter-spacing: 0.06em;
+    margin-right: 4px;
+  }
+
+  section { margin-top: 24px; }
+  h2 {
+    font-family: var(--font-mono);
+    font-size: 8px;
+    font-weight: 500;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--soft);
+    margin-bottom: 12px;
+  }
+
+  .intent {
+    font-family: var(--font-serif);
+    font-size: 1.15rem;
+    font-style: italic;
+    line-height: 1.45;
+    max-width: 46em;
+    border-left: 2px solid var(--accent);
+    padding-left: 14px;
+  }
+
+  ol.acceptance { margin: 0 0 0 18px; max-width: 48em; }
+  ol.acceptance li { font-size: 12.5px; line-height: 1.6; margin-bottom: 6px; }
+  ol.acceptance code, .why-new code, .checks code, .decisions code {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    background: var(--paper-2);
+    padding: 1px 4px;
+    border-radius: 3px;
+  }
+
+  .map-wrap { overflow-x: auto; border-top: 1px solid var(--rule); padding-top: 8px; }
+  svg.map { width: 100%; min-width: 1000px; display: block; }
+
+  .why-new {
+    margin-top: 10px;
+    font-size: 12.5px;
+    line-height: 1.5;
+    color: var(--muted);
+    border-left: 2px solid var(--accent);
+    padding-left: 12px;
+    max-width: 52em;
+  }
+  .why-new b { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent); }
+
+  .checks { list-style: none; display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .check {
+    border: 1px solid var(--rule-solid);
+    border-radius: 6px;
+    padding: 12px 14px;
+  }
+  .check .label {
+    font-family: var(--font-mono);
+    font-size: 7.5px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--soft);
+    display: block;
+    margin-bottom: 6px;
+  }
+  .check p { font-size: 12.5px; line-height: 1.5; }
+  .check pre {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    line-height: 1.55;
+    color: var(--muted);
+    background: var(--paper-2);
+    border-radius: 4px;
+    padding: 8px 10px;
+    margin-top: 8px;
+    white-space: pre-wrap;
+  }
+
+  .decisions { display: grid; gap: 16px; }
+  .decision {
+    border: 1px solid var(--rule-solid);
+    border-radius: 6px;
+    padding: 16px 18px 14px;
+  }
+  .decision .num {
+    font-family: var(--font-mono);
+    font-size: 7.5px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--soft);
+  }
+  .decision h3 { font-size: 14px; font-weight: 600; margin: 6px 0 10px; line-height: 1.35; }
+  .decision ul { list-style: none; display: grid; gap: 8px; }
+  .decision li { font-size: 12.5px; line-height: 1.5; display: flex; gap: 8px; }
+  .decision .letter {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--accent);
+    border: 1px solid var(--rule-solid);
+    border-radius: 3px;
+    padding: 0 4px;
+    height: 16px;
+    line-height: 15px;
+    flex: 0 0 auto;
+    margin-top: 1px;
+  }
+  .decision .reason {
+    display: block;
+    margin-top: 3px;
+    font-size: 11.5px;
+    line-height: 1.45;
+    color: var(--soft);
+  }
+  .decision .pick {
+    margin-top: 10px;
+    font-family: var(--font-mono);
+    font-size: 9.5px;
+    letter-spacing: 0.04em;
+    color: var(--soft);
+  }
+
+  footer {
+    margin-top: 40px;
+    padding-top: 12px;
+    border-top: 1px solid var(--rule);
+    font-family: var(--font-mono);
+    font-size: 10px;
+    line-height: 1.7;
+    color: var(--soft);
+  }
+  footer a { color: var(--link); text-decoration: none; }
+</style>
+</head>
+<body>
+<div class="frame">
+
+  <p class="eyebrow">Shape review · TomGrozev/shh_ai #68</p>
+  <h1>Per-conversation provider pin and model-aware routing</h1>
+
+  <div class="triggers">
+    <div class="trigger" id="trigger-structure">
+      <span class="tag">Trigger: structure</span>
+      <p class="q"><span class="human">Human:</span>structure: Is <code>ShhAi.TargetProvider</code> the right home for the selection rule, and should it be a new module?</p>
+    </div>
+    <div class="trigger" id="trigger-surface">
+      <span class="tag">Trigger: surface</span>
+      <p class="q"><span class="human">Human:</span>surface: Does the pin belong on the stored conversation record, in both backends?</p>
+    </div>
+  </div>
+
+  <section id="intent">
+    <h2>Intent</h2>
+    <p class="intent">Every turn of a conversation reaches the same provider instance that serves the requested model, so provider-side caching and multi-turn tool sessions stay stable.</p>
+  </section>
+
+  <section id="placement-map">
+    <h2>Placement map</h2>
+    <div class="map-wrap">
+    <svg class="map" viewBox="0 24 1000 492" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="map-title map-desc">
+      <title id="map-title">Placement map for shh_ai ticket 68</title>
+      <desc id="map-desc">Nine boxes. New: TargetProvider. Changed: Conversation, Conversation.Store, Config, ProxyController. Reused: ModelCatalog. Removed: Config.select_provider/0. Stored: the ETS conversations tuple and the Redis conversation hash.</desc>
+      <defs>
+        <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#434C5E"/></marker>
+        <marker id="arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#8C2F3C"/></marker>
+      </defs>
+
+      <rect y="24" width="1000" height="492" fill="#ECEFF4"/>
+
+      <!-- Zones, drawn first -->
+      <rect x="8" y="32" width="792" height="112" rx="8" fill="rgba(46,52,64,0.02)" stroke="rgba(46,52,64,0.10)" stroke-width="0.8"/>
+      <rect x="20" y="35" width="76" height="12" rx="2" fill="#ECEFF4"/>
+      <text x="22" y="44" fill="#55637D" font-size="7" font-family="ui-monospace, Menlo, monospace" letter-spacing="0.14em">REQUEST PATH</text>
+
+      <rect x="8" y="184" width="800" height="256" rx="8" fill="rgba(46,52,64,0.02)" stroke="rgba(46,52,64,0.10)" stroke-width="0.8"/>
+      <rect x="20" y="187" width="124" height="12" rx="2" fill="#ECEFF4"/>
+      <text x="22" y="196" fill="#55637D" font-size="7" font-family="ui-monospace, Menlo, monospace" letter-spacing="0.14em">CONVERSATION STATE</text>
+
+      <!-- Arrows before boxes -->
+      <line x1="240" y1="88" x2="296" y2="88" stroke="#8C2F3C" stroke-width="1.4" marker-end="url(#arrow-accent)"/>
+      <line x1="512" y1="88" x2="568" y2="88" stroke="#434C5E" stroke-width="1.2" marker-end="url(#arrow)"/>
+      <rect x="512" y="98" width="56" height="11" rx="2" fill="#ECEFF4"/>
+      <text x="540" y="106" fill="#434C5E" font-size="7" font-family="ui-monospace, Menlo, monospace" text-anchor="middle" letter-spacing="0.08em">SERVING SET</text>
+
+      <path d="M 240,232 H 260 Q 268,232 268,224 V 112 Q 268,104 276,104 H 296" fill="none" stroke="#434C5E" stroke-width="1.2" marker-end="url(#arrow)"/>
+      <rect x="274" y="142" width="58" height="12" rx="2" fill="#ECEFF4"/>
+      <text x="276" y="152" fill="#434C5E" font-size="7" font-family="ui-monospace, Menlo, monospace" letter-spacing="0.06em">PIN READ</text>
+
+      <line x1="240" y1="256" x2="296" y2="256" stroke="#434C5E" stroke-width="1.2" marker-end="url(#arrow)"/>
+      <rect x="246" y="238" width="44" height="11" rx="2" fill="#ECEFF4"/>
+      <text x="268" y="246" fill="#434C5E" font-size="7" font-family="ui-monospace, Menlo, monospace" text-anchor="middle" letter-spacing="0.06em">RE-PIN</text>
+
+      <line x1="404" y1="280" x2="404" y2="368" stroke="#434C5E" stroke-width="1.2" marker-end="url(#arrow)"/>
+      <path d="M 480,280 V 320 Q 480,328 488,328 H 668 Q 676,328 676,336 V 368" fill="none" stroke="#434C5E" stroke-width="1.2" marker-end="url(#arrow)"/>
+
+      <path d="M 676,216 V 184 Q 676,176 668,176 H 412 Q 404,176 404,168 V 128" fill="none" stroke="#434C5E" stroke-width="1.2" marker-end="url(#arrow)"/>
+      <rect x="682" y="188" width="34" height="11" rx="2" fill="#ECEFF4"/>
+      <text x="684" y="196" fill="#434C5E" font-size="7" font-family="ui-monospace, Menlo, monospace" letter-spacing="0.06em">POOL</text>
+
+      <line x1="784" y1="248" x2="800" y2="248" stroke="#434C5E" stroke-width="1" stroke-dasharray="4,3"/>
+
+      <!-- NEW -->
+      <g id="box-target-provider" data-status="new">
+        <rect x="296" y="64" width="216" height="64" rx="6" fill="#F2E9EB" stroke="#8C2F3C" stroke-width="1.2"/>
+        <text x="308" y="80" fill="#8C2F3C" font-size="7" font-family="ui-monospace, Menlo, monospace" letter-spacing="0.16em">NEW +</text>
+        <text x="500" y="80" fill="#8C2F3C" font-size="10" font-family="ui-monospace, Menlo, monospace" text-anchor="end">1</text>
+        <text x="308" y="102" fill="#2E3440" font-size="12" font-weight="600" font-family="system-ui, sans-serif">TargetProvider</text>
+        <text x="308" y="118" fill="#55637D" font-size="9" font-family="ui-monospace, Menlo, monospace">target_provider.ex</text>
+      </g>
+
+      <!-- CHANGED -->
+      <g id="box-proxy-controller" data-status="changed">
+        <rect x="24" y="64" width="216" height="64" rx="6" fill="#E5E9F0" stroke="#434C5E" stroke-width="1"/>
+        <line x1="236" y1="70" x2="236" y2="122" stroke="#434C5E" stroke-width="1"/>
+        <text x="36" y="80" fill="#55637D" font-size="7" font-family="ui-monospace, Menlo, monospace" letter-spacing="0.16em">CHANGED Δ</text>
+        <text x="36" y="102" fill="#2E3440" font-size="12" font-weight="600" font-family="system-ui, sans-serif">ProxyController</text>
+        <text x="36" y="118" fill="#55637D" font-size="9" font-family="ui-monospace, Menlo, monospace">proxy_controller.ex</text>
+      </g>
+
+      <g id="box-conversation" data-status="changed">
+        <rect x="24" y="216" width="216" height="64" rx="6" fill="#E5E9F0" stroke="#434C5E" stroke-width="1"/>
+        <line x1="236" y1="222" x2="236" y2="274" stroke="#434C5E" stroke-width="1"/>
+        <text x="36" y="232" fill="#55637D" font-size="7" font-family="ui-monospace, Menlo, monospace" letter-spacing="0.16em">CHANGED Δ</text>
+        <text x="36" y="254" fill="#2E3440" font-size="12" font-weight="600" font-family="system-ui, sans-serif">Conversation</text>
+        <text x="36" y="270" fill="#55637D" font-size="9" font-family="ui-monospace, Menlo, monospace">pinned_provider field</text>
+      </g>
+
+      <g id="box-conversation-store" data-status="changed">
+        <rect x="296" y="216" width="216" height="64" rx="6" fill="#E5E9F0" stroke="#434C5E" stroke-width="1"/>
+        <line x1="508" y1="222" x2="508" y2="274" stroke="#434C5E" stroke-width="1"/>
+        <text x="308" y="232" fill="#55637D" font-size="7" font-family="ui-monospace, Menlo, monospace" letter-spacing="0.16em">CHANGED Δ</text>
+        <text x="308" y="254" fill="#2E3440" font-size="12" font-weight="600" font-family="system-ui, sans-serif">Conversation.Store</text>
+        <text x="308" y="270" fill="#55637D" font-size="9" font-family="ui-monospace, Menlo, monospace">set_pinned_provider/2</text>
+      </g>
+
+      <g id="box-config" data-status="changed">
+        <rect x="568" y="216" width="216" height="64" rx="6" fill="#E5E9F0" stroke="#434C5E" stroke-width="1"/>
+        <line x1="780" y1="222" x2="780" y2="274" stroke="#434C5E" stroke-width="1"/>
+        <text x="580" y="232" fill="#55637D" font-size="7" font-family="ui-monospace, Menlo, monospace" letter-spacing="0.16em">CHANGED Δ</text>
+        <text x="580" y="254" fill="#2E3440" font-size="12" font-weight="600" font-family="system-ui, sans-serif">Config</text>
+        <text x="580" y="270" fill="#55637D" font-size="9" font-family="ui-monospace, Menlo, monospace">settings only</text>
+      </g>
+
+      <!-- REUSED -->
+      <g id="box-model-catalog" data-status="reused">
+        <rect x="568" y="64" width="216" height="64" rx="6" fill="#ECEFF4" stroke="rgba(46,52,64,0.30)" stroke-width="1"/>
+        <text x="580" y="80" fill="#55637D" font-size="7" font-family="ui-monospace, Menlo, monospace" letter-spacing="0.16em">REUSED</text>
+        <text x="580" y="102" fill="#2E3440" font-size="12" font-weight="600" font-family="system-ui, sans-serif">ModelCatalog</text>
+        <text x="580" y="118" fill="#55637D" font-size="9" font-family="ui-monospace, Menlo, monospace">provider_instances_serving/1</text>
+      </g>
+
+      <!-- REMOVED -->
+      <g id="box-select-provider-0" data-status="removed">
+        <rect x="800" y="216" width="176" height="64" rx="6" fill="#ECEFF4" stroke="#434C5E" stroke-width="1" stroke-dasharray="4,3"/>
+        <text x="812" y="232" fill="#55637D" font-size="7" font-family="ui-monospace, Menlo, monospace" letter-spacing="0.16em">REMOVED −</text>
+        <text x="812" y="254" fill="#434C5E" font-size="12" font-weight="600" font-family="system-ui, sans-serif" text-decoration="line-through">select_provider/0</text>
+        <text x="812" y="270" fill="#55637D" font-size="9" font-family="ui-monospace, Menlo, monospace">random per request</text>
+      </g>
+
+      <!-- STORED -->
+      <g id="box-ets-conversation" data-status="stored">
+        <rect x="296" y="368" width="216" height="64" rx="6" fill="#E5E9F0" stroke="#434C5E" stroke-width="1"/>
+        <line x1="308" y1="372" x2="500" y2="372" stroke="#434C5E" stroke-width="1.2"/>
+        <text x="308" y="388" fill="#55637D" font-size="7" font-family="ui-monospace, Menlo, monospace" letter-spacing="0.16em">STORED</text>
+        <text x="308" y="410" fill="#2E3440" font-size="12" font-weight="600" font-family="system-ui, sans-serif">ETS conversation</text>
+        <text x="308" y="426" fill="#55637D" font-size="9" font-family="ui-monospace, Menlo, monospace">8th tuple element</text>
+      </g>
+
+      <g id="box-redis-hash" data-status="stored">
+        <rect x="568" y="368" width="216" height="64" rx="6" fill="#E5E9F0" stroke="#434C5E" stroke-width="1"/>
+        <line x1="580" y1="372" x2="772" y2="372" stroke="#434C5E" stroke-width="1.2"/>
+        <text x="580" y="388" fill="#55637D" font-size="7" font-family="ui-monospace, Menlo, monospace" letter-spacing="0.16em">STORED</text>
+        <text x="580" y="410" fill="#2E3440" font-size="12" font-weight="600" font-family="system-ui, sans-serif">Redis hash</text>
+        <text x="580" y="426" fill="#55637D" font-size="9" font-family="ui-monospace, Menlo, monospace">field pinned_provider</text>
+      </g>
+
+      <!-- Legend strip -->
+      <line x1="8" y1="456" x2="992" y2="456" stroke="rgba(46,52,64,0.12)" stroke-width="1"/>
+      <rect x="8" y="470" width="24" height="12" rx="2" fill="#F2E9EB" stroke="#8C2F3C" stroke-width="1.2"/>
+      <text x="38" y="479" fill="#434C5E" font-size="8" font-family="ui-monospace, Menlo, monospace">NEW: heavy solid stroke, accent tint, + badge</text>
+      <rect x="330" y="470" width="24" height="12" rx="2" fill="#E5E9F0" stroke="#434C5E" stroke-width="1"/>
+      <line x1="352" y1="471" x2="352" y2="481" stroke="#434C5E" stroke-width="1"/>
+      <text x="360" y="479" fill="#434C5E" font-size="8" font-family="ui-monospace, Menlo, monospace">CHANGED: solid stroke, inset rule, Δ</text>
+      <rect x="628" y="470" width="24" height="12" rx="2" fill="#ECEFF4" stroke="rgba(46,52,64,0.30)" stroke-width="1"/>
+      <text x="658" y="479" fill="#434C5E" font-size="8" font-family="ui-monospace, Menlo, monospace">REUSED: quiet thin stroke</text>
+      <rect x="820" y="470" width="24" height="12" rx="2" fill="#ECEFF4" stroke="#434C5E" stroke-width="1" stroke-dasharray="4,3"/>
+      <text x="850" y="479" fill="#434C5E" font-size="8" font-family="ui-monospace, Menlo, monospace">REMOVED: dashed, −</text>
+      <rect x="8" y="498" width="24" height="12" rx="2" fill="#E5E9F0" stroke="#434C5E" stroke-width="1"/>
+      <line x1="12" y1="500" x2="28" y2="500" stroke="#434C5E" stroke-width="1.2"/>
+      <text x="38" y="507" fill="#434C5E" font-size="8" font-family="ui-monospace, Menlo, monospace">STORED: paper-2 fill, inset top rule (persisted data)</text>
+      <line x1="488" y1="504" x2="512" y2="504" stroke="#434C5E" stroke-width="1" stroke-dasharray="4,3"/>
+      <text x="520" y="507" fill="#434C5E" font-size="8" font-family="ui-monospace, Menlo, monospace">REMOVED EDGE: dashed connector, no arrowhead</text>
+    </svg>
+    </div>
+
+    <p class="why-new" id="why-new-target-provider"><b>Why new (TargetProvider):</b> <code>Config.select_provider/0</code> only drew a random index at request entry. It did not extend, and no existing module owned per-request selection, so the rule had no home.</p>
+  </section>
+
+  <section id="acceptance-examples">
+    <h2>Acceptance examples</h2>
+    <ol class="acceptance" id="acceptance">
+      <li>Given a conversation already served by <code>openai_1</code>, when the next turn arrives, then it reaches <code>openai_1</code> even if another instance also serves the model.</li>
+      <li>Given two instances where only <code>anthropic_1</code> lists <code>claude-sonnet-4</code>, when a request names that model, then it reaches <code>anthropic_1</code> and the conversation pins to it.</li>
+      <li>Given a request for a model no configured instance serves, when it arrives, then ShhAi answers 404 <code>model "X" not served by any configured provider instance</code>.</li>
+    </ol>
+  </section>
+
+  <section id="checks">
+    <h2>Checks</h2>
+    <ul class="checks">
+      <li class="check" id="check-right-module">
+        <span class="label">Right module or layer</span>
+        <p>The catalog filter has one caller. <code>Config</code> holds settings only.</p>
+        <pre>$ grep -rn "provider_instances_serving" lib
+model_catalog.ex:126  @spec provider_instances_serving(...)
+target_provider.ex:84 serving = ModelCatalog.provider_instances_serving(model)</pre>
+      </li>
+      <li class="check" id="check-deletions">
+        <span class="label">Deletions are intended</span>
+        <p>The only deletion is <code>Config.select_provider/0</code>, and no caller remains.</p>
+        <pre>$ grep -rn "select_provider" lib test
+(no matches)</pre>
+      </li>
+    </ul>
+  </section>
+
+  <section id="decisions">
+    <h2>Decisions</h2>
+    <div class="decisions">
+
+      <div class="decision" id="decision-pin-location">
+        <span class="num">Decision 1 · Pin location · 3 options</span>
+        <h3>Where does the pin live?</h3>
+        <ul>
+          <li><span class="letter">A</span><span>A field on the stored conversation record, written by both backends, kept through the TTL touch.<span class="reason">Pick when turns must reach the same instance across restarts and backends: the pin survives eviction-free time and needs no recompute; the cost is an 8th tuple element and a schema write in both stores.</span></span></li>
+          <li><span class="letter">B</span><span>No stored field. Recompute the target from the model on every turn.<span class="reason">Pick when a wrong pin is worse than no pin and the pool is small: nothing to store or migrate; the cost is that provider-side caching breaks whenever the random draw changes instance between turns.</span></span></li>
+          <li><span class="letter">C</span><span>A client-supplied session header that the proxy echoes back to the same instance.<span class="reason">Pick when clients already send a session id and own affinity: the proxy stays stateless; the cost is that no header means no pin, and header handling becomes part of the outside contract.</span></span></li>
+        </ul>
+        <p class="pick">Pick hidden until you answer (structure).</p>
+      </div>
+
+      <div class="decision" id="decision-pin-gone">
+        <span class="num">Decision 2 · Pin gone · 3 options</span>
+        <h3>The pinned instance is removed from config. What happens on the next turn?</h3>
+        <ul>
+          <li><span class="letter">A</span><span>Re-pin to a configured instance that serves the model, and write the new name back.<span class="reason">Pick when the operator's config is the truth and a stale name is a bug: one boolean check, no cache to thrash; the cost is that in-flight conversations move to a cold instance once.</span></span></li>
+          <li><span class="letter">B</span><span>Reject the turn with 409 <code>pinned instance is gone</code> and keep the pin.<span class="reason">Pick when the client must learn about config drift and re-decide: no silent movement; the cost is that a routine config edit breaks every live conversation until the client reacts.</span></span></li>
+          <li><span class="letter">C</span><span>Keep the pin and serve from any configured instance, so the pin becomes a label only.<span class="reason">Pick when availability beats affinity: turns never fail on a rename; the cost is that the cache and session stability the pin exists for are lost the moment it stops resolving.</span></span></li>
+        </ul>
+        <p class="pick">Pick hidden until you answer (structure).</p>
+      </div>
+
+      <div class="decision" id="decision-retry-pin">
+        <span class="num">Decision 3 · Retry pin · 3 options</span>
+        <h3>The pinned instance is unreachable but still configured. A retry succeeds elsewhere. Does the pin move?</h3>
+        <ul>
+          <li><span class="letter">A</span><span>No. The retry is per request. The pin returns to the original instance when it recovers.<span class="reason">Pick when provider-side cache is the main gain: an unreachable instance costs no tokens, so keeping the pin is cheap and caching resumes on recovery; the cost is that a long outage keeps drawing fallback targets.</span></span></li>
+          <li><span class="letter">B</span><span>Yes. The instance that answered becomes the pin.<span class="reason">Pick when a flapping instance should stop being chosen: the pool self-heals toward healthy instances; the cost is that one transient blip permanently moves every conversation it touched off the warm cache.</span></span></li>
+          <li><span class="letter">C</span><span>Clear the pin, so the next turn selects again.<span class="reason">Pick when model-aware selection should re-judge after any failure: no staleness of any kind; the cost is a full reselect per failure and a cache miss on the next turn.</span></span></li>
+        </ul>
+        <p class="pick">Pick hidden until you answer (structure).</p>
+      </div>
+
+    </div>
+  </section>
+
+  <footer>
+    Code: <code>git show f39d037</code> · ADR-0013 §7 · ADR: <a href="#">docs/adr/0013-provider-instance-pinning-and-model-aware-routing.md</a><br>
+    Gate: the build does not continue until each decision has an answer comment naming one option letter. Archive with open decisions does not continue the build; the agent asks in chat for the missing answers.
+  </footer>
+
+</div>
+</body>
+</html>
