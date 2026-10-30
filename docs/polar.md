@@ -144,6 +144,11 @@ treatment:
 - **Shadows** — floating windows get a soft shadow so they read against the
   wallpaper; tiled ones are flat, where a shadow is pure GPU cost on top of the
   dark seam the gaps already draw.
+- **Quick-use apps** — the `polar-quick-float` rule in `rules.lua` opens
+  Bitwarden, nwg-look and qt6ct floating and centred: they exist to do one
+  thing and close, so they never take a tile. Bitwarden also gets a fixed size
+  (30% of the monitor width, 65% of the height) from the
+  `polar-bitwarden-size` rule.
 - **Motion** — the launcher pops in from its centre, notifications slide in
   from the right edge (mako is anchored there), and the bar never animates
   because it is permanent furniture.

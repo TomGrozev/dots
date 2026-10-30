@@ -27,6 +27,26 @@ hl.window_rule({
     float = true,
 })
 
+-- Quick-use apps: opened to do one thing and closed again. They float centred
+-- so the tiling layout underneath keeps its shape. Bitwarden is a vault
+-- glance; nwg-look and qt6ct change one appearance setting. Add another class
+-- when an app fits that shape. The float must be set before no-shadow-tiled,
+-- which tests `float = false` and would otherwise flatten these windows.
+hl.window_rule({
+    name  = "polar-quick-float",
+    match = { class = "^(Bitwarden|nwg-look|qt6ct)$" },
+    float = true,
+    center = true,
+})
+
+-- Bitwarden asks for nearly the full monitor height, which would read as a
+-- workspace rather than a panel, so it gets a fixed size.
+hl.window_rule({
+    name  = "polar-bitwarden-size",
+    match = { class = "^Bitwarden$" },
+    size  = "(monitor_w*0.3) (monitor_h*0.65)",
+})
+
 -- Blur is off for normal windows (layers get it from the layer rules below);
 -- the global switch in look.lua must stay on for layer blur to work.
 hl.window_rule({
