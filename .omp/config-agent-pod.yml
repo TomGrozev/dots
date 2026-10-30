@@ -35,20 +35,68 @@ autolearn:
 
 # --- Model roles ---------------------------------------------------------------
 # Only the four roles the base config points at anthropic/claude-opus-5-5 are
-# remapped; the Anthropic models are unavailable in the pod (no Anthropic
+# remapped off Anthropic: those models are unavailable in the pod (no Anthropic
 # credential, and the discovery providers are disabled below).
 #
-# mimo-v2.6-pro and glm-5.3 are exactly the strong models the base config's own
-# retry.fallbackChains already falls back to for these roles, so this keeps the
-# pod on the same provider family the dots config was written around. An
-# unknown model id is a startup warning and a failed role, not a hard error, so
-# these two names want re-checking against the live NeuralWatt catalog the first
-# time NEURALWATT_API_KEY is wired in.
+# Every NeuralWatt id the pod uses is the `-flex` variant. A flex model has the
+# same weights, context window and output cap as the standard id, and is
+# admitted on spare capacity at a discounted price. That is the right tier for
+# work that runs unattended in the background. The discount applies to streaming
+# requests only, and omp always streams.
+#
+# The base config's NeuralWatt ids are restated here because the overlay
+# deep-merges: an unnamed role keeps the base config's non-flex id. `memory` is
+# already flex in the base config, so it is not repeated. Two NeuralWatt models
+# have no flex variant and stay inherited: `gemma-4-31b` (vision, and the tiny
+# and commit fallback) and `clef-flash` (the judge classifier).
 modelRoles:
-  slow: neuralwatt/mimo-v2.6-pro:auto
-  plan: neuralwatt/mimo-v2.6-pro:auto
-  review: neuralwatt/mimo-v2.6-pro:auto
-  designer: neuralwatt/glm-5.3:auto
+  slow: neuralwatt/mimo-v2.6-pro-flex:auto
+  plan: neuralwatt/mimo-v2.6-pro-flex:auto
+  review: neuralwatt/mimo-v2.6-pro-flex:auto
+  designer: neuralwatt/glm-5.3-flex:auto
+  task: neuralwatt/deepseek-v4.1-flash-flex:auto
+  smol: neuralwatt/deepseek-v4.1-flash-flex:low
+  tiny: neuralwatt/qwen3.6-35b-flex:off
+  writer: neuralwatt/glm-5.3-flash-flex:low
+  commit: neuralwatt/qwen3.6-35b-flex:off
+  advisor: neuralwatt/glm-5.3-flash-flex:low
+  default: neuralwatt/deepseek-v4.1-flash-flex:auto
+
+# --- Fallback chains -----------------------------------------------------------
+# The same flex rule applies to the inherited retry chains. Each named chain
+# replaces the base chain wholesale (arrays are not merged), so every chain that
+# names a NeuralWatt id is restated in full. `tiny`, `commit` and `judge` keep
+# their inherited chains: they name `gemma-4-31b` and `@tiny`, which have no
+# flex variant.
+retry:
+  fallbackChains:
+    default:
+      - neuralwatt/glm-5.3-flash-flex:high
+      - neuralwatt/mimo-v2.6-pro-flex:auto
+    slow:
+      - neuralwatt/mimo-v2.6-pro-flex:high
+      - neuralwatt/glm-5.3-flex:high
+    plan:
+      - neuralwatt/mimo-v2.6-pro-flex:high
+      - neuralwatt/glm-5.3-flex:high
+    task:
+      - neuralwatt/glm-5.3-flash-flex:high
+      - neuralwatt/mimo-v2.6-pro-flex:auto
+    smol:
+      - neuralwatt/glm-5.3-flash-flex:low
+      - neuralwatt/qwen3.6-35b-flex:high
+    writer:
+      - neuralwatt/deepseek-v4.1-flash-flex:low
+    review:
+      - neuralwatt/mimo-v2.6-pro-flex:high
+      - neuralwatt/glm-5.3-flex:high
+    designer:
+      - neuralwatt/mimo-v2.6-pro-flex:high
+      - neuralwatt/glm-5.3-flex:high
+    advisor:
+      - neuralwatt/deepseek-v4.1-flash-flex:low
+    vision:
+      - neuralwatt/qwen-3.8-27b-flex:low
 
 # --- Skills allowlist ----------------------------------------------------------
 # includeSkills is an allowlist of glob patterns applied to the FINAL listing
