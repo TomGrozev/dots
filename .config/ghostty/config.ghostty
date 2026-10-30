@@ -17,8 +17,10 @@ window-padding-x = 16
 window-padding-y = 12
 window-decoration = true
 
-# Let the Hyprland blur show through the Polar glass.
-background-opacity = 0.94
+# Let the Hyprland blur show through the Polar glass. Only the Arch desktop has
+# that blur, so the opacity lives in the Hyprland config and this include is
+# optional: every other host stays opaque.
+config-file = ?~/.config/hypr/ghostty-glass.conf
 
 # Futuristic cursor
 cursor-style = bar
