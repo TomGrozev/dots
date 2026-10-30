@@ -18,3 +18,8 @@ Notifications do not steal focus	They stack in a corner and expire. SUPER+Space 
 The mouse is optional	Every action in the cheat sheet is also a keybinding. If you learn only two things, learn SUPER+Space and SUPER+/.
 Workspaces beat minimising	SUPER+1…0 switches workspace and SUPER+SHIFT+1…0 moves the focused window there. Tiling means windows never overlap, so a workspace per task is cheaper than shuffling windows.
 One window, one purpose	Windows are tiled edge to edge, so a new window takes space instead of covering one. If that is not what you want, float it with SUPER+V or put it on its own workspace.
+The screen zooms under the wheel	SUPER and scroll magnifies around the cursor, from 1x to 3x, so small text stays readable without touching the app. SUPER+SHIFT+Z returns to 1:1.
+Pick a colour anywhere	SUPER+C freezes the screen, copies the colour under the pointer to the clipboard as hex, and shows a swatch in a notification. Esc cancels.
+Overview every workspace	SUPER+Tab tiles every workspace and closes on the next press. Click a tile or press Esc. It needs the hyprexpo plugin, which install.sh builds once the plugin supports the running Hyprland version.
+The cursor leans into motion	The pointer tilts while it moves fast and straightens as it slows, so a quick flick of attention is easier to follow. It needs the dynamic-cursors plugin from install.sh.
+Media keys follow Sidra	Play, Pause, Stop, Next and Previous control Sidra first, then any other player that is playing. They also work on the lock screen. Start the first track in the Sidra window, because Sidra ignores Play while it is stopped.

@@ -112,16 +112,20 @@ hl.window_rule({
 -- wlr-which-key 1.3.0 has no namespace option; it creates `wlr_which_key`.
 -- blur.xray is on globally, but these layers sit over real windows, so xray is
 -- turned back off per layer: they must blur what is actually behind them.
--- Motion is per layer too, reusing the polar curves: the launcher pops from its
+-- Motion is per layer, reusing the polar curves: the launcher pops from its
 -- centre, notifications slide in from the right edge (mako is anchored there),
--- and the bar never animates because it is permanent furniture.
+-- and the bar drops in from the top. The bar used to hold still as permanent
+-- furniture; it now earns the same entrance as the other surfaces, and the
+-- slide doubles as the return from focus mode, which hides the bar and shows
+-- it again. A layer rule can only name the style: the curve and speed come
+-- from layersIn/layersOut in motion.lua, which is the polarFade curve.
 hl.layer_rule({
     name         = "polar-bar",
     match        = { namespace = "^ironbar$" },
     blur         = true,
     ignore_alpha = 0.5,
     xray         = false,
-    no_anim      = true,
+    animation    = "slide top",
 })
 
 hl.layer_rule({

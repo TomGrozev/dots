@@ -1,0 +1,83 @@
+#!/usr/bin/env bash
+# Colour picker: hyprpicker → clipboard + a swatch notification. The picked
+# colour is easier to recognise as an image than as six hex digits, so the
+# notification carries a rendered swatch of the value.
+set -euo pipefail
+
+usage() {
+  cat <<'EOF'
+Usage: polar-pick [--help]
+
+Click anywhere to copy that colour to the clipboard as lowercase #rrggbb.
+Esc cancels without copying.
+
+A notification shows a swatch of the colour and its hex value.
+
+Needs hyprpicker, wl-copy and notify-send; resvg or rsvg-convert draws the
+swatch (without either, the notification falls back to a stock icon).
+EOF
+}
+
+notify() {
+  if command -v notify-send >/dev/null 2>&1; then
+    notify-send --app-name=Polar --icon=dialog-information "$@" 2>/dev/null || true
+  else
+    printf 'polar: %s\n' "$*" >&2
+  fi
+}
+
+require() {
+  if ! command -v "$1" >/dev/null 2>&1; then
+    notify "Colour picker unavailable" "Missing $1. Install it and try again."
+    exit 1
+  fi
+}
+
+case ${1:-} in
+-h | --help)
+  usage
+  exit 0
+  ;;
+"") ;;
+*)
+  printf 'polar-pick: unknown argument: %s\n' "$1" >&2
+  usage >&2
+  exit 2
+  ;;
+esac
+
+require hyprpicker
+require wl-copy
+
+# hyprpicker exits non-zero when the pick is cancelled, so a failure here is a
+# normal way to end, not an error.
+colour=$(hyprpicker --no-fancy --format hex --lowercase) || exit 0
+[ -n "$colour" ] || exit 0
+
+# hyprpicker output is the only untrusted input in this script; a surprising
+# value would produce a broken SVG, so it is rejected rather than rendered.
+if ! [[ $colour =~ ^#[0-9a-f]{6}$ ]]; then
+  notify "Colour picker failed" "hyprpicker returned '$colour'."
+  exit 1
+fi
+
+printf '%s' "$colour" | wl-copy
+
+# The swatch lives in the runtime directory: it is scratch space, cleared at
+# logout, and mako reads the image when the notification is shown.
+swatch=${XDG_RUNTIME_DIR:-/tmp}/polar-pick.svg
+png=${swatch%.svg}.png
+cat >"$swatch" <<SVG
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+  <rect x="2" y="2" width="60" height="60" rx="10" fill="$colour" stroke="#4C566A" stroke-width="4"/>
+</svg>
+SVG
+
+icon=dialog-information
+if command -v resvg >/dev/null 2>&1; then
+  resvg "$swatch" "$png" >/dev/null 2>&1 && icon=$png || true
+elif command -v rsvg-convert >/dev/null 2>&1; then
+  rsvg-convert -o "$png" "$swatch" >/dev/null 2>&1 && icon=$png || true
+fi
+
+notify-send --app-name=Polar --icon="$icon" --expire-time=4000 "Colour copied" "$colour" || true

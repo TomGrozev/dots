@@ -1,12 +1,20 @@
 -- One motion language for the whole desktop: everything settles with the same
 -- spring, popups overshoot slightly, windows leave faster than they arrive.
--- borderangle is deliberately absent: a looping border animation costs a frame
--- every tick on a 3GB GTX 1060 for no information.
+-- The border and glow gradients turn one full circle when a window gains focus
+-- and then stop: "once" is the style that does not re-arm itself. A looping
+-- borderangle costs a frame every tick on the 3GB GTX 1060 for no information,
+-- a once turn costs frames only for the half second it runs. The turn ends at
+-- its resting angle, so the colours state.lua swaps in at runtime keep their
+-- configured 45 degrees.
 hl.curve("polar", { type = "spring", mass = 1, stiffness = 260, dampening = 21 })
 hl.curve("polarOut", { type = "spring", mass = 1, stiffness = 300, dampening = 27 })
 hl.curve("polarFade", { type = "bezier", points = { { 0.22, 0.61 }, { 0.36, 1 } } })
 
 hl.animation({ leaf = "global", enabled = true, speed = 8, bezier = "polarFade" })
+
+hl.animation({ leaf = "borderangle", enabled = true, speed = 5, bezier = "polarFade", style = "once" })
+hl.animation({ leaf = "glowangle", enabled = true, speed = 5, bezier = "polarFade", style = "once" })
+hl.animation({ leaf = "fadeGlow", enabled = true, speed = 3, bezier = "polarFade" })
 
 hl.animation({ leaf = "windows", enabled = true, speed = 5, spring = "polar" })
 hl.animation({ leaf = "windowsIn", enabled = true, speed = 4.2, spring = "polar", style = "popin 90%" })

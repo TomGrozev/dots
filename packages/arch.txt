@@ -39,6 +39,12 @@ hyprlock
 hypridle
 hyprpolkitagent
 hyprsunset
+hyprpicker
+hyprpm
+hyprwayland-scanner
+cmake
+meson
+ninja
 grim
 slurp
 satty

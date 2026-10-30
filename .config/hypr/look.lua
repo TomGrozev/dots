@@ -39,6 +39,35 @@ hl.config({
             color_inactive = 0x551E232C,
         },
 
+        -- Inner glow marks the focused window. It draws inside the frame, so it
+        -- lies over the content and neither replaces the border nor adds to the
+        -- shadow. color_inactive must be set by hand: when it is unset Hyprland
+        -- falls back to color, which would glow every tile. Alpha 00 keeps
+        -- inactive windows dark. The gradient is the same Nord8 -> Nord10 as
+        -- the active border, so the two read as one object.
+        --
+        -- The shader fades the colour out as pow(1 - distance/range, power), so
+        -- both the alpha and the range set how far the halo reaches. At alpha 40
+        -- with range 12 it reached only about 3 px and the 2 px border hid the
+        -- rest. Alpha 66 with range 16 gives a measurable edge of about 25 to 40
+        -- levels at 2 px that fades out by 14 px.
+        glow = {
+            enabled        = true,
+            range          = 16,
+            render_power   = 2,
+            color          = { colors = { "#88C0D066", "#5E81AC66" }, angle = 45 },
+            color_inactive = { colors = { "#2E344000" }, angle = 45 },
+        },
+
+        -- Motion blur removes the stepping of fast moves on a 60Hz panel. It
+        -- costs frames only while a window moves or resizes. samples 5 is the
+        -- lowest value that still looks smooth on this GPU; 7 costs a third
+        -- more.
+        motion_blur = {
+            enabled = true,
+            samples = 5,
+        },
+
         -- Blur is enabled globally because layer rules are the only way to blur
         -- layer-shell surfaces; windows opt out through rules.lua's no_blur rule.
         -- xray blurs the wallpaper layer only, so the glass costs the same

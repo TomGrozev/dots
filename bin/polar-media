@@ -1,0 +1,121 @@
+#!/usr/bin/env bash
+# Media keys for any MPRIS player, with Sidra (the Apple Music client) preferred.
+# playerctl is not installed, so this talks D-Bus directly through busctl.
+set -euo pipefail
+
+usage() {
+  cat <<'EOF'
+Usage: polar-media <command>
+
+Commands:
+  play-pause  Toggle play and pause.
+  play        Start playback.
+  pause       Pause playback.
+  stop        Stop playback.
+  next        Skip to the next track.
+  previous    Go back to the previous track.
+  status      Print the player's bus name and PlaybackStatus.
+
+The script prefers Sidra, then any player that reports Playing, then the first
+MPRIS player on the session bus. It exits 0 when no player is present, so a
+stray key press never shows an error.
+EOF
+}
+
+notify() {
+  if command -v notify-send >/dev/null 2>&1; then
+    notify-send --app-name=Polar --icon=media-playback-start "$@" 2>/dev/null || true
+  else
+    printf 'polar: %s\n' "$*" >&2
+  fi
+}
+
+die() {
+  printf 'polar-media: %s\n' "$*" >&2
+  exit 1
+}
+
+# mpris_prop <bus> <property>: prints the value without the "s \"...\"" wrapper.
+mpris_prop() {
+  local raw
+  raw=$(busctl --user get-property "$1" /org/mpris/MediaPlayer2 \
+    org.mpris.MediaPlayer2.Player "$2" 2>/dev/null) || return 1
+  raw=${raw#s \"}
+  printf '%s\n' "${raw%\"}"
+}
+
+mpris_identity() {
+  local raw
+  raw=$(busctl --user get-property "$1" /org/mpris/MediaPlayer2 \
+    org.mpris.MediaPlayer2 Identity 2>/dev/null) || return 1
+  raw=${raw#s \"}
+  printf '%s\n' "${raw%\"}"
+}
+
+# players: MPRIS bus names on the session bus, Sidra first.
+players() {
+  busctl --user --no-legend list 2>/dev/null |
+    awk '$1 ~ /^org\.mpris\.MediaPlayer2\./ { print $1 }'
+}
+
+# pick_player: sets $bus. Sidra wins by bus name or by Identity, because an
+# Electron build may register as chromium.instance<PID> instead of its own name.
+pick_player() {
+  local name first="" sidra="" playing=""
+  while IFS= read -r name; do
+    [[ -n $name ]] || continue
+    [[ -n $first ]] || first=$name
+    if [[ -z $sidra ]]; then
+      case $name in
+      *sidra* | *Sidra*) sidra=$name ;;
+      *)
+        local id
+        id=$(mpris_identity "$name" || true)
+        [[ $id == Sidra ]] && sidra=$name
+        ;;
+      esac
+    fi
+    if [[ -z $playing ]] && [[ $(mpris_prop "$name" PlaybackStatus || true) == Playing ]]; then
+      playing=$name
+    fi
+  done < <(players)
+
+  bus=${sidra:-${playing:-$first}}
+  [[ -n $bus ]]
+}
+
+# call <method>: one MPRIS Player method call on the chosen bus.
+call() {
+  busctl --user call "$bus" /org/mpris/MediaPlayer2 \
+    org.mpris.MediaPlayer2.Player "$1" >/dev/null
+}
+
+case "${1:-}" in
+-h | --help | help | "")
+  usage
+  ;;
+play-pause | play | pause | stop | next | previous | status) ;;
+*)
+  die "unknown command: $1 (try --help)"
+  ;;
+esac
+
+if ! command -v busctl >/dev/null 2>&1; then
+  notify "Media control unavailable" "Missing busctl."
+  exit 1
+fi
+
+if ! pick_player; then
+  [[ $1 == status ]] && printf 'no player\n'
+  exit 0 # A media key with no player must stay silent.
+fi
+
+case "$1" in
+play-pause) call PlayPause ;;
+play) call Play ;;
+pause) call Pause ;;
+stop) call Stop ;;
+next) call Next ;;
+previous) call Previous ;;
+status) printf '%s %s\n' "$bus" "$(mpris_prop "$bus" PlaybackStatus || echo unknown)" ;;
+esac

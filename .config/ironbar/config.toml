@@ -1,72 +1,130 @@
-# Polar bar: 24px, translucent Nord, guidance-first.
+# Polar bar: three floating Nord islands, guidance-first.
 # Position: the bar itself is the "mode hint" surface — bindmode, focus,
 # recording and DND all live here so the current state is always visible.
 
 name = "polar"
 position = "top"
-height = 24
+# The surface is the island height. The islands are #start, #center and #end
+# in style.css; the surface itself stays transparent so the wallpaper shows
+# between them.
+height = 26
 anchor_to_edges = true
 layer = "top"
+# The exclusive zone covers the surface plus its top margin, and Hyprland adds
+# gaps_out (8) below it, so tiled windows start 8px under the islands.
 exclusive_zone = true
-popup_gap = 4
+popup_gap = 6
 
 # Read by the mode badges. The scripts own these values (`ironbar var set`).
 ironvar_defaults = { polar_focus = "false", polar_recording = "false", polar_dnd = "false" }
 
-# --- Left: workspace dots + scratchpad indicator ---
+# 6px floats the islands off the top edge. The 8px sides match gaps_out in
+# look.lua, so the island edges line up with the tiled windows below.
+margin = { top = 6, left = 8, right = 8 }
 
-# Favourites pin 1..10 so the row is a stable, tiny target instead of a
-# list that shifts as workspaces come and go.
-# `hidden` keeps the five TUI scratchpads out of the row. Both spellings are
-# listed because Hyprland reports `special:<name>` in its JSON while ironbar
-# has historically passed through the stripped name.
+# --- Left island: workspace dots + scratchpad indicator ---
+
+# Workspace dots. This is a polled label, not the `workspaces` module, because
+# Hyprland 0.57 reports special workspaces without a numeric id and sends
+# workspace events with a name in the id field. ironbar 0.19.1 reads that data
+# through hyprland-rs 0.4.0-beta.3, which needs the numeric id: the module
+# receives no data and its one event listener stops at the first
+# special-workspace event.
+# ponytail: polled every 400ms, square pill, no clicks, no stretch animation.
+# Upgrade path: when an ironbar release ships a hyprland-rs that reads 0.57
+# data (hyprland-rs PR #400 and issue #242), go back to the `workspaces`
+# module, style its `.workspaces .item` buttons as dots and a stretching pill,
+# and delete scripts/ws-row.sh. The script pins 1..10 so the row stays a stable target.
 [[start]]
-type = "workspaces"
-sort = "index"
-favorites = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10"]
-hidden = [
-  "special:term", "term",
-  "special:files", "files",
-  "special:top", "top",
-  "special:audio", "audio",
-  "special:git", "git",
+type = "custom"
+name = "workspaces"
+class = "wsrow"
+# 400ms keeps the pill within one key press without polling too hard: each
+# tick runs two hyprctl calls.
+bar = [
+  { type = "label", label = "{{400:~/.config/ironbar/scripts/ws-row.sh}}" },
 ]
 
-# Focused scratchpad. Empty when none is shown, so the dot row stays calm.
+# Focused scratchpad. show_if hides the whole module when none is shown, so
+# its margin goes too and the island ends close after the last dot.
 [[start]]
 type = "custom"
 name = "scratchpad"
 class = "scratchpad"
+show_if = '1000:hyprctl monitors -j | jq -e ".[] | select(.focused) | .specialWorkspace.name != \"\"" >/dev/null'
 bar = [
   { type = "label", label = '{{1000:hyprctl monitors -j | jq -r ".[] | select(.focused) | .specialWorkspace.name" | sed "s/^special://"}}' },
 ]
 
-# --- Centre: clock (click opens the calendar popup) ---
+# --- Centre island: clock (click opens the calendar) + now playing ---
 [[center]]
 type = "clock"
+name = "clock"
 format = "%a %d %b  %H:%M"
 format_popup = "%H:%M"
 show_week_numbers = true
 
-# --- Right: mode badges, audio, resources, tray ---
+# MPRIS: the module hides itself while no player exists, so the island shrinks
+# back to the clock. Long titles end in an ellipsis instead of a marquee:
+# ironbar 0.19.1 sets the marquee's looped copy as raw Pango markup
+# (src/gtk_helpers.rs:434), so a title with "&" fails to parse and shows
+# nothing. Turn the marquee back on when an ironbar release escapes it.
+[[center]]
+type = "music"
+name = "music"
+player_type = "mpris"
+format = "{title} · {artist}"
+show_status_icon = true
+icon_size = 14
+cover_image_size = 160
 
-# The resize submap name; HyprCore names it `resize` so the badge reads
-# `resize`. bindmode has no format option, so the exit hint is the adjacent
-# module below — both appear only while a submap is active.
-[[end]]
-type = "bindmode"
-name = "bindmode"
-class = "mode"
+[center.truncate]
+mode = "end"
+max_length = 32
 
+[center.truncate_popup_title]
+mode = "end"
+max_length = 34
+
+[center.truncate_popup_album]
+mode = "end"
+max_length = 34
+
+[center.truncate_popup_artist]
+mode = "end"
+max_length = 34
+
+[center.icons]
+play = "\U000F040A"
+pause = "\U000F03E4"
+prev = "\U000F04AE"
+next = "\U000F04AD"
+volume = "\U000F057E"
+track = "\U000F075A"
+album = "\U000F0025"
+artist = "\U000F0803"
+
+# --- Right island: mode badges, graphs, audio, keep-awake, tray ---
+
+# Every badge slides out from its right edge and back, so a state change reads
+# as a badge arriving or leaving instead of the island jumping. 180ms keeps the
+# slide inside the time of a key press; the default 250ms trails behind it.
+
+# The submap name and the exit hint are one badge. The bindmode module hides
+# its label at once when the submap ends, so its slide could not play; the
+# polled label slides both ways. `hyprctl submap` prints `default` outside a
+# submap; sed drops it, so the badge holds no stale name while it slides out.
+# The `500:` prefix overrides ironbar's 5s default poll.
 [[end]]
 type = "custom"
-name = "mode-hint"
-class = "mode-hint"
-# `hyprctl submap` prints `default` outside a submap. The `500:` prefix
-# overrides ironbar's 5s default poll so the hint tracks bindmode closely.
+name = "mode"
+class = "badge mode-badge"
 show_if = '500:test "$(hyprctl submap)" != default'
+transition_type = "slide_end"
+transition_duration = 180
 bar = [
-  { type = "label", label = " · Esc" },
+  { type = "label", label = '{{500:hyprctl submap | sed "/^default$/d"}}', class = "mode" },
+  { type = "label", label = "Esc", class = "mode-hint" },
 ]
 
 [[end]]
@@ -74,6 +132,8 @@ type = "custom"
 name = "focus-badge"
 class = "badge"
 show_if = "#polar_focus"
+transition_type = "slide_end"
+transition_duration = 180
 bar = [
   { type = "button", label = "FOCUS · Super+Z", class = "pill focus", on_click = "!polar-focus" },
 ]
@@ -83,6 +143,8 @@ type = "custom"
 name = "recording-badge"
 class = "badge"
 show_if = "#polar_recording"
+transition_type = "slide_end"
+transition_duration = 180
 bar = [
   { type = "label", label = "● REC · Super+Space r x", class = "pill recording" },
 ]
@@ -92,14 +154,47 @@ type = "custom"
 name = "dnd-badge"
 class = "badge"
 show_if = "#polar_dnd"
+transition_type = "slide_end"
+transition_duration = 180
 bar = [
   { type = "button", label = "DND", class = "pill dnd", on_click = "!polar-dnd" },
 ]
 
+# Live graphs: CPU history as a sparkline, memory as a ring. The Lua reads
+# /proc directly and samples once per draw, so `frequency` is the sample rate.
+# Each script writes its exact reading to $XDG_RUNTIME_DIR for the tooltip:
+# cairo scripts cannot set ironvars, and the sys_info ironvars only refresh
+# while a sys_info module exists.
+[[end]]
+type = "cairo"
+name = "cpu-graph"
+class = "graph"
+# Relative paths resolve against ironbar's working directory, so use `~`.
+path = "~/.config/ironbar/graphs/cpu.lua"
+frequency = 2000
+width = 40
+height = 16
+tooltip = '{{2000:cat "$XDG_RUNTIME_DIR/polar-bar-cpu" 2>/dev/null || :}}'
+
+[[end]]
+type = "cairo"
+name = "ram-graph"
+class = "graph"
+path = "~/.config/ironbar/graphs/ram.lua"
+frequency = 2000
+width = 16
+height = 16
+tooltip = '{{2000:cat "$XDG_RUNTIME_DIR/polar-bar-ram" 2>/dev/null || :}}'
+
+# The horizontal sink slider keeps the mixer one short row per stream instead
+# of a tall column of vertical sliders.
 [[end]]
 type = "volume"
+name = "volume"
 format = "{icon} {percentage}%"
 show_sources = false
+sink_slider_orientation = "horizontal"
+popup_orientation = "vertical"
 on_click_left = "hyprctl eval \"Polar.tui('audio')\""
 on_scroll_up = "wpctl set-volume @DEFAULT_AUDIO_SINK@ 2%+"
 on_scroll_down = "wpctl set-volume @DEFAULT_AUDIO_SINK@ 2%-"
@@ -108,22 +203,26 @@ on_scroll_down = "wpctl set-volume @DEFAULT_AUDIO_SINK@ 2%-"
 volume = "󰕾"
 muted = "󰝟"
 
+# Keep-awake toggle. GTK asks the compositor for an idle inhibitor on the bar
+# surface, which hypridle honours. It ends when the bar is hidden (focus mode)
+# because Hyprland only honours inhibitors on visible surfaces.
+# Off is a dim outline cup with no time, so the island stays quiet; on is a
+# filled Nord13 cup with the time left. Right click cycles the duration.
 [[end]]
-type = "sys_info"
-# No labels on the bar, so each number carries a glyph: microchip for CPU,
-# RAM stick for memory. `1.0` clears ironbar's default leading-zero padding
-# (width 2 for CPU, 4 with a decimal for memory); the fixed label width that
-# stops the pair shifting as values change lives in style.css.
-format = ["\uF2DB {cpu_percent:1.0}%", "\uEFC5 {memory_percent:1.0}%"]
-
-[end.interval]
-cpu = 2
-memory = 10
+type = "inhibit"
+name = "inhibit"
+durations = ["01:00:00", "02:00:00", "inf"]
+default_duration = "01:00:00"
+on_click_left = "toggle"
+on_click_right = "cycle"
+format_on = "<span foreground='#ebcb8b'>\U000F0176</span> {duration}"
+format_off = "\U000F06CA"
+tooltip = "Keep awake. Right click changes the time."
 
 [[end]]
 type = "tray"
 # Electron apps (Bitwarden, OpenWhispr) publish their tray icons as raw
-# pixmaps, so ironbar cannot recolor them. 14px on a Nord rail is the closest
+# pixmaps, so ironbar cannot recolor them. 14px on the island is the closest
 # fit: the chrome is ours, the glyphs stay the apps' own.
 icon_size = 14
 direction = "horizontal"

@@ -18,6 +18,7 @@ require("state")
 require("modes")
 require("keys")
 require("binds")
+require("plugins")
 require("autostart")
 
 -- Input is the one thing that must match the physical keyboard, so it stays in

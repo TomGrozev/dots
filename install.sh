@@ -317,6 +317,61 @@ if [ "$AGENT_POD" != "true" ]; then
       link_entry "$script" "$LOCAL_BIN/$(basename "$script")" "~/.local/bin/$(basename "$script")"
     done
 
+    # Hyprland plugins. A plugin is C++ linked against the exact running
+    # compositor, so this step builds rather than installs: hyprpm reads the
+    # version from the live session, and `update` refreshes the headers and
+    # rebuilds every added repository. The plugins themselves load at login from
+    # plugins.lua, so a re-run here is what keeps them valid after a Hyprland
+    # upgrade. Failures must not abort the install: a plugin that does not build
+    # for this Hyprland version leaves the desktop working without it.
+    if command -v hyprpm >/dev/null 2>&1; then
+      echo ""
+      echo "Installing Hyprland plugins..."
+      # hyprpm writes /var/cache/hyprpm through sudo. Each hyprpm command that
+      # needs root runs `sudo -k` when it ends (dropSudo in
+      # hyprpm/src/helpers/Sys.cpp), so the next one asks for the password
+      # again. `sudo -v` covers the first one and skips the step when sudo
+      # cannot prompt at all.
+      echo "  hyprpm asks for your sudo password at each step."
+      if ! sudo -v; then
+        echo "  WARNING: plugins skipped, hyprpm needs sudo to write /var/cache/hyprpm"
+        echo "  Run in a terminal: hyprpm update && hyprpm add <url> && hyprpm enable <name>"
+      else
+        # `add` refuses to build against stale headers, so `update` runs first.
+        # It refreshes the headers after a Hyprland upgrade, rebuilds every
+        # added repository and loads the enabled plugins.
+        hyprpm update ||
+          echo "  WARNING: a plugin failed to rebuild for this Hyprland version"
+        # repo url : hyprpm plugin name
+        plugin_repos=(
+          "https://github.com/sandwichfarm/hyprexpo:hyprexpo"
+          "https://github.com/VirtCode/hypr-dynamic-cursors:dynamic-cursors"
+        )
+        for entry in "${plugin_repos[@]}"; do
+          repo="${entry%:*}"
+          plugin="${entry##*:}"
+          if ! hyprpm list 2>/dev/null | grep -q "Plugin ${plugin}$"; then
+            # `add` asks "Are you sure? [Y/n]" before it clones a repository.
+            # The list above is the trust decision, so the answer comes from
+            # here. The output stays on the terminal: when it was captured, the
+            # question was hidden and the install waited with a blank screen.
+            if ! hyprpm add "$repo" <<<y; then
+              echo "  WARNING: ${plugin} did not build for this Hyprland version; the desktop works without it"
+              continue
+            fi
+          fi
+          # `enable` also loads the plugin, but it costs one more password
+          # prompt, so a plugin that is already enabled is left alone.
+          if ! hyprpm list 2>/dev/null | grep -A1 "Plugin ${plugin}$" | grep -q "enabled: .*true"; then
+            hyprpm enable "$plugin" || echo "  WARNING: could not enable ${plugin}"
+          fi
+        done
+      fi
+    else
+      echo ""
+      echo "  Skipping Hyprland plugins (hyprpm not installed)"
+    fi
+
     # hyprpolkitagent's unit is shipped disabled, so without this no password
     # prompt ever appears (mounting a drive, any privileged GUI tool). It is a
     # session service bound to graphical-session.target, not a Hyprland child, so

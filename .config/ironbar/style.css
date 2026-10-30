@@ -1,6 +1,7 @@
-/* Polar bar — Nord palette, 24px, blurred translucent glass.
- * The Hyprland layer rule in hyprland.lua blurs namespace `ironbar`, so the
- * alpha below is what turns into glass. */
+/* Polar bar: three floating Nord islands of blurred translucent glass.
+ * The Hyprland layer rule in rules.lua blurs namespace `ironbar` where the
+ * alpha is above its ignore_alpha (0.5). The islands sit above it and turn
+ * into glass; the gaps between them are fully transparent and stay clear. */
 
 @define-color nord0 #2e3440;
 @define-color nord1 #3b4252;
@@ -29,71 +30,58 @@
   min-height: 0;
 }
 
-.background {
-  background-color: alpha(@nord0, 0.88);
-  color: @nord4;
-}
-
+/* The surface is clear; only the islands carry material. */
+.background,
 #bar {
-  padding: 0 8px;
-  min-height: 24px;
-}
-
-#start, #center, #end {
-  min-height: 24px;
-}
-
-/* Uniform rhythm between modules; badges opt out to sit flush. */
-#end > .widget-container + .widget-container {
-  margin-left: 10px;
-}
-
-/* --- Left: numeric workspace dots --- */
-
-.workspaces {
-  margin: 0 2px;
-}
-
-/* Every item is a fixed 18x18 slot so 1..10 sit on one even grid. The
- * buttons stretch to the 24px bar height, so the vertical margin (not
- * min-height) is what caps the pill at 18px and centres it. */
-.workspaces .item {
-  min-width: 18px;
-  min-height: 18px;
-  margin: 3px 2px;
-  padding: 0;
-  border-radius: 5px;
-  background-color: alpha(@nord2, 0.7);
+  background-color: transparent;
   color: @nord4;
+}
+
+/* --- Islands --- */
+
+/* Radius 8 matches the window rounding in look.lua, so the islands read as
+ * the same material as the windows below them. The edge is lit from above:
+ * Nord8 on the top side fades through Nord3 on the sides to Nord1 at the
+ * bottom, and GTK blends the side colours around the rounded corners. A
+ * border-image gradient would square the corners off. */
+#start,
+#center,
+#end {
+  min-height: 24px;
+  padding: 0 10px;
+  border-radius: 8px;
+  border: 1px solid;
+  border-color: alpha(@nord8, 0.38) alpha(@nord3, 0.55) alpha(@nord1, 0.7) alpha(@nord3, 0.55);
+  background-color: alpha(@nord0, 0.82);
+}
+
+/* The dot slots carry their own side space, so the left island needs less
+ * padding to look even with the others. */
+#start {
+  padding: 0 5px;
+}
+
+/* Uniform rhythm between modules on the right island. Each module sits in a
+ * revealer directly inside #end, and show_if hides only the module, so the
+ * gap goes on the module: a hidden badge then takes its gap with it.
+ * The tray is always last and always shown, so it ends the row flush. */
+#end > revealer > .widget {
+  margin-right: 10px;
+}
+
+#end > revealer:last-child > .widget {
+  margin-right: 0;
+}
+
+/* --- Left island: workspace dots --- */
+
+/* The row is one label of Pango markup, so the marks and their colours live
+ * in scripts/ws-row.sh. CSS only sets the shared type: 10px bold keeps the
+ * row at a stable pitch and the pill width tied to the font. */
+.wsrow {
+  padding: 0;
   font-size: 10px;
   font-weight: bold;
-  transition: background-color 120ms ease, color 120ms ease;
-}
-
-.workspaces .item label {
-  padding: 0;
-}
-
-/* Favourite with no windows: a quiet digit, no pill. */
-.workspaces .item.inactive {
-  background-color: transparent;
-  color: @nord3;
-}
-
-/* Focused wins over `visible`, which every focused item also carries. */
-.workspaces .item.focused {
-  background-color: @nord8;
-  color: @nord0;
-}
-
-.workspaces .item.urgent {
-  background-color: @nord12;
-  color: @nord0;
-}
-
-.workspaces .item:hover {
-  background-color: @nord2;
-  color: @nord6;
 }
 
 /* Focused scratchpad name, e.g. `term`. */
@@ -103,42 +91,60 @@
   font-weight: bold;
 }
 
-/* --- Centre: clock --- */
+/* --- Centre island: clock + now playing --- */
 
 .clock {
+  padding: 0;
+  background: none;
   color: @nord6;
   font-weight: bold;
   letter-spacing: 1px;
 }
 
-/* --- Right: mode badges --- */
-
-.bindmode {
-  background-color: @nord13;
-  color: @nord0;
-  padding: 1px 6px;
-  border-radius: 4px 0 0 4px;
-  font-weight: bold;
-  font-size: 10px;
+.music {
+  margin-left: 12px;
+  padding: 0;
+  background: none;
+  color: @nord4;
 }
 
-.mode-hint {
-  background-color: @nord13;
-  color: @nord1;
-  padding: 1px 6px 1px 0;
-  border-radius: 0 4px 4px 0;
+.music .contents .icon {
+  margin-right: 6px;
+  color: @nord8;
+}
+
+.music:hover {
+  color: @nord6;
+}
+
+/* --- Right island: mode badges --- */
+
+/* Badge labels fill the island height by default; the 4px vertical margin
+ * caps each pill at 16px so it sits inside the island with an even inset. */
+.badge .pill,
+.mode-badge .mode,
+.mode-badge .mode-hint {
+  margin: 4px 0;
+  padding: 0 7px;
   font-weight: bold;
   font-size: 10px;
-  /* Overlap only the badge's 6px right padding; a larger pull covered the
-   * last letter of the submap name. */
-  margin-left: -6px;
 }
 
 .badge .pill {
-  padding: 1px 7px;
   border-radius: 4px;
-  font-weight: bold;
-  font-size: 10px;
+}
+
+.mode-badge .mode {
+  background-color: @nord13;
+  color: @nord0;
+  border-radius: 4px 0 0 4px;
+}
+
+.mode-badge .mode-hint {
+  padding-left: 0;
+  background-color: @nord13;
+  color: @nord1;
+  border-radius: 0 4px 4px 0;
 }
 
 .badge .pill.focus {
@@ -146,9 +152,23 @@
   color: @nord0;
 }
 
+/* Recording is the one badge that breathes: it is the state you can forget
+ * while it costs disk and privacy. The fill eases between full and 55%
+ * Nord11 and the text stays solid, so it remains readable at every frame. */
+@keyframes polar-rec-breathe {
+  from {
+    background-color: @nord11;
+  }
+
+  to {
+    background-color: alpha(@nord11, 0.55);
+  }
+}
+
 .badge .pill.recording {
   background-color: @nord11;
   color: @nord6;
+  animation: polar-rec-breathe 1.6s cubic-bezier(0.22, 0.61, 0.36, 1) infinite alternate;
 }
 
 .badge .pill.dnd {
@@ -162,9 +182,22 @@
   border: none;
 }
 
-/* --- Volume + resources --- */
+/* --- Graphs, volume, keep-awake --- */
+
+/* The canvases are 16px tall; the margin centres them in the 24px island
+ * instead of stretching the drawing area to the full height. */
+.cairo {
+  margin: 4px 0;
+}
+
+/* The two graphs read as one resource readout, so they sit closer. */
+#end #cpu-graph {
+  margin-right: 6px;
+}
 
 .volume {
+  padding: 0;
+  background: none;
   color: @nord9;
 }
 
@@ -172,38 +205,25 @@
   color: @nord8;
 }
 
-/* Resource readout: the glyphs are as loud as the numbers, so keep the pair
- * on the bar's normal foreground instead of the old Nord3 dim.
- * The bar hides in focus mode, so these never need a background of their own. */
-.sysinfo {
-  color: @nord4;
+/* Off is a dim outline cup; the on colour comes from format_on markup. */
+.inhibit {
+  padding: 0;
+  background: none;
+  color: @nord3;
 }
 
-/* Both labels are the same width, so a value going 9% -> 10% grows inside the
- * slot instead of shoving the tray sideways. 12px is the gap between them. */
-.sysinfo .item {
-  min-width: 42px;
-}
-
-.sysinfo .item + .item {
-  margin-left: 12px;
+.inhibit:hover {
+  color: @nord8;
 }
 
 /* --- Tray --- */
 
-/* Tray icons are app-provided pixmaps that CSS cannot recolor, so the tray is
- * framed instead: a quiet Nord rail makes the brand colours read as contents
- * rather than stray blue squares on the bar. */
-.tray {
-  margin: 3px 0;
-  padding: 0 4px;
-  background-color: alpha(@nord1, 0.65);
-  border-radius: 4px;
-}
-
+/* Tray icons are app-provided pixmaps that CSS cannot recolor. The island is
+ * their frame now, so the tray needs no rail of its own. */
 .tray .item {
   padding: 0 2px;
-  border-radius: 3px;
+  border-radius: 4px;
+  background: none;
 }
 
 .tray .item image {
@@ -214,47 +234,243 @@
   background-color: alpha(@nord2, 0.9);
 }
 
-/* --- Popups (calendar, volume mixer) --- */
+/* --- Popups: calendar, volume mixer, music, tray menus --- */
 
-popover,
-popover > contents,
-popover contents {
+/* One surface for every popup: solid Nord0, the islands' lit edge, a radius
+ * one step above the islands because the surface is larger, and a soft Nord0
+ * shadow that lifts it off the windows. The fill must stay fully opaque: at
+ * alpha 0.97 the text of the windows behind showed through sharply, so
+ * popups cannot share the translucent island material. */
+popover {
+  background: none;
+  box-shadow: none;
+}
+
+popover > arrow {
+  background: none;
+  border: none;
+}
+
+popover > contents {
   background-color: @nord0;
   color: @nord4;
-  border: 1px solid @nord2;
-  border-radius: 8px;
-  padding: 4px;
+  border: 1px solid;
+  border-color: alpha(@nord8, 0.38) alpha(@nord3, 0.7) alpha(@nord1, 0.9) alpha(@nord3, 0.7);
+  border-radius: 10px;
+  padding: 12px;
+  box-shadow: 0 6px 18px alpha(@nord0, 0.55), 0 1px 3px alpha(@nord0, 0.4);
 }
 
-popup {
-  background-color: @nord0;
+/* Tray menus: rows need less padding than the content popups. */
+popover.menu > contents {
+  padding: 6px;
 }
 
-.popup-clock .calendar {
+popover modelbutton {
+  padding: 4px 8px;
+  border-radius: 6px;
+}
+
+popover modelbutton:hover {
+  background-color: @nord2;
+  color: @nord6;
+}
+
+popover separator {
+  min-height: 1px;
+  margin: 4px 2px;
+  background-color: alpha(@nord3, 0.6);
+}
+
+popover button {
+  padding: 4px 8px;
+  border-radius: 6px;
+  background-color: alpha(@nord1, 0.9);
   color: @nord4;
 }
 
-.popup-clock .calendar:selected {
+popover button:hover {
+  background-color: @nord2;
+  color: @nord6;
+}
+
+/* Sliders: the reset above strips the theme sizes, so they are set here. */
+popover scale {
+  min-height: 16px;
+  min-width: 16px;
+  padding: 0 6px;
+}
+
+popover scale trough {
+  min-height: 4px;
+  min-width: 4px;
+  border-radius: 2px;
+  background-color: @nord2;
+}
+
+popover scale highlight {
+  border-radius: 2px;
   background-color: @nord8;
-  color: @nord0;
-  border-radius: 4px;
 }
 
-.popup-clock .calendar .today {
+popover scale slider {
+  min-width: 12px;
+  min-height: 12px;
+  margin: -4px;
+  border-radius: 6px;
+  background-color: @nord6;
+}
+
+popover dropdown > button,
+popover combobox > box > button {
+  padding: 4px 8px;
+}
+
+/* Calendar. */
+.popup-clock .calendar-clock {
+  margin-bottom: 6px;
+  color: @nord6;
+  font-size: 18px;
+  font-weight: bold;
+}
+
+/* Every calendar rule starts with `popover` so it outranks the generic
+ * `popover button` rules above; without it the month arrows got a grey
+ * hover box that touched the calendar edge.
+ * The theme draws the calendar as its own square Nord1 panel inside the
+ * rounded popover. The popover is the only surface here, so that panel goes. */
+popover calendar {
+  padding: 2px;
+  border: none;
+  border-radius: 0;
+  background: none;
+  color: @nord4;
+  outline: none;
+}
+
+popover calendar > header {
+  margin-bottom: 4px;
+  border: none;
+  background: none;
+  color: @nord13;
+  font-weight: bold;
+}
+
+/* The arrows answer hover with colour only: a box would change the header
+ * shape on every pointer pass. */
+popover calendar > header > button,
+popover calendar > header > button:hover,
+popover calendar > header > button:active {
+  min-height: 0;
+  padding: 0 6px;
+  background: none;
+  box-shadow: none;
+  outline: none;
+  color: @nord9;
+}
+
+popover calendar > header > button:hover {
+  color: @nord8;
+}
+
+/* One fixed cell for every state. Padding, border and weight do not change
+ * between states, so a click only changes colours and the grid never moves.
+ * The 1px margin keeps a selected cell off the popover edge. */
+popover calendar > grid > label {
+  min-width: 26px;
+  min-height: 20px;
+  margin: 1px;
+  padding: 0;
+  border: none;
+  border-radius: 5px;
+  outline: none;
+  box-shadow: none;
+  background: none;
+  font-weight: normal;
+}
+
+popover calendar > grid > label.day-name {
+  color: alpha(@nord4, 0.5);
+}
+
+popover calendar > grid > label.week-number {
+  color: @nord3;
+}
+
+/* Days of the next and previous month stay visible but clearly dim. */
+popover calendar > grid > label.other-month {
+  color: @nord3;
+}
+
+/* Today keeps its Nord8 text while another day is selected, so both read.
+ * Bold is safe here: the font is monospaced, so the cell keeps its width. */
+popover calendar > grid > label.today {
   color: @nord8;
   font-weight: bold;
 }
 
-calendar {
-  color: @nord4;
-}
-
-calendar:selected {
+popover calendar > grid > label:selected,
+popover calendar:focus > grid > label:selected {
   background-color: @nord8;
   color: @nord0;
 }
 
-calendar.header {
-  color: @nord13;
+/* Volume mixer. */
+.popup-volume .device-box,
+.popup-volume .apps-box {
+  min-width: 260px;
+}
+
+.popup-volume .apps-box {
+  margin-top: 8px;
+}
+
+.popup-volume .app-box {
+  margin-top: 6px;
+}
+
+.popup-volume .title {
+  color: @nord4;
+}
+
+.popup-volume .btn-mute {
+  background: none;
+  color: @nord9;
+}
+
+/* Music. */
+.popup-music .album-art {
+  margin-right: 12px;
+  border-radius: 6px;
+}
+
+.popup-music .title .label {
+  color: @nord6;
   font-weight: bold;
+}
+
+.popup-music .album .label,
+.popup-music .artist .label {
+  color: @nord4;
+}
+
+.popup-music .icon-box {
+  margin-right: 6px;
+  color: @nord8;
+}
+
+.popup-music .controls button {
+  margin: 6px 2px 0;
+  padding: 4px 10px;
+  background: none;
+  color: @nord4;
+}
+
+.popup-music .controls button:hover {
+  background-color: @nord2;
+  color: @nord6;
+}
+
+.popup-music .progress .label {
+  color: @nord3;
 }
