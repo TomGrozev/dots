@@ -182,6 +182,22 @@
   border: none;
 }
 
+/* --- AI usage --- */
+
+/* polar-ai-usage sets the value colours in Pango markup, so CSS only frames
+ * the button. The hover fill matches the tray items: it marks the readout as
+ * a click target without a frame at rest. */
+.ai-usage button {
+  margin: 4px 0;
+  padding: 0 4px;
+  border-radius: 4px;
+  background: none;
+}
+
+.ai-usage button:hover {
+  background-color: alpha(@nord2, 0.9);
+}
+
 /* --- Graphs, volume, keep-awake --- */
 
 /* The canvases are 16px tall; the margin centres them in the 24px island

@@ -1,0 +1,163 @@
+#!/usr/bin/env bash
+# AI usage for the bar: Claude subscription windows and Neuralwatt energy and
+# credits, read from the CodexBar CLI (`codexbar`, AUR codexbar-cli).
+#
+# Several ironbar labels call this script, so codexbar runs at most once per
+# TTL and every label reads the shared cache. Anthropic's usage endpoint
+# rate-limits hard, so the TTL counts from the last attempt, not the last
+# success: a failed or rate-limited fetch also waits a full TTL.
+set -euo pipefail
+
+readonly TTL=300
+cache_dir=${XDG_RUNTIME_DIR:-/tmp}
+cache=$cache_dir/polar-ai-usage.json
+stamp=$cache_dir/polar-ai-usage.stamp
+
+# Nord. Pango markup sets the colours because a polled label cannot change
+# its CSS class with the value.
+readonly CALM="#d8dee9" WARN="#ebcb8b" CRIT="#bf616a"
+# Provider name colours, shared by the bar and the popup headers so each
+# provider is recognisable at a glance: Nord12 orange for Claude, Nord14
+# green for Neuralwatt.
+readonly CLAUDE="#d08770" NEURALWATT="#a3be8c"
+
+usage() {
+  cat <<'EOF'
+Usage: polar-ai-usage [bar|popup|--help]
+
+  bar     one Pango markup line for the bar (default)
+  popup   the detail view: Claude windows, Neuralwatt energy and credits
+
+Data comes from `codexbar usage --format json`, which reports the providers
+enabled in CodexBar's config (~/.config/codexbar/config.json). Enable claude
+and neuralwatt there. codexbar runs at most once every 300 s; the result is
+cached in $XDG_RUNTIME_DIR/polar-ai-usage.json.
+
+POLAR_AI_USAGE_FIXTURE=<file.json> renders a saved codexbar JSON array
+instead, without calling codexbar.
+EOF
+}
+
+# Prints the codexbar JSON array, or nothing when no data is available.
+load() {
+  if [ -n "${POLAR_AI_USAGE_FIXTURE:-}" ]; then
+    cat "$POLAR_AI_USAGE_FIXTURE"
+    return
+  fi
+  command -v codexbar >/dev/null 2>&1 || return 0
+  mkdir -p "$cache_dir"
+  # The lock makes concurrent labels wait for one fetch instead of each
+  # starting their own when the cache goes stale.
+  exec 9>"$cache_dir/polar-ai-usage.lock"
+  flock 9
+  # A newer CodexBar config (a provider or key just set) skips the TTL wait.
+  local config=${XDG_CONFIG_HOME:-$HOME/.config}/codexbar/config.json
+  if [ -z "$(find "$stamp" -newermt "-$TTL seconds" 2>/dev/null)" ] || [ "$config" -nt "$stamp" ]; then
+    touch "$stamp"
+    local fresh
+    # codexbar exits non-zero when any provider fails, but still prints the
+    # array with a per-provider error, so the exit status is ignored.
+    fresh=$(timeout 60 codexbar usage --format json 2>/dev/null) || true
+    if jq -e 'type == "array"' >/dev/null 2>&1 <<<"$fresh"; then
+      printf '%s\n' "$fresh" >"$cache.tmp"
+      mv "$cache.tmp" "$cache"
+    fi
+  fi
+  flock -u 9
+  [ -r "$cache" ] && cat "$cache"
+  return 0
+}
+
+render() { # mode, codexbar JSON, codexbar installed (yes|no), updated HH:MM
+  # Empty or invalid input still renders: `-n` plus `try input` turns it into
+  # an empty list, so every provider falls back to its placeholder.
+  jq -nr --arg mode "$1" --arg installed "$3" --arg updated "$4" \
+    --arg calm "$CALM" --arg warn "$WARN" --arg crit "$CRIT" \
+    --arg claude_c "$CLAUDE" --arg nw_c "$NEURALWATT" '
+    def esc: gsub("&"; "&amp;") | gsub("<"; "&lt;") | gsub(">"; "&gt;");
+    def pad($n): if length < $n then . + (" " * ($n - length)) else . end;
+    def dim: "<span fgalpha=\"55%\">\(esc)</span>";
+    def tone($p): if $p >= 90 then $crit elif $p >= 75 then $warn else $calm end;
+    def pct: if . == null then null else (. + 0.5 | floor) end;
+    # $n pads the plain text, so the popup columns stay aligned.
+    def level($p; $n):
+      if $p == null then "–" | pad($n) | dim
+      else "<span foreground=\"\(tone($p))\">\("\($p)%" | pad($n))</span>" end;
+    def when($fmt): try (sub("\\.[0-9]+Z$"; "Z") | fromdate | strflocaltime($fmt)) catch null;
+    def money: "$" + ((. * 100 + 0.5 | floor) / 100 | tostring
+      | if test("\\.") then (. + "0" | capture("(?<v>[0-9]*\\.[0-9]{2})").v) else . + ".00" end);
+    def row($label; $w; $rest): "\($label | pad(16) | esc)\(level($w.usedPercent | pct; 6))\($rest // "" | dim)";
+    def reset($w): ($w.resetsAt | if . then when("%a %H:%M") else null end) as $t
+      | if $t then "resets \($t)" else null end;
+    def line($label; $text): "\($label | pad(16) | esc)\($text | esc)";
+
+    (try input catch []) as $all
+    | ($all | if type == "array" then . else [] end) as $all
+    | ($all | map(select(.provider == "claude")) | first) as $claude
+    | ($all | map(select(.provider == "neuralwatt")) | first) as $nw
+    | $claude.usage as $cu | $nw.usage as $nu
+    | if $mode == "bar" then
+        def name($text; $color): "<span foreground=\"\($color)\">\($text)</span>";
+        ($nu.primary.usedPercent | pct) as $kwh
+        | "\(name("Claude"; $claude_c)) \(level($cu.primary.usedPercent | pct; 0))   \(name("Neuralwatt"; $nw_c)) "
+          + if $kwh == null and $nu.providerCost != null
+            then "<span foreground=\"\($calm)\">\($nu.providerCost.used | money)</span>"
+            else level($kwh; 0)
+            end
+      else
+        def header($name; $color; $p):
+          "<span foreground=\"\($color)\" weight=\"bold\">\($name)</span>  "
+          + ($p.usage.loginMethod // $p.usage.identity.loginMethod // "" | dim);
+        def missing($p):
+          if $installed == "no" then "Install codexbar-cli to see usage."
+          elif $p == null then "Not enabled in CodexBar."
+          else $p.error.message // "No data yet."
+            | if length > 48 then .[:47] + "…" else . end
+          end | dim;
+        [
+          header("Claude"; $claude_c; $claude),
+          (if $cu == null then missing($claude)
+           else
+             (if $cu.primary then row(if $cu.primary.windowMinutes == 300 then "5-hour" else "Weekly" end; $cu.primary; reset($cu.primary)) else empty end),
+             (if $cu.secondary and $cu.primary.windowMinutes == 300 then row("Weekly"; $cu.secondary; reset($cu.secondary)) else empty end),
+             (if $cu.tertiary then row("\($claude.rateWindowLabels.tertiary // "Model") weekly"; $cu.tertiary; reset($cu.tertiary)) else empty end),
+             ($cu.extraRateWindows // [] | .[] | row(.title; .window; reset(.window))),
+             ($cu.providerCost // empty | line("Extra usage"; "\(.used | money) of \(.limit | money)"))
+           end),
+          "",
+          header("Neuralwatt"; $nw_c; $nw),
+          (if $nu == null then missing($nw)
+           else
+             (if $nu.primary then
+                row("Energy"; $nu.primary; $nu.primary.resetDescription),
+                ($nu.primary.resetsAt | if . then when("%a %d %b") else null end | values | line("Period ends"; .))
+              else empty end),
+             ($nu.providerCost // empty | line("Credits"; "\(.used | money) left")),
+             ($nu.extraRateWindows // [] | .[] | row(.title; .window; null))
+           end),
+          (if $updated != "" then "", ("Updated \($updated)" | dim) else empty end)
+        ] | join("\n")
+      end
+  ' <<<"$2"
+}
+
+case "${1:-bar}" in
+bar | popup) mode=${1:-bar} ;;
+-h | --help)
+  usage
+  exit 0
+  ;;
+*)
+  printf 'polar-ai-usage: unknown argument: %s\n' "$1" >&2
+  usage >&2
+  exit 2
+  ;;
+esac
+
+data=$(load)
+installed=yes updated=""
+if [ -z "${POLAR_AI_USAGE_FIXTURE:-}" ]; then
+  command -v codexbar >/dev/null 2>&1 || installed=no
+  updated=$(date -r "$cache" +%H:%M 2>/dev/null || :)
+fi
+render "$mode" "$data" "$installed" "$updated"

@@ -160,6 +160,21 @@ bar = [
   { type = "button", label = "DND", class = "pill dnd", on_click = "!polar-dnd" },
 ]
 
+# AI usage: Claude's 5-hour window and Neuralwatt's kWh plan (its prepaid
+# credits when there is no plan). Both labels poll every 60s but read the
+# cache of polar-ai-usage, which runs codexbar at most once per 300s:
+# Anthropic's usage endpoint rate-limits hard. Click opens the details.
+[[end]]
+type = "custom"
+name = "ai-usage"
+class = "ai-usage"
+bar = [
+  { type = "button", label = "{{60000:polar-ai-usage}}", on_click = "popup:toggle" },
+]
+popup = [
+  { type = "label", label = "{{60000:polar-ai-usage popup}}", class = "ai-usage-details" },
+]
+
 # Live graphs: CPU history as a sparkline, memory as a ring. The Lua reads
 # /proc directly and samples once per draw, so `frequency` is the sample rate.
 # Each script writes its exact reading to $XDG_RUNTIME_DIR for the tooltip:
