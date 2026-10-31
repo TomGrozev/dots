@@ -142,6 +142,11 @@ keybinds clear-defaults=true {
         bind "Alt o" { MoveTab "right"; }
         bind "Alt p" { TogglePaneInGroup; }
         bind "Alt Shift p" { ToggleGroupMarking; }
+        // Cheat sheet: a floating list of every bind in this config, typed
+        // filter, Esc closes. The plugin runs only while the pane is open.
+        bind "Alt /" {
+            LaunchOrFocusPlugin "forgot" { floating true; move_to_focused_tab true; }
+        }
     }
 
     pane {
@@ -329,14 +334,7 @@ keybinds clear-defaults=true {
 // ── Plugin definitions ────────────────────────────────────────────────────
 
 plugins {
-    zjstatus-hints location="file:~/.config/zellij/plugins/zjstatus-hints.wasm" {
-        pipe_name "zjstatus_hints"
-        // Hints show only after a mode key (Ctrl p, Ctrl t, ...). In the base
-        // mode they would push the tabs out of the single zjstatus bar.
-        hide_in_base_mode true
-        max_length 100
-        overflow_str "…"
-    }
+    forgot location="file:~/.config/zellij/plugins/zellij_forgot.wasm"
     autolock location="file:~/.config/zellij/plugins/zellij-autolock.wasm" {
         is_enabled true
         triggers "nvim|vim|git|fzf|zoxide|atuin|yazi|ssh|omp|pi|miao|miao-server"
@@ -350,7 +348,10 @@ plugins {
 // zjframes is not loaded. With `pane_frames false` and no hide option set, it
 // changed nothing. Next to zjstatus, it made the Zellij 0.45.1 server leak
 // about 0.3 MB per tab switch.
+//
+// zjstatus-hints (v0.1.4) is not used. While it runs, the Zellij 0.45.1 server
+// keeps about 11 kB per pane render and never frees it: busy agent panes grew
+// the server to 18 GB in 9 hours. Test again after a Zellij upgrade.
 load_plugins {
-    zjstatus-hints
     autolock
 }

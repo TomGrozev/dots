@@ -144,10 +144,10 @@ layout {
                 // ── Format zones ──────────────────────────────────
                 format_left   "{mode} #[fg=$nord8,bold]{session}"
                 format_center "{tabs}"
-                format_right  "{pipe_zjstatus_hints} #[fg=$nord3]{datetime}"
+                format_right  "#[fg=$nord3]{datetime}"
                 format_space  "#[bg=$nord0]"
                 // On a collision, zjstatus hides the part last in this list:
-                // the tabs give way to the mode hints while a mode is active.
+                // the tabs give way first.
                 format_hide_on_overlength "true"
                 format_precedence         "lrc"
 
@@ -181,9 +181,6 @@ layout {
                 mode_prompt        "#[fg=$nord0,bg=$nord11,bold] PROMPT "
                 mode_tmux          "#[fg=$nord0,bg=$nord12,bold] TMUX "
                 mode_default_to_mode "locked"
-
-                // ── zjstatus-hints pipe ───────────────────────────
-                pipe_zjstatus_hints_format "#[fg=$nord5,italic] {output} "
 
                 // ── DateTime ──────────────────────────────────────
                 // zjstatus formats the datetime widget in Etc/UTC unless told
