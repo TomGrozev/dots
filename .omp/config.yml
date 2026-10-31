@@ -103,6 +103,7 @@ tools:
     hub: allow
     fetch: allow
     web_search: allow
+    browser: allow
     security_scan: allow
     commit_as_me: allow
     mcp__codebase_memory_mcp_delete_project: deny
