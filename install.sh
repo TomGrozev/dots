@@ -490,9 +490,9 @@ fi
 # server is how the pod's agent learns the ticket's repo, and the other two are
 # hosted.
 if [ "$AGENT_POD" = "true" ]; then
-  omp_entries=(config.yml mcp.json AGENTS.md RULES.md agents extensions rules)
+  omp_entries=(config.yml mcp.json AGENTS.md agents extensions rules)
 else
-  omp_entries=(config.yml config-devcontainer.yml mcp.json AGENTS.md RULES.md WATCHDOG.md agents extensions rules hooks skills)
+  omp_entries=(config.yml config-devcontainer.yml mcp.json AGENTS.md WATCHDOG.md agents extensions rules hooks skills)
 fi
 
 for entry in "${omp_entries[@]}"; do
@@ -504,6 +504,12 @@ for entry in "${omp_entries[@]}"; do
   fi
   link_entry "$DOTFILES_DIR/.omp/$entry" "$OMP_AGENT_DIR/$entry" "~/.omp/agent/$entry"
 done
+
+# The source is RULES.global.md, not RULES.md: omp also reads RULES.md from the
+# nearest project .omp/, so a source file named RULES.md in this repo would load
+# twice in dots sessions. The installed path stays ~/.omp/agent/RULES.md, which
+# every other repo still loads.
+link_entry "$DOTFILES_DIR/.omp/RULES.global.md" "$OMP_AGENT_DIR/RULES.md" "~/.omp/agent/RULES.md"
 
 # The pod's agent-tier config names only the three pairing-workflow skills, so
 # the lean profile links those individually instead of the whole skills/ dir.
@@ -638,10 +644,9 @@ if [ "$AGENT_POD" != "true" ]; then
   # copy carries no version — stamp the resolved release tag next to each file
   # at download time (.<name>.tag) and compare against the latest release on
   # later runs, mirroring the miao/r3 update checks above.
-  ZELLIJ_PLUGIN_NAMES=("zjstatus.wasm" "zjstatus-hints.wasm" "zellij-autolock.wasm")
+  ZELLIJ_PLUGIN_NAMES=("zjstatus.wasm" "zellij-autolock.wasm")
   ZELLIJ_PLUGIN_URLS=(
     "https://github.com/dj95/zjstatus/releases/latest/download/zjstatus.wasm"
-    "https://github.com/b0o/zjstatus-hints/releases/latest/download/zjstatus-hints.wasm"
     "https://github.com/fresh2dev/zellij-autolock/releases/latest/download/zellij-autolock.wasm"
   )
 

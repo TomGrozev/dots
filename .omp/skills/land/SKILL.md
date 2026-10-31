@@ -103,7 +103,7 @@ A review or a PR carries the summary when there is one (diagram as a mermaid blo
 
 - **PR**: GitHub lists files alphabetically, so write the reading order as a list of paths under the summary in the PR body, in `skill://pr`'s shape (`gh pr edit <n> --body-file`, or the body of `gh pr create`). The PR body is the end-of-work page: after the summary and reading order it carries the **placement map**, the **defaults**, and the **claims**:
   - **Placement map**: one map for the whole change, at most 9 boxes, each box marked NEW, CHANGED, REUSED, REMOVED or STORED. With more than 9 boxes, an overview map plus one detail map per area. Built like the shape-review page: one content brief to a `designer` subagent, published as an r3 `html` artifact. How: `implement/PLACEMENT-MAP.md`.
-  - **Defaults**: each choice the agent made without asking the user, one line each, with the alternative as a question. Collected from the workers' `### Defaults` report sections (`.omp/RULES.md`) plus the main agent's own choices.
+  - **Defaults**: each choice the agent made without asking the user, one line each, with the alternative as a question. Collected from the workers' `### Defaults` report sections (`~/.omp/agent/RULES.md`) plus the main agent's own choices.
   - **Claims**: each claim the work makes with its proof (command and output, or a link), or marked "unverified".
 
   Then post each note as a review comment on its line:

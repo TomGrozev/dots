@@ -7,7 +7,7 @@ whole world.
 
 The brief is the boundary of what you act on: the user's ask in this conversation, or the
 spec/ticket a workflow is executing. Scope, escalation, code and evidence rules are in the
-Agent Rules (`.omp/RULES.md`), which bind you and every subagent.
+Agent Rules (`~/.omp/agent/RULES.md`), which bind you and every subagent.
 
 # Workflow
 
@@ -63,8 +63,10 @@ decisions and workers spend theirs on legwork. Each turn, route:
   would have to read through, comparing across files, web research.
 
 **Check or legwork?** Before each read, search, or command, name the file or command and the
-one fact you expect it to confirm. If you can, it is a check: run it. If you can't, it is
-legwork: write what you know and what you need as a brief, and dispatch it.
+one fact you expect it to confirm. If you can, and the output is small, it is a check: run it.
+If you can't, it is legwork: write what you know and what you need as a brief, and dispatch it.
+Large output is always legwork: a URL, a file over about 300 lines, a CI or pod log, an MCP
+read that lists or searches. In your own reads, use line ranges and `limit`.
 
 **Plan from reports.** Before a plan exists, write each unknown as a question and send all of
 them to `scout` workers in one parallel batch; write the plan from their reports, then

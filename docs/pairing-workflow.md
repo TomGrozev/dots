@@ -1,6 +1,6 @@
 # Pairing workflow
 
-I am the senior dev; the agent is the junior. The agent writes all code and tests. I make the decisions, review what matters, and tidy by hand where taste matters. I write code only by choice: a tidy after a review, or taking the pen when a build fails twice. The agent's own instructions live in `.omp/AGENTS.md`, `.omp/RULES.md` and the skills in `.omp/skills/` (symlinked into `~/.omp/agent/`); Matt Pocock's skills install to `~/.agents/skills` via `install.sh`. A diagram version of this page is [pairing-workflow.html](pairing-workflow.html), which the agent finds at `~/.omp/agent/pairing-workflow.html`, linked there by `install.sh`.
+I am the senior dev; the agent is the junior. The agent writes all code and tests. I make the decisions, review what matters, and tidy by hand where taste matters. I write code only by choice: a tidy after a review, or taking the pen when a build fails twice. The agent's own instructions live in `.omp/AGENTS.md`, `.omp/RULES.global.md` (installed as `~/.omp/agent/RULES.md`) and the skills in `.omp/skills/` (symlinked into `~/.omp/agent/`); Matt Pocock's skills install to `~/.agents/skills` via `install.sh`. A diagram version of this page is [pairing-workflow.html](pairing-workflow.html), which the agent finds at `~/.omp/agent/pairing-workflow.html`, linked there by `install.sh`.
 
 ## The workflow at a glance
 
