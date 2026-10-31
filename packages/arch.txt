@@ -67,3 +67,5 @@ fluxcd
 go-task
 yamllint
 opentofu
+sops
+age
