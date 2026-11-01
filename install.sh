@@ -563,15 +563,15 @@ elif [ "$AGENT_POD" != "true" ] && [ "${DEVCONTAINER:-}" = "true" ] && [ -f "$DO
 fi
 
 # The lean agent-pod profile links only the authored config the pod runs on:
-# WATCHDOG.md, config-devcontainer.yml and hooks belong to the laptop and
-# devcontainer installs, and skills/ is narrowed to the pairing-workflow skills
+# WATCHDOG.md, config-devcontainer.yml and skills/ belong to the laptop and
+# devcontainer installs; the pod's skills/ is narrowed to the pairing-workflow skills
 # linked after the loop. mcp.json is linked in both modes: the codebase-memory
 # server is how the pod's agent learns the ticket's repo, and the other two are
 # hosted.
 if [ "$AGENT_POD" = "true" ]; then
   omp_entries=(config.yml mcp.json AGENTS.md agents extensions rules)
 else
-  omp_entries=(config.yml config-devcontainer.yml mcp.json AGENTS.md WATCHDOG.md agents extensions rules hooks skills)
+  omp_entries=(config.yml config-devcontainer.yml mcp.json AGENTS.md WATCHDOG.md agents extensions rules skills)
 fi
 
 for entry in "${omp_entries[@]}"; do

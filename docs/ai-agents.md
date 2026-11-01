@@ -17,7 +17,6 @@ The orchestrator manages agent sessions, roles, and tool integrations.
   - **Naming**: the domain-terms file is `GLOSSARY.md` and the coding-standards file is `CODING_STANDARDS.md` (repo root; in a fork, under `.omp/`). Their existence marks the repo as onboarded.
   - **Prose rule**: workflow prose avoids em-dashes (U+2014); upstream adopted the same ban after a careless sweep once broke YAML front matter in a skill file.
   - **Rules**: Global and role-specific guardrails in `.omp/RULES.global.md` (installed as `~/.omp/agent/RULES.md`) and `.omp/rules/`, including the stack packs (`stack-elixir`, `stack-phoenix`, `stack-typescript`).
-  - **Hooks**: Pre/post-execution hooks in `.omp/hooks/`.
   - **Extensions**: Custom functionality plugins in `.omp/extensions/`.
 - **Monitoring**: `WATCHDOG.md` describes the automated oversight process.
 - **Workflow**: See [pairing-workflow.md](pairing-workflow.md) for the collaboration map and [flow diagram](pairing-workflow.html).
