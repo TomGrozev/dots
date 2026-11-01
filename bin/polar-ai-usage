@@ -16,6 +16,8 @@ stamp=$cache_dir/polar-ai-usage.stamp
 # Nord. Pango markup sets the colours because a polled label cannot change
 # its CSS class with the value.
 readonly CALM="#d8dee9" WARN="#ebcb8b" CRIT="#bf616a"
+# Positive tone for a pace verdict: Nord14, green like the Neuralwatt brand.
+readonly GOOD="#a3be8c"
 # Provider name colours, shared by the bar and the popup headers so each
 # provider is recognisable at a glance: Nord12 orange for Claude, Nord14
 # green for Neuralwatt.
@@ -26,7 +28,9 @@ usage() {
 Usage: polar-ai-usage [bar|popup|--help]
 
   bar     one Pango markup line for the bar (default)
-  popup   the detail view: Claude windows, Neuralwatt energy and credits
+  popup   the detail view: Claude windows, Neuralwatt energy and credits,
+          each with its share of the period elapsed, the pace verdict and the
+          projected use at the reset
 
 Data comes from `codexbar usage --format json`, which reports the providers
 enabled in CodexBar's config (~/.config/codexbar/config.json). Enable claude
@@ -72,7 +76,7 @@ render() { # mode, codexbar JSON, codexbar installed (yes|no), updated HH:MM
   # Empty or invalid input still renders: `-n` plus `try input` turns it into
   # an empty list, so every provider falls back to its placeholder.
   jq -nr --arg mode "$1" --arg installed "$3" --arg updated "$4" \
-    --arg calm "$CALM" --arg warn "$WARN" --arg crit "$CRIT" \
+    --arg calm "$CALM" --arg warn "$WARN" --arg crit "$CRIT" --arg good "$GOOD" \
     --arg claude_c "$CLAUDE" --arg nw_c "$NEURALWATT" '
     def esc: gsub("&"; "&amp;") | gsub("<"; "&lt;") | gsub(">"; "&gt;");
     def pad($n): if length < $n then . + (" " * ($n - length)) else . end;
@@ -90,6 +94,45 @@ render() { # mode, codexbar JSON, codexbar installed (yes|no), updated HH:MM
     def reset($w): ($w.resetsAt | if . then when("%a %H:%M") else null end) as $t
       | if $t then "resets \($t)" else null end;
     def line($label; $text): "\($label | pad(16) | esc)\($text | esc)";
+    # Pace compares the share of the quota used with the share of the window
+    # that has elapsed, so a window reads as under pace while the quota will
+    # last to the reset and as over pace while it will run out early.
+    def absv: if . < 0 then -. else . end;
+    def epoch: try (sub("\\.[0-9]+Z$"; "Z") | fromdate) catch null;
+    def elapsed($w):
+      ($w.resetsAt | epoch) as $r
+      | if $r == null or ($w.windowMinutes | type) != "number" then null
+        else (($w.windowMinutes * 60) as $len
+          | (($len - ($r - now)) / $len * 100
+             | if . < 0 then 0 elif . > 100 then 100 else . end))
+        end;
+    def pace($w):
+      elapsed($w) as $e
+      | $w.usedPercent as $u
+      | if $e == null or $u == null then null
+        else ("\($e | pct)% through" | dim) as $through
+          # A window just reset: a projection from under 2% of it is noise.
+          | if ($e | pct) < 2 then $through
+            else ($u - $e) as $d
+              | ($d | absv | pct) as $mag
+              | ($u / $e * 100 | pct) as $proj
+              | $through + (" · " | dim)
+                + (
+                  if $d < -3 then "<span foreground=\"\($good)\">\($mag)% under pace</span>"
+                  elif $d > 3 then
+                    "<span foreground=\"\(if $proj > 100 then $crit else $warn end)\">\($mag)% over pace</span>"
+                  else "<span foreground=\"\($calm)\">on pace</span>" end
+                )
+                + (" · " | dim)
+                + "projects "
+                + (if $proj > 100 then "<span foreground=\"\($crit)\">\($proj)%</span>"
+                   else ("\($proj)%" | esc) end)
+                + (" used" | dim)
+            end
+        end;
+    def window($label; $w; $rest):
+      row($label; $w; $rest),
+      (pace($w) as $p | if $p then (" " * 16) + $p else empty end);
 
     (try input catch []) as $all
     | ($all | if type == "array" then . else [] end) as $all
@@ -118,10 +161,10 @@ render() { # mode, codexbar JSON, codexbar installed (yes|no), updated HH:MM
           header("Claude"; $claude_c; $claude),
           (if $cu == null then missing($claude)
            else
-             (if $cu.primary then row(if $cu.primary.windowMinutes == 300 then "5-hour" else "Weekly" end; $cu.primary; reset($cu.primary)) else empty end),
-             (if $cu.secondary and $cu.primary.windowMinutes == 300 then row("Weekly"; $cu.secondary; reset($cu.secondary)) else empty end),
-             (if $cu.tertiary then row("\($claude.rateWindowLabels.tertiary // "Model") weekly"; $cu.tertiary; reset($cu.tertiary)) else empty end),
-             ($cu.extraRateWindows // [] | .[] | row(.title; .window; reset(.window))),
+             (if $cu.primary then window(if $cu.primary.windowMinutes == 300 then "5-hour" else "Weekly" end; $cu.primary; reset($cu.primary)) else empty end),
+             (if $cu.secondary and $cu.primary.windowMinutes == 300 then window("Weekly"; $cu.secondary; reset($cu.secondary)) else empty end),
+             (if $cu.tertiary then window("\($claude.rateWindowLabels.tertiary // "Model") weekly"; $cu.tertiary; reset($cu.tertiary)) else empty end),
+             ($cu.extraRateWindows // [] | .[] | window(.title; .window; reset(.window))),
              ($cu.providerCost // empty | line("Extra usage"; "\(.used | money) of \(.limit | money)"))
            end),
           "",
@@ -129,11 +172,11 @@ render() { # mode, codexbar JSON, codexbar installed (yes|no), updated HH:MM
           (if $nu == null then missing($nw)
            else
              (if $nu.primary then
-                row("Energy"; $nu.primary; $nu.primary.resetDescription),
+                window("Energy"; $nu.primary; $nu.primary.resetDescription),
                 ($nu.primary.resetsAt | if . then when("%a %d %b") else null end | values | line("Period ends"; .))
               else empty end),
              ($nu.providerCost // empty | line("Credits"; "\(.used | money) left")),
-             ($nu.extraRateWindows // [] | .[] | row(.title; .window; null))
+             ($nu.extraRateWindows // [] | .[] | window(.title; .window; null))
            end),
           (if $updated != "" then "", ("Updated \($updated)" | dim) else empty end)
         ] | join("\n")
