@@ -14,6 +14,9 @@ layer = "top"
 # gaps_out (8) below it, so tiled windows start 8px under the islands.
 exclusive_zone = true
 popup_gap = 6
+# A click anywhere outside a popup closes it, so the AI-usage details and the
+# other popups do not need a second click on their module to go away.
+popup_autohide = true
 
 # Read by the mode badges. The scripts own these values (`ironbar var set`).
 ironvar_defaults = { polar_focus = "false", polar_recording = "false", polar_dnd = "false" }
@@ -163,7 +166,9 @@ bar = [
 # AI usage: Claude's 5-hour window and Neuralwatt's kWh plan (its prepaid
 # credits when there is no plan). Both labels poll every 60s but read the
 # cache of polar-ai-usage, which runs codexbar at most once per 300s:
-# Anthropic's usage endpoint rate-limits hard. Click opens the details.
+# Anthropic's usage endpoint rate-limits hard. Click opens the details, where
+# each window adds the share of its period elapsed, the pace verdict and the
+# use projected at its reset.
 [[end]]
 type = "custom"
 name = "ai-usage"
