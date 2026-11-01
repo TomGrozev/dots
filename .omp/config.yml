@@ -31,7 +31,8 @@ statusLine:
   compactThinkingLevel: true
   showHookStatus: false
   preset: custom
-  leftSegments: [pi, vim, model, mode, collab, stream, path, git, pr, context_pct, cost]
+  leftSegments:
+    [pi, vim, model, mode, collab, stream, path, git, pr, context_pct, cost]
   rightSegments: [session_name, status]
   sessionAccent: true
 terminal:
@@ -401,14 +402,13 @@ retry:
       - neuralwatt/glm-5.3-flash:high
       - neuralwatt/mimo-v2.6-pro:auto
     slow:
-      - neuralwatt/mimo-v2.6-pro:high
       - neuralwatt/glm-5.3:high
+      - neuralwatt/mimo-v2.6-pro:high
     plan:
-      - neuralwatt/mimo-v2.6-pro:high
       - neuralwatt/glm-5.3:high
+      - neuralwatt/mimo-v2.6-pro:high
     task:
       - neuralwatt/glm-5.3-flash:high
-      - neuralwatt/mimo-v2.6-pro:auto
     smol:
       - neuralwatt/glm-5.3-flash:low
       - neuralwatt/qwen3.6-35b:high
@@ -417,8 +417,8 @@ retry:
     writer:
       - neuralwatt/deepseek-v4.1-flash:low
     review:
-      - neuralwatt/mimo-v2.6-pro:high
       - neuralwatt/glm-5.3:high
+      - neuralwatt/mimo-v2.6-pro:high
     designer:
       - neuralwatt/mimo-v2.6-pro:high
       - neuralwatt/glm-5.3:high
