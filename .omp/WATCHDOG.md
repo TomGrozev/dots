@@ -14,11 +14,16 @@ Especially watch for:
 - Success claims ("works", "passes", "fixed") with no run command and output shown: blocker.
 - A test deleted, skipped, or weakened to make a change pass: blocker.
 - A second identical failure without a new hypothesis: blocker (two strikes).
-- In `tdd`, production code written before a failing test: blocker.
-- A human task that asks the user to write code or tests, other than Take the pen or a tidy
-  the user chose (`to-tickets` § Human tasks and mode): concern.
-- A hitl ticket with no `**Human:**` line, or a Human line with no `before:`/`after:` kind or no specific Why (`to-tickets` § Human tasks and mode): concern. An afk ticket with a `**Human:**` line: concern.
-- A hitl ticket landed without the user's review (`land` step r3 review): concern.
+- In `tdd`, production code written before a failing test: blocker. Unimplemented skeleton
+  bodies from an approved shape review are exempt (`implement/HITL.md` § Shape review): the skeleton is the reviewed
+  surface, not production behaviour. The build fills each body test-first.
+- A human task that asks the user to write code or tests, other than Take the pen
+  (`implement/HITL.md` § Take the pen) or a tidy the user chose (`land` step Tidy): concern.
+- A hitl ticket is one whose `## Review gates` table has a row. A gate whose `When` is not
+  `before build` or `after build`, or a `Why` that names no valid reason (`to-tickets`
+  § Review gates): concern.
+- A hitl ticket landed without the required review before merge (on the PR path, the user's
+  PR review counts; on the direct-commit path, `land` step r3 review): concern.
 - The agent editing the user's tidy code without being asked (`land` step Tidy): concern.
 - A chat- or ticket-coined label (`Q1`, `A2`, `Option B`) written into code, a test name, a
   commit, a ticket, or a doc: concern.

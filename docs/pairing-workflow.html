@@ -30,21 +30,23 @@
 <div class="legend">
   <span><span class="chip you">blue</span>I act</span>
   <span><span class="chip auto">grey</span>the agent works</span>
-  <span><span class="chip wait">amber</span>a human stop, only when the ticket has that line</span>
+  <span><span class="chip wait">amber</span>a review gate, only when the ticket's Review gates table has that row</span>
 </div>
 
 <pre class="mermaid">
 flowchart TD
   Q["to-tickets quiz<br/>I approve the breakdown"]:::you
-  Q -->|"each ticket"| I["implement<br/>one ticket, fresh session"]:::auto
-  Q -->|"afk tickets, no hitl open"| S["implement-spec<br/>one branch, one PR"]:::auto
-  I --> B["before stop<br/>I review the shape or choose"]:::wait
+  Q -->|"one ticket"| I["implement<br/>one ticket, fresh session"]:::auto
+  Q -->|"all open tickets of a spec"| S["implement-spec<br/>afk and hitl, one session"]:::auto
+  I --> B["before build gate<br/>Shape review: I approve the skeleton and map"]:::wait
+  S -->|"each ticket"| B
   B --> W["build<br/>tdd workers"]:::auto
-  W --> A["after stop<br/>I react to the running result"]:::wait
-  A --> R["self-review + Gate"]:::auto
-  R --> L["land<br/>Gate, end card, notes"]:::auto
-  S --> L
-  L --> LQ["landing question<br/>commit, review + tidy, or PR"]:::you
+  W --> A["after build gate<br/>See it run: I react to the running result"]:::wait
+  A --> R["self-review + checks<br/>once per spec in implement-spec"]:::auto
+  R --> L["land<br/>checks, end card, notes"]:::auto
+  L -->|"implement"| LQ["landing question<br/>commit, review + tidy, or PR"]:::you
+  L -->|"implement-spec: one publish ask, then PR"| P["PR<br/>one commit per ticket by its mode; on hitl I review before merge"]:::you
+  LQ -->|"PR"| P
   classDef you fill:#1d4ed8,stroke:#1d4ed8,color:#fff
   classDef auto fill:#e5e7eb,stroke:#6b7280,stroke-dasharray:4 3,color:#111827
   classDef wait fill:#fde68a,stroke:#b45309,color:#111827
@@ -53,104 +55,121 @@ flowchart TD
 <h2>hitl or afk</h2>
 <table>
   <tr><th></th><th>hitl</th><th>afk</th></tr>
-  <tr><td>Rule</td><td>At least one <code>**Human:**</code> line</td><td>No <code>**Human:**</code> line</td></tr>
+  <tr><td>Rule</td><td>At least one row in the <code>## Review gates</code> table</td><td>No rows</td></tr>
   <tr><td>Label</td><td><code>ready-for-human</code></td><td><code>ready-for-agent</code></td></tr>
-  <tr><td>Stops in <code>implement</code></td><td>One per <code>**Human:**</code> line</td><td>None</td></tr>
-  <tr><td>Review at landing</td><td>Required</td><td>Offered</td></tr>
-  <tr><td>Commit</td><td><code>commit_as_me</code>, as me</td><td>Conventional commit</td></tr>
+  <tr><td>Review gates</td><td>One per row</td><td>None</td></tr>
+  <tr><td>Runs in</td><td><code>implement</code>, <code>implement-spec</code></td><td><code>implement</code>, <code>implement-spec</code>, an unattended run</td></tr>
+  <tr><td>Review at landing</td><td>Required before merge: my PR review on a PR, the r3 review before a direct commit</td><td>Offered</td></tr>
+  <tr><td>Commit</td><td><code>commit_as_me</code> with a conventional message, as me</td><td>Conventional commit</td></tr>
 </table>
+<p>The table decides the mode. The label says who acts next: a stuck unattended run relabels its ticket <code>ready-for-human</code>, and the mode does not change. Ad-hoc work with no ticket counts as hitl.</p>
 
-<h2>The Human line</h2>
-<p>One line per stop, directly under <code>**Mode:**</code>:</p>
-<pre class="card"><code>**Human:** before: &lt;the one thing to review&gt;. Why: &lt;the specific risk&gt;.
-**Human:** after: &lt;what to run or show&gt;. Why: &lt;the specific risk&gt;.</code></pre>
+<h2>Review gates</h2>
+<p><code>to-tickets</code> owns this table. No other form. <code>When</code> is <code>before build</code> or <code>after build</code>, and a ticket may have both. <code>What</code> names the real thing; <code>Why</code> names the specific risk. In <code>implement</code>, a before build gate runs the Shape review step and an after build gate runs the See it run step.</p>
+<pre class="card"><code>## Review gates
+
+| When | What | Why |
+|---|---|---|
+| before build | How a saved chat keeps its model when the suite changes | A migration: existing chats must migrate to the new pin field |
+| after build | The model picker in the chat header | Names the user sees |</code></pre>
 
 <div class="cols">
   <div>
     <h3>A valid Why names one of these</h3>
     <ul>
-      <li>A choice that is hard to undo: a module boundary, stored data, a public contract.</li>
-      <li>Taste that tests cannot judge: UI, names the user sees.</li>
-      <li>I asked to oversee it in the quiz.</li>
+      <li>Before build: a migration, a change to data that already exists (a schema change, or a format that existing records must migrate). New tables or fields that need no migration are not a reason.</li>
+      <li>Before build: an outside contract (public API, CLI flags or output, a published export, an event payload).</li>
+      <li>Before build: new structure (a new module, or the first instance of a shape that later tickets copy).</li>
+      <li>After build: taste that tests cannot judge (UI, feel, output, names the user sees).</li>
+      <li>Either kind: I asked for it.</li>
     </ul>
   </div>
   <div>
     <h3>Not a reason</h3>
     <ul>
-      <li>"It creates new files", alone.</li>
-      <li>"Is this the right place", alone.</li>
+      <li>"It creates new files" or "is this the right place", alone.</li>
+      <li>Size, complexity, tests, bug fixes.</li>
+      <li>Signature changes inside an existing module.</li>
       <li>Unsure? The agent recommends afk and says so.</li>
-      <li>Deploys, migrations on real data, sent messages: no Human line. The ask-first rule covers them.</li>
+      <li>Deploys, migrations on real data, sent messages: no review gate. The ask-first rule covers them on every ticket.</li>
     </ul>
   </div>
 </div>
 
 <h2>The quiz</h2>
 <ul>
-  <li>A numbered list: title, blocked by, what it delivers, mode, Human lines.</li>
-  <li>The hitl tickets in one table: ticket, Human line, Why.</li>
-  <li>The quiz settles <code>before:</code> decisions when it can. The answer goes into the spec, and that Human line goes away.</li>
-  <li>I override any mode. It iterates until I approve.</li>
+  <li>A numbered list: title, blocked by, what it delivers, mode, review gates.</li>
+  <li>The hitl tickets in one table: ticket, when, what, why.</li>
+  <li>A choice I can only judge with the skeleton in view goes into that ticket's shape review as a decision.</li>
+  <li>I override any mode by editing the ticket's Review gates table. It iterates until I approve.</li>
 </ul>
 
-<h2>The two stops</h2>
+<h2>The two review gates</h2>
 <div class="cols">
   <div>
-    <h3>Before stop</h3>
+    <h3>Before build: Shape review</h3>
     <ul>
-      <li>Shape review: the skeleton is written, then I see the intent, 2 to 3 examples, the placement map (NEW, CHANGED, REUSED, REMOVED, STORED, with a "Why new" line), two checks, and the decisions.</li>
-      <li>Decision only: one question, 2 or 3 options, one reason each.</li>
-      <li>The agent's pick stays hidden until I reply.</li>
-      <li>The build waits until I approve or change the shape and choose in each decision.</li>
-      <li>Later tickets that build on it get edited to match.</li>
+      <li>The skeleton is written: real code, bodies not implemented. Then I see the intent, 2 to 3 examples, the placement map (NEW, CHANGED, REUSED, REMOVED, STORED, with a "Why new" line; more than 9 boxes get grouped), two review points, and a few decisions.</li>
+      <li>A decision: one question, 2 or 3 options (A, B, C), one reason each.</li>
+      <li>The agent's pick stays hidden until I reply. A bare "yes" with open decisions is not an answer.</li>
+      <li>The build waits until I approve or change the shape and choose in each decision. The build then fills each body test-first.</li>
+      <li>An answer that fixes a hard-to-undo choice becomes an ADR. Later tickets that build on it get edited to match.</li>
     </ul>
   </div>
   <div>
-    <h3>After stop</h3>
+    <h3>After build: See it run</h3>
     <ul>
       <li>The running result, not a plan: a screenshot, a short recording, or real command output.</li>
       <li>One line on what to react to.</li>
-      <li>The agent fixes real objections and shows again.</li>
+      <li>The agent fixes real objections and shows again, before <code>land</code>.</li>
     </ul>
   </div>
 </div>
 <p><b>Take the pen</b>, any mode: a build worker fails twice on the same problem with no new hypothesis. I get the repro and the ruled-out hypotheses. I take the pen or give a steer.</p>
 
+<h2>Running tickets</h2>
+<table>
+  <tr><th></th><th>Tickets</th><th>Review gates</th><th>Landing</th></tr>
+  <tr><td><code>implement</code></td><td>One ticket, one fresh session, any mode</td><td>Each row of its Review gates table</td><td>One <code>land</code>, with the landing question</td></tr>
+  <tr><td><code>implement-spec</code></td><td>All open tickets of one spec, afk and hitl, in one session. At Load it merges the default branch and records the start commit. It claims each ticket when that ticket's build starts: it sets it <code>in-progress</code> and removes <code>ready-for-agent</code>. A ticket already in progress elsewhere is a blocker that is not done.</td><td>All in the main session. A ticket with a before build row gets its shape review when it reaches the frontier, while the other builds go on; a ticket with an after build row gets See it run after its build merges. If I am away, gated tickets wait.</td><td>One integration branch, one <code>land</code> hand-off: one publish ask, one PR that closes every ticket, one commit per ticket by its mode's rule</td></tr>
+</table>
+
 <h2>land</h2>
 <p>Every task that changes files ends here.</p>
 <table>
   <tr><th>#</th><th>Step</th><th>What happens</th></tr>
-  <tr><td>1</td><td>Gate</td><td>Reuses the <code>implement</code> result if no code changed</td></tr>
-  <tr><td>2</td><td>Notes</td><td>One line of code each, 25 words at most; zero is normal</td></tr>
-  <tr><td>3</td><td>End card</td><td>Printed in chat; it also heads the r3 review and the PR body</td></tr>
-  <tr><td>4</td><td>Landing question</td><td>Skipped when the work is already on an open PR</td></tr>
-  <tr><td>5</td><td>r3 review</td><td>I annotate the diff and archive it</td></tr>
+  <tr><td>1</td><td>Checks</td><td>Reuses the checks command that <code>implement</code> or <code>implement-spec</code> passes</td></tr>
+  <tr><td>2</td><td>Notes</td><td>A note about code sits on its line; other notes go in the end card's Notes block. 25 words at most; zero is normal</td></tr>
+  <tr><td>3</td><td>End card</td><td>Printed in chat; it also heads the r3 review and the PR body. An unattended run puts it in the PR body only</td></tr>
+  <tr><td>4</td><td>Landing question</td><td>On an <code>implement-spec</code> hand-off: one publish ask, then the PR path, with fixes from the self-review and checks in one extra commit. Skipped on an unattended run and when the work is already on an open PR someone else made</td></tr>
+  <tr><td>5</td><td>r3 review</td><td>I annotate the diff and archive it. On hitl it comes before a direct commit</td></tr>
   <tr><td>6</td><td>Tidy</td><td>I edit and say "done"; the agent reviews it as a pair</td></tr>
-  <tr><td>7</td><td>Gate again</td><td>Only when review or tidy changed code</td></tr>
-  <tr><td>8</td><td>Commit or PR</td><td>The chosen landing</td></tr>
+  <tr><td>7</td><td>Checks again</td><td>Only when review or tidy changed code</td></tr>
+  <tr><td>8</td><td>Commit or PR</td><td>The chosen landing; then each ticket closes (on a PR: <code>Closes #N</code>)</td></tr>
   <tr><td>9</td><td>Calibrate note</td><td>Suggests <code>calibrate</code> when the spec's last ticket lands</td></tr>
 </table>
 
 <div class="cols">
   <div>
     <h3>The end card</h3>
-<pre class="card"><code>✓ Gate · 4 files · +120 −30
+<pre class="card"><code>✓ checks · 4 files · +120 −30
 &lt;one sentence: what changed and why&gt;
 
 &lt;mermaid diagram, or a part | change table&gt;
 
-Check:
+Look at:
 - `path:line`: &lt;why to look&gt;</code></pre>
   </div>
   <div>
     <h3>Landing question</h3>
     <table>
-      <tr><th>Option</th><th>hitl</th><th>otherwise</th></tr>
+      <tr><th>Option</th><th>hitl</th><th>afk</th></tr>
       <tr><td>commit</td><td></td><td>yes</td></tr>
       <tr><td>review, tidy, then commit</td><td>yes</td><td>yes</td></tr>
       <tr><td>PR</td><td>yes</td><td>yes</td></tr>
       <tr><td>leave it</td><td></td><td>yes</td></tr>
     </table>
+    <p>On hitl, a direct commit needs my r3 review first. On a PR, my PR review is the hitl review, and the PR waits for it before it merges.</p>
   </div>
 </div>
 
@@ -172,10 +191,10 @@ Check:
 <ol>
   <li>publishing: commit, push, tag, PR, merge;</li>
   <li>deleting or overwriting work it did not create, or rewriting git history;</li>
-  <li>changing persisted data, a public contract, or an external system;</li>
+  <li>changing persisted data, a public contract, or an external system (deploys, messages, paid services);</li>
   <li>anything with secrets or credentials.</li>
 </ol>
-<p>Everything else: it decides, states the assumption, and records a note.</p>
+<p>Review gates come on top: each row of a hitl ticket's Review gates table, and my review before a hitl change merges. Everything else: it decides, states the assumption, and records a note.</p>
 
 <script type="module">
   import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";

@@ -1,12 +1,12 @@
 ---
 name: onboard
-description: "Set a repo up for the pairing workflow, any language: detects the mode (existing, new, fork), runs setup-matt-pocock-skills (issue tracker, labels, domain docs) if needed, detects the stack, extracts conventions to CODING_STANDARDS.md, installs linter/formatter/boundary guardrails, and records the Gate in the agent file's `## Gate` section. Re-run to add missing pieces or upgrade an older setup."
+description: "Set a repo up for the pairing workflow, any language: detects the mode (existing, new, fork), runs setup-matt-pocock-skills (issue tracker, labels, domain docs) if needed, detects the stack, extracts conventions to CODING_STANDARDS.md, installs linter/formatter/boundary guardrails, and records the checks in the agent file's `## Checks` section. Re-run to add missing pieces or upgrade an older setup."
 disable-model-invocation: true
 ---
 
 # Onboard
 
-Run once per repo, when the user asks. The result is a repo where every skill has what it needs: an issue tracker for `to-spec`/`to-tickets`/`wayfinder`, conventions and a Gate for `implement`. It proposes; the user decides. Re-running fills in only what is missing.
+Run once per repo, when the user asks. The result is a repo where every skill has what it needs: an issue tracker for `to-spec`/`to-tickets`/`wayfinder`, conventions and checks for `implement`. It proposes; the user decides. Re-running fills in only what is missing.
 
 Prefer turning a convention into a check over adding another line to `CODING_STANDARDS.md`.
 
@@ -14,19 +14,20 @@ Prefer turning a convention into a check over adding another line to `CODING_STA
 
 Where onboarding writes is the single source of truth for the repo's agent rules.
 
-- **Normal (`existing`/`new`)**: the repo's agent file (`CLAUDE.md` if it exists, else `AGENTS.md`) carries the `## Agent skills` block. Coding standards live in `CODING_STANDARDS.md` at the repo root, the Gate in the agent file's `## Gate` section, ADRs in the repo's ADR directory, and the calibration log in `docs/agents/calibration.md`.
+- **Normal (`existing`/`new`)**: the repo's agent file (`CLAUDE.md` if it exists, else `AGENTS.md`) carries the `## Agent skills` block. Coding standards live in `CODING_STANDARDS.md` at the repo root, the checks in the agent file's `## Checks` section, ADRs in the repo's ADR directory, and the calibration log in `docs/agents/calibration.md`.
 - **`fork`**: see [FORK.md](FORK.md).
 
 What goes where (every skill that proposes a line files it by this test):
 - `GLOSSARY.md`: the domain's terms (the words).
 - ADRs: a choice between real alternatives, with tradeoffs and why; hard to reverse. Architecture, library, data-model and protocol choices go here, never in `CODING_STANDARDS.md`.
+- The spec's Implementation and Testing Decisions: per-feature decisions made for one spec, with its tickets. These do not go to ADRs or rule files. A hard-to-undo choice that outlives the feature becomes an ADR.
 - `CODING_STANDARDS.md`: how code is written here, as one-line imperative rules a reviewer can check against a single diff hunk ("Return `{:error, reason}` tuples from context functions, never raise", "Put tests next to the module as `*_test.ts`"). Each rule names a code shape: naming, layout, error handling, API shape, data access, test style, logging. If the line needs a "because" paragraph or alternatives to make sense, it is an ADR; if a linter or formatter could enforce it, it is a guardrail instead.
 - Nothing: one-off choices for a single ticket, facts about what was built, preferences already enforced by tooling, and anything a reviewer could not point at in a diff. Default to nothing when unsure.
 
 An onboarded repo is one where `CODING_STANDARDS.md` exists.
 Re-running onboard on a repo that already has agent setup reads [UPGRADE.md](UPGRADE.md) first.
 
-## Mode detection
+## Detect the mode
 
 Detect the mode first, then confirm it with the `ask` tool, marking the detected mode `(Recommended)`. Write nothing until the mode is settled:
 
@@ -50,17 +51,17 @@ Detect the mode first, then confirm it with the `ask` tool, marking the detected
    - **Module boundary enforcement** (only when the stack pack names a tool): other modules may only call a module's public surface. Use the pack's tool; if no pack names one, skip this guardrail.
    Run each applicable one once. If existing code violates it, offer a menu: fix now, a ticket per cluster, or start lax and ratchet up. In `fork`, change no guardrails, hooks, or config.
     **Done when** each applicable guardrail has run once and the user has picked a path for any violations (in `fork`: skipped, said so).
-6. **Gate**: one repo-owned command, recorded as the agent file's `## Gate` section (its own section, not inside `## Agent skills`; setup-matt-pocock-skills owns that block). The repo's pre-commit hook runs that same command as a backstop, so hooks stay on (no `--no-verify`). `implement` and `land` still run it explicitly, because the work is uncommitted when reviewed and the output is the evidence.
+6. **Checks**: one repo-owned command, recorded as the agent file's `## Checks` section (its own section, not inside `## Agent skills`; setup-matt-pocock-skills owns that block). The repo's pre-commit hook runs that same command as a backstop, so hooks stay on (no `--no-verify`). `implement` and `land` still run it explicitly, because the work is uncommitted when reviewed and the output is the evidence.
    - Detect existing pre-commit tooling: `.pre-commit-config.yaml`, lefthook, husky, `.git/hooks/pre-commit`, a `mix precommit` alias, package scripts.
-   - If a precommit command exists, Gate = it; extend it with any missing lint/format/boundary checks (`existing`/`new` only).
+   - If a precommit command exists, checks = it; extend it with any missing lint/format/boundary checks (`existing`/`new` only).
    - Else create a repo-owned command idiomatic for the stack (a Makefile target, a `just`/npm `precommit` script, a `mix precommit` alias) and wire the pre-commit hook to run it, using the repo's hook manager if one exists. Propose it; the user approves.
-   - In `fork`, Gate = the upstream's own checks, derived from `CONTRIBUTING`, the CI workflow, or the Makefile, run locally. Do not touch the hook.
-   - Run the gate once and show its output.
-    **Done when** the agent file's `## Gate` section holds the command and its run output has been shown.
+   - In `fork`, checks = the upstream's own checks, derived from `CONTRIBUTING`, the CI workflow, or the Makefile, run locally. Do not touch the hook.
+   - Run the checks once and show their output.
+    **Done when** the agent file's `## Checks` section holds the command and its run output has been shown.
 7. **Offer calibrate** (`existing`, and `new` only once history exists): suggest `skill://calibrate` to record the rework baseline (optional; the user decides). In `fork`, calibrate is skipped, since nothing may persist and the history isn't yours.
     **Done when** the user has answered the offer (in `fork`: skipped, said so).
 
-**Done when**: `CODING_STANDARDS.md` exists, the repo's agent file has a `## Gate` section and an `## Agent skills` block pointing at `docs/agents/`, the gate passes (or its failures are ticketed), and the user is told: "this repo is onboarded, `CODING_STANDARDS.md` is its record of local rules."
+**Done when**: `CODING_STANDARDS.md` exists, the repo's agent file has a `## Checks` section and an `## Agent skills` block pointing at `docs/agents/`, the checks pass (or their failures are ticketed), and the user is told: "this repo is onboarded, `CODING_STANDARDS.md` is its record of local rules."
 
 The finished repo layout carries:
 
@@ -68,13 +69,13 @@ The finished repo layout carries:
 ## Agent skills (in AGENTS.md/CLAUDE.md) → points to docs/agents/
 ## Stack (in AGENTS.md/CLAUDE.md) → e.g. "elixir (stack pack: rule://stack-elixir)"
 CODING_STANDARDS.md → repo-specific one-liners; marks the repo onboarded
-## Gate (in AGENTS.md/CLAUDE.md) → one repo-owned command, e.g. mix precommit
+## Checks (in AGENTS.md/CLAUDE.md) → one repo-owned command, e.g. mix precommit
 ```
 
 ## Stack Packs
 
-A **stack pack** is a rule file `~/.omp/agent/rules/stack-<name>.md` (source: dotfiles `.omp/rules/`) holding what is true of every repo in that stack: skeleton idiom, what counts as public surface, linter/boundary/formatter tools, default gate. It auto-injects whenever the agent edits that stack's files and is readable as `rule://stack-<name>`.
+A **stack pack** is a rule file `~/.omp/agent/rules/stack-<name>.md` (source: dotfiles `.omp/rules/`) holding what is true of every repo in that stack: skeleton idiom, what counts as public surface, linter/boundary/formatter tools, default checks. It auto-injects whenever the agent edits that stack's files and is readable as `rule://stack-<name>`.
 
-- **Pack exists** → use its tools and gate as defaults in steps 5–6.
+- **Pack exists** → use its tools and checks as defaults in steps 5–6.
 - **No pack** → pick the ecosystem's standard tool for each guardrail category; record choices in the repo only.
-- **Promote to a pack** when there is enough to say: 3+ stack-generic conventions (recorded during `implement`'s shape review, or found in step 4) recurring across 2+ repos of that stack. Propose the new pack or additions as a menu item; the user decides. Repo-specific conventions stay out of packs.
+- **Promote to a pack** when there is enough to say: 3+ stack-generic conventions recurring across 2+ repos of that stack. Sources: found in step 4, or noted in reviews for promotion (`implement/HITL.md` § Shape review: a stack-generic convention seen in a shape review is noted for pack promotion). Propose the new pack or additions as a menu item; the user decides. Repo-specific conventions stay out of packs.

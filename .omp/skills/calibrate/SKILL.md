@@ -6,9 +6,9 @@ disable-model-invocation: true
 
 # Calibrate
 
-- Run only when the user asks (`land` suggests it when a spec's last ticket lands), and never in a `fork` repo: nothing may persist there and the history isn't yours. It measures **unexplained rework** over time (the metric the pairing workflow exists to drive down) and finds where the repo drifted from its conventions. It proposes; the user decides. Repo setup (conventions, guardrails, gate) is `skill://onboard`'s job, not this one's.
+- Run only when the user asks (`land` suggests it when a spec's last ticket lands), and never in a `fork` repo: nothing may persist there and the history isn't yours. It measures **unexplained rework** over time (the metric the pairing workflow exists to drive down) and finds where the repo drifted from its conventions. It proposes; the user decides. Repo setup (conventions, guardrails, checks) is `skill://onboard`'s job, not this one's.
 
-## Mode
+## Run type
 
 The calibration log lives at `docs/agents/calibration.md` (see `skill://onboard`).
 
@@ -27,10 +27,10 @@ The calibration log lives at `docs/agents/calibration.md` (see `skill://onboard`
     **Done when** each drift finding is listed with `file:line`, or "none" is stated.
 5. **Log**: create or append to `docs/agents/calibration.md` in the format from `skill://calibrate/REWORK-CLASSES.md`.
     **Done when** the entry is written to `docs/agents/calibration.md`.
-6. **Propose** a ticket menu: enforcement rules for conventions that keep being broken, cleanups, and stack-pack promotions that now meet the bar in `skill://onboard` (Stack Packs). Sort each proposal by how it gets enforced: a **mechanical violation** (a fixed syntactic pattern, a banned API, an import shape, a file location) becomes an automated check wired into the Gate; a **judgement call** becomes one line in `CODING_STANDARDS.md` for reviewers to enforce. If the repo is not onboarded (`CODING_STANDARDS.md` is missing), the first menu item is running `onboard`. The user picks.
+6. **Propose** a ticket menu: enforcement rules for conventions that keep being broken, cleanups, and stack-pack promotions that now meet the bar in `skill://onboard` (Stack Packs). Sort each proposal by how it gets enforced: a **mechanical violation** (a fixed syntactic pattern, a banned API, an import shape, a file location) becomes an automated check wired into the checks; a **judgement call** becomes one line in `CODING_STANDARDS.md` for reviewers to enforce. If the repo is not onboarded (`CODING_STANDARDS.md` is missing), the first menu item is running `onboard`. The user picks.
     **Done when** the ticket menu is presented.
 
-**Done when** the log is written and the menu is presented. Log changes: hand over to `land` (read `skill://land`).
+**Done when** the log is written and the menu is presented. Log changes are work with no ticket; `land` lands them as hitl (read `skill://land`).
 
 ## Scout Brief Shape
 

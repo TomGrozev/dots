@@ -1,5 +1,5 @@
 ---
-description: "TypeScript stack pack for the pairing workflow: skeleton idiom, public surface, idiomatic conventions, guardrail tools, default gate."
+description: "TypeScript stack pack for the pairing workflow: skeleton idiom, public surface, idiomatic conventions, guardrail tools, default checks."
 condition: ".*"
 scope: "tool:edit(**/*.ts), tool:write(**/*.ts), tool:edit(**/*.tsx), tool:write(**/*.tsx), tool:edit(**/*.mts), tool:write(**/*.mts), tool:edit(**/*.cts), tool:write(**/*.cts)"
 interruptMode: never
@@ -30,7 +30,7 @@ export async function updateBio(
 
 - The `exports` map in `package.json` is the cross-module contract (it supersedes `main` as the entry gate); deep imports a consumer can reach are the surface, everything else is private.
 - Avoid barrel-re-export through folder `index.ts` files except at the package entry: each re-export inflates the module graph and slows bundling, linting and tests.
-- A module's exported functions and types are its API: a signature change **inside** an existing module, with its boundary and callers unchanged, is not a stop; a **new** cross-module boundary with no existing example, or a **change** to the persisted data shape or an outside contract, is a `before:` stop (`implement` § Surface, `to-tickets` § Human tasks and mode). Internal modules stay unexported.
+- A module's exported functions and types are its API: a signature change **inside** an existing module, with its boundary and callers unchanged, is not a gate; a **new** cross-module boundary with no existing example, or a **change** to the persisted data shape or an outside contract, is a review gate (`to-tickets` § Review gates, reason 1 or 2). Internal modules stay unexported.
 - Types are part of the surface: `import type` at the boundary, and a public type change (a `types` entry, a discriminated-union variant) is a breaking change.
 
 ## Conventions
@@ -59,9 +59,9 @@ export async function updateBio(
 - **Test**: Vitest, `vitest run`, by default (Vite-powered, TS/TSX and coverage); `node:test` for zero-dep Node libraries; `bun test` for Bun runtime.
 - **Boundary check** (optional, no dependency): `npx dependency-cruiser --init`, then `depcruise` fails on cycles and rule violations; in an Nx monorepo use `@nx/enforce-module-boundaries`.
 
-## Default gate
+## Default checks
 
-One repo-owned command, recorded in the agent file's `## Gate` section. Idiomatic TypeScript default is a `precommit` script:
+One repo-owned command, recorded in the agent file's `## Checks` section. Idiomatic TypeScript default is a `precommit` script:
 
 ```json
 {

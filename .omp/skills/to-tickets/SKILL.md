@@ -36,7 +36,7 @@ Break the work into **tracer bullet** tickets.
 
 </vertical-slice-rules>
 
-Give each ticket its **blocking edges**: the other tickets that must complete before it can start. A ticket with no blockers can start immediately. For each ticket, set its mode and `Human` entries by § Human tasks and mode.
+Give each ticket its **blocking edges**: the other tickets that must complete before it can start. A ticket with no blockers can start immediately. For each ticket, set its `## Review gates` table by § Review gates.
 
 **Wide refactors are the exception to vertical slicing.** A **wide refactor** is one mechanical change (rename a column, retype a shared symbol) whose **blast radius** fans across the whole codebase, so a single edit breaks thousands of call sites at once and no vertical slice can land green. Don't force it into a tracer bullet; sequence it as **expand–contract**. First expand: add the new form beside the old so nothing breaks. Then migrate the call sites over in batches sized by blast radius (per package, per directory), each batch its own ticket blocked by the expand, keeping CI green batch to batch because the old form still exists. Finally contract: delete the old form once no caller remains, in a ticket blocked by every migrate batch. When even the batches can't stay green alone, keep the sequence but let them share an integration branch that all block a final integrate-and-verify ticket; green is promised only there.
 
@@ -47,33 +47,30 @@ Present the proposed breakdown as a numbered list. For each ticket, show:
 - **Title**: short descriptive name
 - **Blocked by**: which other tickets (if any) must complete first
 - **What it delivers**: the end-to-end behaviour this ticket makes work
-- **Mode**: hitl | afk (set by § Human tasks and mode)
-- **Human**: each entry in the Human line grammar (§ Human tasks and mode), or "None"
 
 Ask the user:
 
 - Does the granularity feel right? (too coarse / too fine)
-- Are the blocking edges correct: does each ticket only depend on tickets that genuinely gate it?
+- Are the blocking edges correct: does each ticket only depend on tickets that genuinely block it?
 - Should any tickets be merged or split further?
 
-Show the hitl tickets as one compact table, so a tired user can scan each stop and its reason without reading prose. The ticket line is one line (`**Human:** before: <the one thing>. Why: <the risk>.`); the table splits it into two columns for scanning:
+Show the hitl tickets as one compact table, so a tired user can scan each gate and its reason without reading prose:
 
-| Ticket | Human line | Why |
-|---|---|---|
-| 03: Conversation pinning | `before: how a saved chat keeps its model when the suite changes` | stored data: the pin is saved per chat and hard to migrate later |
+| Ticket | When | What | Why |
+|---|---|---|---|
 
-The quiz settles `before:` decisions when it can: ask the question, show the named options (A, B, ...), each option with one reasoning line (when and why a person would pick it, its main gain and its main cost, taken from the spec, the ADRs, and the code, never invented). Put the answer into the spec, and remove that Human line from the ticket. Iterate until the user approves the breakdown.
+Iterate until the user approves the breakdown.
 
 ### 5. Publish the tickets to the configured tracker
 
 Publish the approved tickets. **How** depends on the tracker `/setup-matt-pocock-skills` configured; the tickets are the same either way, only the shape of the blocking edges changes:
 
 - **Local files** → write one file per ticket under `.scratch/<feature-slug>/issues/<NN>-<slug>.md`, numbered from `01` in dependency order (blockers first). Each file's "Blocked by" lists the numbers/titles it depends on. Use the per-ticket file template below: one ticket per file, never a single combined file.
-- **A real issue tracker (GitHub, Linear, …)** → publish one issue per ticket in dependency order (blockers first) so each ticket's blocking edges can reference real identifiers. Use the platform's native blocking / sub-issue relationship where it has one; otherwise set each ticket's "Blocked by" to the blocking issues. Apply the triage label by mode unless instructed otherwise: `ready-for-human` for hitl, `ready-for-agent` for afk.
+- **A real issue tracker (GitHub, Linear, …)** → publish one issue per ticket in dependency order (blockers first) so each ticket's blocking edges can reference real identifiers. Use the platform's native blocking / sub-issue relationship where it has one; otherwise set each ticket's "Blocked by" to the blocking issues. Create the triage labels on the tracker first if they do not exist. Apply the triage label by mode unless instructed otherwise: `ready-for-human` for hitl, `ready-for-agent` for afk.
 
 Work the **frontier**: any ticket whose blockers are all done. For a purely linear chain that means top to bottom.
 
-Do NOT close or modify any parent issue.
+Do not close the spec. One edit to it is allowed: removing `ready-for-agent` from it when the tickets are published, so no agent picks up the spec itself (`to-spec` labels the spec and is read-only there).
 
 <local-ticket-template>
 
@@ -81,13 +78,15 @@ Do NOT close or modify any parent issue.
 
 **What to build:** the end-to-end behaviour this ticket makes work, from the user's perspective, not a layer-by-layer implementation list.
 
-**Blocked by:** the numbers/titles of the tickets that gate this one, or "None (can start immediately)".
+**Blocked by:** the numbers/titles of the tickets that block this one, or "None (can start immediately)".
 
-**Mode:** hitl | afk
+**Spec:** path to the spec this ticket implements.
 
-**Human:** only for hitl, one line per stop directly under `**Mode:**` (line form: § Human tasks and mode).
+## Review gates
 
-**Status:** ready-for-human (hitl) | ready-for-agent (afk)
+rows per § Review gates; omit for afk
+
+**Status:** ready-for-human (hitl) | ready-for-agent (afk) | in-progress | done
 
 - [ ] Acceptance criterion 1
 - [ ] Acceptance criterion 2
@@ -98,7 +97,7 @@ Do NOT close or modify any parent issue.
 
 ## Parent
 
-A reference to the parent issue on the tracker (if the source was an existing issue, otherwise omit this section).
+A reference to the parent spec on the tracker (if the source was an existing issue, otherwise omit this section).
 
 ## What to build
 
@@ -113,46 +112,49 @@ The end-to-end behaviour this ticket makes work, from the user's perspective, no
 
 - A reference to each blocking ticket, or "None (can start immediately)".
 
-## Mode
+## Review gates
 
-hitl | afk
-
-## Human
-
-Only for hitl, one line per stop directly under the Mode section (line form: § Human tasks and mode).
+rows per § Review gates; omit for afk
 
 </issue-template>
 
 In either form, avoid specific file paths or code snippets: they go stale fast. Exception: if a prototype produced a snippet that encodes a decision more precisely than prose can (state machine, reducer, schema, type shape), inline it and note briefly that it came from a prototype. Trim to the decision-rich parts, not a working demo, just the important bits.
 
-## Human tasks and mode
+## Review gates
 
-The agent writes the code and tests. The user makes the decisions, reviews, and tidies by hand.
+The agent writes the code and tests. The user decides, reviews, and tidies by hand. A ticket's review gates are the points where work pauses for the user to see and judge something before it continues; a ticket with at least one gate is **hitl**, a ticket with none is **afk**.
 
-**Decisions.** Slice against the spec's Implementation and Testing Decisions, settled with the user while grilling (`to-spec` § Implementation Decisions, § Testing Decisions), and ask none of your own. A slice that needs an architectural or testing choice the spec left open is a spec gap: raise it with the user and add the decision to the spec before slicing.
+**Format.** A ticket lists its gates in a `## Review gates` section, as a table. No other form:
 
-**Mode.** Set each ticket's mode explicitly; the user overrides either way in the quiz (step 4).
+```
+## Review gates
 
-- **hitl** (human in the loop): a human stop happens for each `**Human:**` line; label `ready-for-human`. Here `ready-for-human` means the ticket has a human stop. A ticket is hitl if and only if it has at least one `**Human:**` line.
-- **afk** (away from keyboard): built start to finish without stopping; label `ready-for-agent`. It has no `**Human:**` line; that code gets the review at landing (`land` step r3 review).
+| When | What | Why |
+|---|---|---|
+| before build | How a saved chat keeps its model when the suite changes | Migration: the pin is stored per chat and hard to change later |
+| after build | The model picker in the chat header | Names the user sees |
+```
 
-**Human line grammar.** In a hitl ticket, one line per stop, directly under `**Mode:**`:
+`When` is `before build` or `after build`; a ticket may carry both. `What` names the real thing, not generic text. `Why` names the specific risk and must match a valid reason below.
 
-- `**Human:** before: <the one thing to review>. Why: <the specific risk>.` (a stop in `implement` before building that part)
-- `**Human:** after: <what to run or show>. Why: <the specific risk>.` (a stop in `implement` after the build, before `land`)
+**Valid reasons.** For a `before build` gate:
 
-A valid **Why** names one of these:
+1. **Migration**: a change to data that already exists, i.e. a schema change or a persisted file, message or event format that existing records must migrate. New tables or fields that need no migration are not a reason.
+2. **An outside contract**: a public API endpoint, CLI flags or output, a published export, a webhook or event payload, an interface that code outside the module implements or calls.
+3. **New structure**: a new module or top-level directory, or the first instance of a shape that later tickets copy (a mistake multiplies in the copies).
 
-- a choice that is hard to undo (a module boundary, stored data, a public contract);
-- taste that tests cannot judge (UI, names the user sees);
-- the user asked to oversee it in the quiz.
+For an `after build` gate:
 
-"It creates new files" or "is this the right place" alone is not a reason. When a match is uncertain, recommend afk and say so in the quiz.
+4. **Taste** that tests cannot judge: UI, feel, output, names the user sees.
 
-**Hard-to-reverse actions get no Human line.** A deploy, a migration on real data, a sent message, or any other irreversible outside action never appears in a ticket: the always-loaded rule in `.omp/AGENTS.md` (ask before anything hard to reverse) covers it on every ticket.
+For either kind:
 
-A ticket with a `before:` stop can be the first instance of a shape later tickets copy. Cut it into its own small hitl ticket, and make the afk tickets that copy it blocked by it, saying in "What to build" that they follow that ticket's shape. When an afk ticket must come before a hitl one, say so in the quiz, since it splits the spec run.
+5. **The user asked** to oversee it.
 
-**Take the pen.** A build worker failing twice on the same problem hands the pen over (implement HITL.md § Take the pen).
+Not reasons: "it creates new files", "is this the right place" alone, size, complexity, tests, bug fixes, signature changes inside an existing module. When a match is uncertain, recommend afk in the quiz.
+
+**Mode and label.** The mode is hitl if and only if the Review gates table has at least one row; else afk. The table decides. The quiz override edits the table: to make a ticket afk, remove its rows; to make it hitl, add a row. At publish, hitl gets `ready-for-human` and afk gets `ready-for-agent`. A stuck run relabels `ready-for-human` and comments its question; when the user answers, the label goes back to `ready-for-agent` (the ticket's table decides the mode again).
+
+**First instance of a shape.** A ticket that is the first instance of a shape later tickets copy gets a `before build` gate (reason 3). Cut it into its own small hitl ticket, and make the afk tickets that copy it blocked by it, saying in "What to build" that they follow that ticket's shape.
 
 A tidy is offered at landing, never planned in a ticket.

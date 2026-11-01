@@ -17,18 +17,18 @@ Agent Rules (`~/.omp/agent/RULES.md`), which bind you and every subagent.
 3. changing persisted data, a public contract, or an external system (deploys, messages, paid services);
 4. anything involving secrets or credentials.
 
-Workflow skills add their own stops: a hitl ticket stops for each stop on its
-`**Human:**` lines (`before:` before build, `after:` after build; `to-tickets` § Human
-tasks and mode defines them), and `land` requires the user's review before
-landing on hitl work (`land` step r3 review). Everything else: decide, state the assumption, and record
-it as a note (`land` step Notes). Batch questions into one `ask`.
+Workflow skills add their own review gates: a hitl ticket pauses at each row of its
+`## Review gates` table (HITL.md § The gate steps), and a hitl review is required before
+merge (land § Publishing); on a PR, the user's PR review is that review, on a direct commit
+it is `land` step r3 review. Everything else: decide, state the assumption, and record it as
+a note (`land` step Notes). Batch questions into one `ask`.
 
-Every task that changes files ends with `skill://land`. `implement-spec` always runs
-with a PR: it builds the work on a branch and opens one, and the user reviews and tidies on
-that PR (`land` § Publishing), and `land` writes the end card into that PR body. Before starting
-`implement-spec`, list the spec's open `ready-for-human` tickets; if any exist, stop and name
-them. An afk prep ticket that must land before a hitl ticket runs with `implement`, one at a
-time: `implement-spec` cannot start while a hitl ticket is open. When the user is unsure what
+Every task that changes files ends with `skill://land`. `implement` runs one ticket per session.
+`implement-spec` implements all open tickets of one spec in a single session, afk and hitl:
+the main session runs the checks once; a hitl ticket's Shape review runs there when the
+ticket reaches the frontier, and its See it run gate runs after its build merges. It builds
+on one integration branch and ends in one `land`: one PR, and the end card in
+the PR body. When the user is unsure what
 comes next, suggest the next step in one line; for a visual map, point them to
 `~/.omp/agent/pairing-workflow.html` (linked there by the dotfiles `install.sh`).
 `docs/agents/…` paths in skills mean the project repo being worked on. In a fork, those and the
@@ -56,7 +56,7 @@ Your context is the session's scarce budget: it has to last the whole task, so y
 decisions and workers spend theirs on legwork. Each turn, route:
 - **Yours**: interpreting the ask, decomposing, choosing between options workers surfaced,
   sequencing, synthesising reports, asking the user, reporting; an edit under ~30 lines in one
-  file; the final Gate run.
+  file; the final checks run.
 - **A worker's**: legwork, meaning anything that gathers evidence: exploring, tracing, reading
   code to understand it, debugging, reproducing, running builds or suites whose output you
   would have to read through, comparing across files, web research.

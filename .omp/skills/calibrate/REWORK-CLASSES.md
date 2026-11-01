@@ -10,7 +10,9 @@ Give each rework commit exactly one primary class (the cause, not the symptom), 
 it reworks when identifiable:
 
 - **a. Structure**: module/file structure or boundaries were wrong: splitting a monolith,
-  moving logic between contexts, re-layering the same surface again. *e.g. splitting
+  moving logic between contexts, re-layering the same surface again. Class (a) rework on a
+  shape a shape review owns (reason 3 in `to-tickets` § Review gates) is explained by
+  that review's answer; unexplained only when no such answer exists. *e.g. splitting
   `BackendClient` into `StreamHandler`/`SSEParser`/`RequestContext`.*
 - **b. Duplication**: duplicated code paths, the same thing done two ways, or dead code
   left behind. *e.g. merging three cold-store write paths behind one `persist_turn/1`;
@@ -28,7 +30,8 @@ it reworks when identifiable:
 
 **Unexplained rework** = commits in **a**, **b**, and **structural e** that cite no new
 - requirement, ticket, or ADR. This is what the pairing workflow exists to drive down: a shape
-re-changed with no new decision behind it (ADRs written at surface changes count as a decision).
+re-changed with no new decision behind it. ADRs written at surface changes count as a decision,
+and so do ADRs written from an accepted review gate answer (`implement/HITL.md` § Shape review).
 
 - **c** is learning, not failure: tallied, never counted in the metric.
 - **d** is tracked separately: a rising bug count points at acceptance criteria/tests, not at

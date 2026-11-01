@@ -1,5 +1,5 @@
 ---
-description: "Elixir stack pack for the pairing workflow: skeleton idiom, idiomatic conventions, guardrail tools, default gate."
+description: "Elixir stack pack for the pairing workflow: skeleton idiom, idiomatic conventions, guardrail tools, default checks."
 condition: ".*"
 scope: "tool:edit(**/*.ex), tool:write(**/*.ex), tool:edit(**/*.exs), tool:write(**/*.exs)"
 interruptMode: never
@@ -59,9 +59,9 @@ end
 - **Docs**: `mix doctor --summary` reports `@moduledoc` / `@spec` coverage.
 - **Boundary check** (optional, no dependency): `mix xref graph --format cycles --fail-above 0` fails on compile-time cycles between modules.
 
-## Default gate
+## Default checks
 
-One repo-owned command, recorded in the agent file's `## Gate` section. Idiomatic Elixir default is a `mix precommit` alias:
+One repo-owned command, recorded in the agent file's `## Checks` section. Idiomatic Elixir default is a `mix precommit` alias:
 
 ```elixir
 # mix.exs

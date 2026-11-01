@@ -1132,11 +1132,11 @@ fi # AGENT_POD guard: Plannotator cleanup, r3
 # Skills install into ~/.agents/skills/, which omp exposes via its
 # config.yml `skills.customDirectories`.
 # `skills add -a universal` targets that shared directory agent-agnostically.
-# Matt Pocock engineering skills. `implement` and `to-tickets` are excluded from
-# MATT_POCOCK_SKILLS because pairing-workflow variants of both live in .omp/skills
+# Matt Pocock engineering skills. `implement`, `to-tickets` and `implement-spec`
+# are excluded from MATT_POCOCK_SKILLS because local variants live in .omp/skills
 # (→ ~/.omp/agent/skills). Even so, `skills add` pulls the whole mattpocock/skills
-# repo, which also ships implement/ and to-tickets/; they would shadow the local
-# variants, so they are removed after the install (see below).
+# repo, which also ships those three; they would shadow the local variants, so
+# they are removed after the install (see below).
 MATT_POCOCK_SKILLS=(
   code-review
   codebase-design
@@ -1146,7 +1146,6 @@ MATT_POCOCK_SKILLS=(
   grill-with-docs
   grilling
   handoff
-  implement-spec
   improve-codebase-architecture
   pr
   prototype
@@ -1164,12 +1163,12 @@ MATT_POCOCK_SKILLS=(
   writing-for-agents
 )
 
-# Lean agent-pod profile: of the Matt Pocock skills, only tdd and code-review are
-# named by the pod's agent-tier config (its skills.includeSkills allowlist); the
-# rest are laptop-side work skills. The two design skills below come from other
-# repos and are installed in both modes.
+# Lean agent-pod profile: it installs only the Matt Pocock skills an unattended
+# ticket run cites (tdd, code-review, pr for land's PR path, domain-modeling for
+# implement's ADRs); the rest are laptop-side work skills. The two design skills
+# below come from other repos and are installed in both modes.
 if [ "$AGENT_POD" = "true" ]; then
-  MATT_POCOCK_SKILLS=(tdd code-review)
+  MATT_POCOCK_SKILLS=(tdd code-review pr domain-modeling)
 fi
 
 # --- Link the diagram-design profile ---
@@ -1193,10 +1192,10 @@ if command -v npm &>/dev/null; then
   done
   npx skills add mattpocock/skills "${matt_pocock_skill_args[@]}" -a universal -y -g
 
-  echo "  Removing bundled upstream implement and to-tickets (local variants shadow them)..."
-  rm -rf "$HOME/.agents/skills/implement" "$HOME/.agents/skills/to-tickets" || true
-  if [ -d "$HOME/.agents/skills/implement" ] || [ -d "$HOME/.agents/skills/to-tickets" ]; then
-    echo "  WARNING: failed to remove upstream implement/to-tickets; local variants may be shadowed"
+  echo "  Removing bundled upstream implement, to-tickets and implement-spec (local variants shadow them)..."
+  rm -rf "$HOME/.agents/skills/implement" "$HOME/.agents/skills/to-tickets" "$HOME/.agents/skills/implement-spec" || true
+  if [ -d "$HOME/.agents/skills/implement" ] || [ -d "$HOME/.agents/skills/to-tickets" ] || [ -d "$HOME/.agents/skills/implement-spec" ]; then
+    echo "  WARNING: failed to remove upstream implement/to-tickets/implement-spec; local variants may be shadowed"
   fi
 
   echo "  Installing conventional-commit skill..."

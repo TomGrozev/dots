@@ -86,13 +86,6 @@
     margin-bottom: 3px;
   }
   .trigger .q { font-size: 12.5px; line-height: 1.4; }
-  .trigger .q .human {
-    font-family: var(--font-mono);
-    font-size: 10px;
-    color: var(--accent);
-    letter-spacing: 0.06em;
-    margin-right: 4px;
-  }
 
   section { margin-top: 24px; }
   h2 {
@@ -230,12 +223,12 @@
 
   <div class="triggers">
     <div class="trigger" id="trigger-pin">
-      <span class="tag">before · shape review</span>
-      <p class="q"><span class="human">Human:</span>before: where the provider pin is stored and how routing reads it. Why: stored data, the pin is saved per chat and hard to migrate later.</p>
+      <span class="tag">Shape review</span>
+      <p class="q">What: where the provider pin is stored and how routing reads it. Why: a migration, the stored conversation record gains a pin field that existing records must migrate to.</p>
     </div>
     <div class="trigger" id="trigger-removal">
-      <span class="tag">before · decision</span>
-      <p class="q"><span class="human">Human:</span>before: what happens on the next turn when the pinned instance is removed from config. Why: the choice is hard to undo once stored.</p>
+      <span class="tag">Shape review</span>
+      <p class="q">What: the next turn when the pinned instance is removed from config. Why: an outside contract, clients see this reply when a pinned instance goes away.</p>
     </div>
   </div>
 
@@ -396,7 +389,7 @@
   </section>
 
   <section id="checks">
-    <h2>Checks</h2>
+    <h2>Review points</h2>
     <ul class="checks">
       <li class="check" id="check-right-module">
         <span class="label">Right module or layer</span>
@@ -426,7 +419,7 @@ target_provider.ex:84 serving = ModelCatalog.provider_instances_serving(model)</
           <li><span class="letter">B</span><span>No stored field. Recompute the target from the model on every turn.<span class="reason">Pick when a wrong pin is worse than no pin and the pool is small: nothing to store or migrate; the cost is that provider-side caching breaks whenever the random draw changes instance between turns.</span></span></li>
           <li><span class="letter">C</span><span>A client-supplied session header that the proxy echoes back to the same instance.<span class="reason">Pick when clients already send a session id and own affinity: the proxy stays stateless; the cost is that no header means no pin, and header handling becomes part of the outside contract.</span></span></li>
         </ul>
-        <p class="pick">Pick hidden until you answer (structure).</p>
+        <p class="pick">Pick hidden until you answer.</p>
       </div>
 
       <div class="decision" id="decision-pin-gone">
@@ -437,7 +430,7 @@ target_provider.ex:84 serving = ModelCatalog.provider_instances_serving(model)</
           <li><span class="letter">B</span><span>Reject the turn with 409 <code>pinned instance is gone</code> and keep the pin.<span class="reason">Pick when the client must learn about config drift and re-decide: no silent movement; the cost is that a routine config edit breaks every live conversation until the client reacts.</span></span></li>
           <li><span class="letter">C</span><span>Keep the pin and serve from any configured instance, so the pin becomes a label only.<span class="reason">Pick when availability beats affinity: turns never fail on a rename; the cost is that the cache and session stability the pin exists for are lost the moment it stops resolving.</span></span></li>
         </ul>
-        <p class="pick">Pick hidden until you answer (structure).</p>
+        <p class="pick">Pick hidden until you answer.</p>
       </div>
 
       <div class="decision" id="decision-retry-pin">
@@ -448,7 +441,7 @@ target_provider.ex:84 serving = ModelCatalog.provider_instances_serving(model)</
           <li><span class="letter">B</span><span>Yes. The instance that answered becomes the pin.<span class="reason">Pick when a flapping instance should stop being chosen: the pool self-heals toward healthy instances; the cost is that one transient blip permanently moves every conversation it touched off the warm cache.</span></span></li>
           <li><span class="letter">C</span><span>Clear the pin, so the next turn selects again.<span class="reason">Pick when model-aware selection should re-judge after any failure: no staleness of any kind; the cost is a full reselect per failure and a cache miss on the next turn.</span></span></li>
         </ul>
-        <p class="pick">Pick hidden until you answer (structure).</p>
+        <p class="pick">Pick hidden until you answer.</p>
       </div>
 
     </div>
@@ -456,7 +449,7 @@ target_provider.ex:84 serving = ModelCatalog.provider_instances_serving(model)</
 
   <footer>
     Code: <code>git show f39d037</code> · ADR-0013 §7 · ADR: <a href="#">docs/adr/0013-provider-instance-pinning-and-model-aware-routing.md</a><br>
-    Gate: the build does not continue until each decision has an answer comment naming one option letter. Archive with open decisions does not continue the build; the agent asks in chat for the missing answers.
+    Wait: the build does not continue until each decision gets an answer that names an option. Any wording that names an option counts; a bare "yes" with open decisions does not. An archive with open decisions does not continue the build; the agent asks in chat for the missing answers.
   </footer>
 
 </div>

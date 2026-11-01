@@ -113,6 +113,9 @@ skills:
     - conventional-commit
     - frontend-design
     - apple-design
+    # `land` cites `pr`, and `implement` cites `domain-modeling`.
+    - pr
+    - domain-modeling
   enablePiProject: false
 
 # --- Discovery providers -------------------------------------------------------

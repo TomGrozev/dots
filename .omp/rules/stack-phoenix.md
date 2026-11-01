@@ -1,5 +1,5 @@
 ---
-description: "Phoenix stack pack for the pairing workflow: contexts as the boundary, the web layer and Ecto, LiveView/HEEx, Phoenix gate."
+description: "Phoenix stack pack for the pairing workflow: contexts as the boundary, the web layer and Ecto, LiveView/HEEx, Phoenix checks."
 condition: ".*"
 scope: "tool:edit(**/lib/*_web/**), tool:write(**/lib/*_web/**), tool:edit(**/*.heex), tool:write(**/*.heex), tool:edit(**/*_live.ex), tool:write(**/*_live.ex)"
 interruptMode: never
@@ -14,7 +14,7 @@ Rules for Phoenix apps and libraries with a Phoenix web layer. Generic Elixir ru
 - A context module (`MyApp.Accounts`) and its public functions are the cross-module contract; its internal modules (`MyApp.Accounts.*`) are private unless exported.
 - The web layer (`MyAppWeb`) calls context functions, never `Repo` or a context's internal modules.
 - In the web layer, `Ecto.Changeset` is the only Ecto module used; keep `import Ecto.Query`, schemas, and `Repo` inside contexts.
-- Ecto schemas and migrations are persisted data shape: a **new** schema or a **change** to one is a `before:` stop for the user (`to-tickets` § Human tasks and mode). PubSub message structs, behaviours, and protocols are contracts: a new one across a boundary with no existing example is a `before:` stop too.
+- Ecto schemas and migrations are persisted data shape: a **new** schema or a **change** to one is a review gate (`to-tickets` § Review gates, reason 1 or 2). PubSub message structs, behaviours, and protocols are contracts: a new one across a boundary with no existing example is a review gate too.
 - One context per domain area, named for the noun (`Accounts`, `Billing`); its schema's `changeset/2` stays `@doc false`, and its public functions return tagged tuples.
 
 ## Conventions
@@ -38,6 +38,6 @@ Rules for Phoenix apps and libraries with a Phoenix web layer. Generic Elixir ru
 
 - **Templates**: `mix format --check-formatted` covers HEEx once `Phoenix.LiveView.HTMLFormatter` is a `.formatter.exs` plugin (Phoenix 1.8 generates this).
 
-## Default gate
+## Default checks
 
-Phoenix 1.8 generates a `precommit` alias (`compile --warnings-as-errors`, `deps.unlock --unused`, `format`, `test`); extend it with `credo --strict` as in `stack-elixir`, and record it as the repo's Gate in the agent file's `## Gate` section (`skill://onboard`).
+Phoenix 1.8 generates a `precommit` alias (`compile --warnings-as-errors`, `deps.unlock --unused`, `format`, `test`); extend it with `credo --strict` as in `stack-elixir`, and record it as the repo's checks in the agent file's `## Checks` section (`skill://onboard`).
