@@ -311,7 +311,7 @@
 .ai-rail.tick progress {
   min-height: 2px;
   background-color: transparent;
-  border-right: 1px solid alpha(@nord13, 0.75);
+  border-right: 2px solid alpha(@nord13, 0.9);
 }
 
 /* --- Graphs, volume, keep-awake --- */
@@ -337,11 +337,13 @@
   color: @nord8;
 }
 
-/* Off is a dim outline cup; the on colour comes from format_on markup. */
+/* Off is a dim outline cup, so the island stays quiet, but Nord3 vanished into
+ * the island fill. Nord4 at 0.4 reads as present and still dim. The on colour
+ * comes from the format_on markup. */
 .inhibit {
   padding: 0;
   background: none;
-  color: @nord3;
+  color: alpha(@nord4, 0.4);
 }
 
 .inhibit:hover {

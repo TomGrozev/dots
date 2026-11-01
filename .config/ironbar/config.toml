@@ -234,7 +234,7 @@ class = "graph"
 # Relative paths resolve against ironbar's working directory, so use `~`.
 path = "~/.config/ironbar/graphs/cpu.lua"
 frequency = 2000
-width = 40
+width = 56
 height = 16
 tooltip = '{{2000:cat "$XDG_RUNTIME_DIR/polar-bar-cpu" 2>/dev/null || :}}'
 
