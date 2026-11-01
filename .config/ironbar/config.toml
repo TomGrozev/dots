@@ -7,7 +7,10 @@ position = "top"
 # The surface is the island height. The islands are #start, #center and #end
 # in style.css; the surface itself stays transparent so the wallpaper shows
 # between them.
-height = 26
+# The islands are 28px tall (26px of content plus a 1px border each side) and
+# sit at the top of a 30px surface. The 2px below them is the room a soft drop
+# shadow needs; Hyprland clips anything drawn outside the layer box.
+height = 30
 anchor_to_edges = true
 layer = "top"
 # The exclusive zone covers the surface plus its top margin, and Hyprland adds
@@ -63,7 +66,9 @@ bar = [
 [[center]]
 type = "clock"
 name = "clock"
-format = "%a %d %b  %H:%M"
+# The format accepts Pango markup: the date is the muted tier and the time the
+# bright one. The module stays `clock` because its click opens the calendar.
+format = '<span fgalpha="60%%">%a %d %b</span>  <span foreground="#eceff4" weight="bold">%H:%M</span>'
 format_popup = "%H:%M"
 show_week_numbers = true
 
@@ -72,11 +77,14 @@ show_week_numbers = true
 # ironbar 0.19.1 sets the marquee's looped copy as raw Pango markup
 # (src/gtk_helpers.rs:434), so a title with "&" fails to parse and shows
 # nothing. Turn the marquee back on when an ironbar release escapes it.
+# The format accepts Pango markup, so the title is the bright tier and the
+# artist the muted one. [center.truncate] still cuts the line to 32 characters,
+# so the artist only shows on a short title.
 [[center]]
 type = "music"
 name = "music"
 player_type = "mpris"
-format = "{title} · {artist}"
+format = '<span foreground="#eceff4">{title}</span> <span fgalpha="60%">· {artist}</span>'
 show_status_icon = true
 icon_size = 14
 cover_image_size = 160
@@ -164,20 +172,54 @@ bar = [
 ]
 
 # AI usage: Claude's 5-hour window and Neuralwatt's kWh plan (its prepaid
-# credits when there is no plan). Both labels poll every 60s but read the
-# cache of polar-ai-usage, which runs codexbar at most once per 300s:
-# Anthropic's usage endpoint rate-limits hard. Click opens the details, where
-# each window adds the share of its period elapsed, the pace verdict and the
-# use projected at its reset.
+# credits when there is no plan). The labels poll every 60s but read the cache
+# of polar-ai-usage, which runs codexbar at most once per 300s: Anthropic's
+# usage endpoint rate-limits hard. Click opens the details, where each window
+# adds the share of its period elapsed, the pace verdict and the use projected
+# at its reset.
+#
+# Each provider is one vertical cell: its name and value on the 16px row,
+# then a 2px rail filled to the used share, then a 3px rail whose Nord13 edge
+# marks the share of the window that has elapsed. The edge hangs just under
+# the fill, so it reads as a mark on the meter rather than a second bar.
+# Neither rail sets `length`, so GTK gives each one the width of the cell,
+# which is the width of the name and value above it. The rails, not the text,
+# carry the pace: the fill reads now and the edge reads on schedule.
 [[end]]
 type = "custom"
 name = "ai-usage"
 class = "ai-usage"
+# Each provider cell is a button on top of two rails, and the button is what
+# opens the details: a `popup:toggle` on a plain label registers no popup, so
+# ironbar reports "Module has no popup functionality" for this module.
 bar = [
-  { type = "button", label = "{{60000:polar-ai-usage}}", on_click = "popup:toggle" },
+  { type = "box", orientation = "vertical", class = "ai-cell", widgets = [
+    { type = "button", label = "{{60000:polar-ai-usage label claude}}", on_click = "popup:toggle" },
+    { type = "progress", class = "ai-rail fill", value = { cmd = "polar-ai-usage num claude used", interval = 60000 } },
+    { type = "progress", class = "ai-rail tick", value = { cmd = "polar-ai-usage num claude elapsed", interval = 60000 } },
+  ] },
+  { type = "box", orientation = "vertical", class = "ai-cell ai-cell-last", widgets = [
+    { type = "button", label = "{{60000:polar-ai-usage label neuralwatt}}", on_click = "popup:toggle" },
+    { type = "progress", class = "ai-rail fill", value = { cmd = "polar-ai-usage num neuralwatt used", interval = 60000 } },
+    { type = "progress", class = "ai-rail tick", value = { cmd = "polar-ai-usage num neuralwatt elapsed", interval = 60000 } },
+  ] },
 ]
 popup = [
   { type = "label", label = "{{60000:polar-ai-usage popup}}", class = "ai-usage-details" },
+]
+
+# Hairline between groups on the right island. The label is empty and the line
+# is drawn by the stylesheet: 1px, 12px tall, fading at both ends, so the
+# group change reads without a full rule. The 12px side margins are the gap,
+# so the modules on either side carry no margin of their own.
+[[end]]
+type = "custom"
+name = "divider-usage"
+class = "divider"
+bar = [
+  { type = "box", orientation = "vertical", valign = "center", widgets = [
+    { type = "label", label = "", class = "divider-line" },
+  ] },
 ]
 
 # Live graphs: CPU history as a sparkline, memory as a ring. The Lua reads
@@ -211,7 +253,9 @@ tooltip = '{{2000:cat "$XDG_RUNTIME_DIR/polar-bar-ram" 2>/dev/null || :}}'
 [[end]]
 type = "volume"
 name = "volume"
-format = "{icon} {percentage}%"
+# The format takes Pango markup like the clock and music formats do, so the
+# icon keeps the Nord9 of the stylesheet and the number takes the bright tier.
+format = "{icon} <span foreground='#eceff4' weight='bold'>{percentage}%</span>"
 show_sources = false
 sink_slider_orientation = "horizontal"
 popup_orientation = "vertical"
@@ -238,6 +282,18 @@ on_click_right = "cycle"
 format_on = "<span foreground='#ebcb8b'>\U000F0176</span> {duration}"
 format_off = "\U000F06CA"
 tooltip = "Keep awake. Right click changes the time."
+
+# The second hairline closes the machine group, so the tray reads as app
+# state and not as another readout.
+[[end]]
+type = "custom"
+name = "divider-tray"
+class = "divider"
+bar = [
+  { type = "box", orientation = "vertical", valign = "center", widgets = [
+    { type = "label", label = "", class = "divider-line" },
+  ] },
+]
 
 [[end]]
 type = "tray"

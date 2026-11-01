@@ -39,20 +39,29 @@
 
 /* --- Islands --- */
 
-/* Radius 8 matches the window rounding in look.lua, so the islands read as
- * the same material as the windows below them. The edge is lit from above:
- * Nord8 on the top side fades through Nord3 on the sides to Nord1 at the
- * bottom, and GTK blends the side colours around the rounded corners. A
- * border-image gradient would square the corners off. */
+/* 26px of content plus a 1px border each side is a 28px island, and the bar
+ * surface is 30px, so 2px below the islands stay free for the drop shadow.
+ * Radius 8 matches the window rounding in look.lua, so the islands read as the
+ * same material as the windows below them. The edge is lit from above: Nord8
+ * on the top side fades through Nord3 on the sides to Nord1 at the bottom, and
+ * GTK blends the side colours around the rounded corners. A border-image
+ * gradient would square the corners off. */
 #start,
 #center,
 #end {
-  min-height: 24px;
+  min-height: 26px;
   padding: 0 10px;
   border-radius: 8px;
   border: 1px solid;
-  border-color: alpha(@nord8, 0.38) alpha(@nord3, 0.55) alpha(@nord1, 0.7) alpha(@nord3, 0.55);
+  border-color: rgba(136, 192, 208, 0.30) rgba(76, 86, 106, 0.55) rgba(59, 66, 82, 0.75) rgba(76, 86, 106, 0.55);
   background-color: alpha(@nord0, 0.82);
+  /* The body: Nord1 at the top, Nord0 through the middle, a darker Nord0 at
+   * the bottom. Every stop stays above Hyprland's ignore_alpha (0.5), so the
+   * layer rule still blurs the island and the glass does not break. */
+  background-image: linear-gradient(180deg, rgba(59, 66, 82, 0.88) 0%, rgba(46, 52, 64, 0.85) 55%, rgba(40, 45, 56, 0.90) 100%);
+  /* A lit top inner edge, a shaded bottom inner edge, then one soft shadow
+   * that lifts the island off the wallpaper. */
+  box-shadow: inset 0 1px 0 rgba(136, 192, 208, 0.12), inset 0 -1px 0 rgba(24, 28, 36, 0.85), 0 2px 6px rgba(20, 24, 30, 0.55);
 }
 
 /* The dot slots carry their own side space, so the left island needs less
@@ -64,20 +73,45 @@
 /* Uniform rhythm between modules on the right island. Each module sits in a
  * revealer directly inside #end, and show_if hides only the module, so the
  * gap goes on the module: a hidden badge then takes its gap with it.
- * The tray is always last and always shown, so it ends the row flush. */
+ * The tray is always last and always shown, so it ends the row flush.
+ * Every gap is 12px. The modules that sit before a divider give up their
+ * margin, because the divider's own 12px side margins are the gap. */
 #end > revealer > .widget {
-  margin-right: 10px;
+  margin-right: 12px;
 }
 
 #end > revealer:last-child > .widget {
   margin-right: 0;
 }
 
+#end > revealer > #ai-usage,
+#end > revealer > #inhibit {
+  margin-right: 0;
+}
+
+/* --- Group divider --- */
+
+/* A custom module with an empty label: the 1x12 line is the label's
+ * background, and the box around it centres the line in the island instead of
+ * stretching it to the full height. A gradient that fades at both ends reads
+ * as a hairline rather than a frame. */
+.divider {
+  padding: 0;
+  margin: 0 12px;
+}
+
+.divider-line {
+  min-width: 1px;
+  min-height: 12px;
+  padding: 0;
+  background-image: linear-gradient(180deg, transparent 0%, alpha(@nord3, 0.95) 30%, alpha(@nord3, 0.95) 70%, transparent 100%);
+}
+
 /* --- Left island: workspace dots --- */
 
 /* The row is one label of Pango markup, so the marks and their colours live
- * in scripts/ws-row.sh. CSS only sets the shared type: 10px bold keeps the
- * row at a stable pitch and the pill width tied to the font. */
+ * in scripts/ws-row.sh. CSS only sets the shared type: 10px bold gives a 6px
+ * monospace cell, so one glyph plus one space is a 12px dot pitch. */
 .wsrow {
   padding: 0;
   font-size: 10px;
@@ -93,14 +127,17 @@
 
 /* --- Centre island: clock + now playing --- */
 
+/* The clock format carries its own tiers (muted date, bright time), so CSS
+ * only sets the base colour and the tracking. No bold here: it would flatten
+ * the two tiers into one. */
 .clock {
   padding: 0;
   background: none;
   color: @nord6;
-  font-weight: bold;
-  letter-spacing: 1px;
+  letter-spacing: 0.5px;
 }
 
+/* The music format carries its own tiers too (bright title, muted artist). */
 .music {
   margin-left: 12px;
   padding: 0;
@@ -119,12 +156,13 @@
 
 /* --- Right island: mode badges --- */
 
-/* Badge labels fill the island height by default; the 4px vertical margin
- * caps each pill at 16px so it sits inside the island with an even inset. */
+/* Badge labels fill the island height by default; the 5px vertical margin
+ * caps each pill at 16px inside the 26px interior, so every module on the row
+ * shares one 16px centre line. */
 .badge .pill,
 .mode-badge .mode,
 .mode-badge .mode-hint {
-  margin: 4px 0;
+  margin: 5px 0;
   padding: 0 7px;
   font-weight: bold;
   font-size: 10px;
@@ -184,26 +222,104 @@
 
 /* --- AI usage --- */
 
-/* polar-ai-usage sets the value colours in Pango markup, so CSS only frames
- * the button. The hover fill matches the tray items: it marks the readout as
- * a click target without a frame at rest. */
-.ai-usage button {
-  margin: 4px 0;
-  padding: 0 4px;
-  border-radius: 4px;
+/* Two cells, one per provider. The cell is a vertical box: the button that
+ * shows the value on the 16px line, then the 2px fill rail, then the 3px tick
+ * rail. A 2px gap holds the rail off the descenders, and the box is centred in
+ * the 26px interior. The label text and its colours come from the
+ * polar-ai-usage markup: muted name, bright value. */
+.ai-usage {
+  margin: 0;
+  padding: 0;
   background: none;
 }
 
-.ai-usage button:hover {
-  background-color: alpha(@nord2, 0.9);
+/* 12px between the two providers, and none after the last one. */
+.ai-cell {
+  padding: 0;
+  margin-right: 12px;
+}
+
+.ai-cell-last {
+  margin-right: 0;
+}
+
+/* The provider text is a button, because only a button carries a click to the
+ * popup. The theme draws a raised box for a button; here the text is the whole
+ * target and the cell already carries a rail, so the box and its fill go.
+ * The weight and colours come from the script's Pango markup: muted name,
+ * bright value. */
+.ai-usage button {
+  margin: 0;
+  padding: 0;
+  border: none;
+  box-shadow: none;
+  background: none;
+  color: inherit;
+}
+
+.ai-usage button:hover,
+.ai-usage button:focus {
+  background: none;
+  box-shadow: none;
+  outline: none;
+  color: @nord6;
+}
+
+/* The rails. GTK's theme gives a progress bar a minimum size, a border and a
+ * trough fill; all of that goes first, because the rail is 1px or 2px tall and
+ * any inherited inset would swallow it. */
+.ai-rail progressbar,
+.ai-rail trough,
+.ai-rail progress {
+  min-width: 0;
+  min-height: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  background-image: none;
+}
+
+/* Fill rail: 2px, the used share of the window. Trough Nord3 at 0.6 and fill
+ * Nord8, so the rail reads as a level and not as a second text colour. */
+.ai-rail.fill trough {
+  min-height: 2px;
+  border-radius: 1px;
+  background-color: alpha(@nord3, 0.6);
+}
+
+/* The 2px gap keeps the rail off the descenders, so it reads as a meter under
+ * the value and not as an underline through it. */
+.ai-rail.fill {
+  margin-top: 2px;
+}
+
+.ai-rail.fill progress {
+  min-height: 2px;
+  border-radius: 1px;
+  background-color: @nord8;
+}
+
+/* Tick rail: the elapsed share of the window. The fill stays transparent and
+ * only its right edge is drawn, in Nord13, so the line lands exactly at the
+ * elapsed share at any value. The rail is 2px tall, flush under the fill rail,
+ * so the mark continues the meter instead of hanging off it. */
+.ai-rail.tick trough {
+  min-height: 2px;
+  background-color: transparent;
+}
+
+.ai-rail.tick progress {
+  min-height: 2px;
+  background-color: transparent;
+  border-right: 1px solid alpha(@nord13, 0.75);
 }
 
 /* --- Graphs, volume, keep-awake --- */
 
-/* The canvases are 16px tall; the margin centres them in the 24px island
+/* The canvases are 16px tall; the margin centres them in the 26px interior
  * instead of stretching the drawing area to the full height. */
 .cairo {
-  margin: 4px 0;
+  margin: 5px 0;
 }
 
 /* The two graphs read as one resource readout, so they sit closer. */

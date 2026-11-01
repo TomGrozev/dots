@@ -25,12 +25,18 @@ readonly CLAUDE="#d08770" NEURALWATT="#a3be8c"
 
 usage() {
   cat <<'EOF'
-Usage: polar-ai-usage [bar|popup|--help]
+Usage: polar-ai-usage [label <provider>|num <provider> <used|elapsed>|popup|--help]
 
-  bar     one Pango markup line for the bar (default)
-  popup   the detail view: Claude windows, Neuralwatt energy and credits,
-          each with its share of the period elapsed, the pace verdict and the
-          projected use at the reset
+  label <provider>          one bar cell: the provider name dimmed, its
+                            primary window value bright
+                            (provider: claude | neuralwatt)
+  num <provider> <which>    a bare 0..100 number for a progress rail:
+                            `used` is the primary window share used,
+                            `elapsed` is the share of that window elapsed
+  popup                     the detail view: Claude windows, Neuralwatt energy
+                            and credits, each with its share of the period
+                            elapsed, the pace verdict and the projected use at
+                            the reset
 
 Data comes from `codexbar usage --format json`, which reports the providers
 enabled in CodexBar's config (~/.config/codexbar/config.json). Enable claude
@@ -139,14 +145,31 @@ render() { # mode, codexbar JSON, codexbar installed (yes|no), updated HH:MM
     | ($all | map(select(.provider == "claude")) | first) as $claude
     | ($all | map(select(.provider == "neuralwatt")) | first) as $nw
     | $claude.usage as $cu | $nw.usage as $nu
-    | if $mode == "bar" then
-        def name($text; $color): "<span foreground=\"\($color)\">\($text)</span>";
-        ($nu.primary.usedPercent | pct) as $kwh
-        | "\(name("Claude"; $claude_c)) \(level($cu.primary.usedPercent | pct; 0))   \(name("Neuralwatt"; $nw_c)) "
-          + if $kwh == null and $nu.providerCost != null
-            then "<span foreground=\"\($calm)\">\($nu.providerCost.used | money)</span>"
-            else level($kwh; 0)
-            end
+    | ($mode | split(" ")) as $m
+    | if $m[0] == "num" then
+        # A rail value: a bare number, clamped, so a percent change never
+        # moves the layout. A provider that has no window at all reads 0.
+        (if $m[1] == "claude" then $cu.primary else $nu.primary end) as $w
+        | (if $m[2] == "elapsed" then (elapsed($w) | pct) else ($w.usedPercent | pct) end)
+        | if . == null then 0 else (if . < 0 then 0 elif . > 100 then 100 else . end) end
+      elif $m[0] == "label" then
+        # One bar cell. The name is the muted tier and the value the bright
+        # one, so the island reads by value first. Nord13 and Nord11 keep the
+        # warning the `bar` line already had.
+        def dim($t): "<span fgalpha=\"60%\">\($t)</span>";
+        def hot($v):
+          if $v == null then "<span fgalpha=\"45%\">–</span>"
+          else "<span foreground=\"\(if $v >= 90 then $crit elif $v >= 75 then $warn else "#eceff4" end)\" weight=\"bold\">\($v)%</span>"
+          end;
+        if $m[1] == "claude" then
+          dim("Claude") + " " + hot($cu.primary.usedPercent | pct)
+        else
+          dim("Neuralwatt") + " "
+          + (if ($nu.primary.usedPercent | pct) == null and $nu.providerCost != null
+             then "<span foreground=\"#eceff4\" weight=\"bold\">\($nu.providerCost.used | money)</span>"
+             else hot($nu.primary.usedPercent | pct)
+             end)
+        end
       else
         def header($name; $color; $p):
           "<span foreground=\"\($color)\" weight=\"bold\">\($name)</span>  "
@@ -184,14 +207,35 @@ render() { # mode, codexbar JSON, codexbar installed (yes|no), updated HH:MM
   ' <<<"$2"
 }
 
-case "${1:-bar}" in
-bar | popup) mode=${1:-bar} ;;
+case "${1:-}" in
+popup) mode=popup ;;
+label | num)
+  case "${2:-}" in
+  claude | neuralwatt) ;;
+  *)
+    printf 'polar-ai-usage: %s needs a provider: claude or neuralwatt\n' "$1" >&2
+    usage >&2
+    exit 2
+    ;;
+  esac
+  mode="$1 $2"
+  if [ "$1" = num ]; then
+    case "${3:-used}" in
+    used | elapsed) mode="$mode ${3:-used}" ;;
+    *)
+      printf 'polar-ai-usage: num takes used or elapsed, not %s\n' "$3" >&2
+      usage >&2
+      exit 2
+      ;;
+    esac
+  fi
+  ;;
 -h | --help)
   usage
   exit 0
   ;;
 *)
-  printf 'polar-ai-usage: unknown argument: %s\n' "$1" >&2
+  printf 'polar-ai-usage: unknown argument: %s\n' "${1:-<none>}" >&2
   usage >&2
   exit 2
   ;;
