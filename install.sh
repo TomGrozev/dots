@@ -393,22 +393,54 @@ WRAPPER
             "https://github.com/sandwichfarm/hyprexpo:hyprexpo"
             "https://github.com/VirtCode/hypr-dynamic-cursors:dynamic-cursors"
           )
+          # hyprpm has no query for one plugin's state, so the helpers read its
+          # `hyprpm list` entry. The line after the plugin name reads
+          # `enabled: true`, `enabled: false`, or, when the last build failed,
+          # `enabled: Plugin failed to build`.
+          plugin_listed() { hyprpm list 2>/dev/null | grep -q "Plugin ${1}$"; }
+          plugin_entry() { hyprpm list 2>/dev/null | grep -A1 "Plugin ${1}$"; }
+          plugin_failed() { plugin_entry "$1" | grep -q "Plugin failed to build"; }
+          plugin_enabled() { plugin_entry "$1" | grep -q "enabled: .*true"; }
+
+          # Named so the warning says which Hyprland the plugin rejected.
+          hyprland_version="$(hyprctl version 2>/dev/null | head -n1 | awk '{print $2}')"
+          hyprland_version="${hyprland_version:-this Hyprland version}"
+
           for entry in "${plugin_repos[@]}"; do
             repo="${entry%:*}"
             plugin="${entry##*:}"
-            if ! hyprpm list 2>/dev/null | grep -q "Plugin ${plugin}$"; then
+            # `add` stores the repository hash even when the build fails, and
+            # `update` skips a repository whose hash still matches. A plugin
+            # that failed once would therefore never be rebuilt, even after
+            # upstream supports this Hyprland. Removing it makes the `add`
+            # below a real retry. `remove` takes the repository name, which
+            # matches the plugin name in both entries above.
+            if plugin_failed "$plugin"; then
+              echo "  Retrying ${plugin}: its last build failed"
+              hyprpm remove "$plugin" <<<y >/dev/null 2>&1 || true
+            fi
+            if ! plugin_listed "$plugin"; then
               # `add` asks "Are you sure? [Y/n]" before it clones a repository.
               # The list above is the trust decision, so the answer comes from
               # here. The output stays on the terminal: when it was captured, the
               # question was hidden and the install waited with a blank screen.
-              if ! hyprpm add "$repo" <<<y; then
-                echo "  WARNING: ${plugin} did not build for this Hyprland version; the desktop works without it"
-                continue
-              fi
+              #
+              # `add` exits 0 even when the build fails, so the outcome is read
+              # from `hyprpm list` below, not from its exit code.
+              hyprpm add "$repo" <<<y || true
+            fi
+            # A failed build is the normal outcome after a Hyprland upgrade:
+            # hyprpm builds a plugin only for the Hyprland versions its
+            # hyprpm.toml pins. `enable` refuses such a plugin without saying
+            # why, so it is not asked; the warning names the real cause instead.
+            if plugin_failed "$plugin"; then
+              echo "  WARNING: ${plugin} does not build for Hyprland ${hyprland_version}"
+              echo "  The plugin stays off. Re-run install.sh once it supports this version."
+              continue
             fi
             # `enable` also loads the plugin; an already-enabled plugin is left
             # alone so a re-run does not touch the load state.
-            if ! hyprpm list 2>/dev/null | grep -A1 "Plugin ${plugin}$" | grep -q "enabled: .*true"; then
+            if ! plugin_enabled "$plugin"; then
               hyprpm enable "$plugin" || echo "  WARNING: could not enable ${plugin}"
             fi
           done
