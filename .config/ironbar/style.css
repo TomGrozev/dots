@@ -234,9 +234,13 @@
 }
 
 /* 12px between the two providers, and none after the last one. */
+/* The 2px gap is gone: the label's descender space already separates the ink
+ * from the rail, and the cell needs those pixels to reach the island centre.
+ * `margin-top: 7px` puts the value ink on the same rows as the clock and the
+ * volume readings; measured off the bar, the rows are 16 to 23. */
 .ai-cell {
   padding: 0;
-  margin-right: 12px;
+  margin: 7px 12px 0 0;
 }
 
 .ai-cell-last {
@@ -287,10 +291,8 @@
   background-color: alpha(@nord3, 0.6);
 }
 
-/* The 2px gap keeps the rail off the descenders, so it reads as a meter under
- * the value and not as an underline through it. */
 .ai-rail.fill {
-  margin-top: 2px;
+  margin-top: 0;
 }
 
 .ai-rail.fill progress {
@@ -300,18 +302,20 @@
 }
 
 /* Tick rail: the elapsed share of the window. The fill stays transparent and
- * only its right edge is drawn, in Nord13, so the line lands exactly at the
- * elapsed share at any value. The rail is 2px tall, flush under the fill rail,
- * so the mark continues the meter instead of hanging off it. */
+ * only its right edge is drawn, in Nord13, so the mark lands exactly at the
+ * elapsed share at any value. Negative margins are not an option here: GTK
+ * collapses the rail when it is pulled over the fill rail. The mark is 4px wide
+ * and 3px tall flush under the fill rail, so it reads at 1x as a notch on the
+ * meter's underside. */
 .ai-rail.tick trough {
-  min-height: 2px;
+  min-height: 3px;
   background-color: transparent;
 }
 
 .ai-rail.tick progress {
-  min-height: 2px;
+  min-height: 3px;
   background-color: transparent;
-  border-right: 2px solid alpha(@nord13, 0.9);
+  border-right: 4px solid @nord13;
 }
 
 /* --- Graphs, volume, keep-awake --- */

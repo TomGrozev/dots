@@ -179,8 +179,8 @@ bar = [
 # at its reset.
 #
 # Each provider is one vertical cell: its name and value on the 16px row,
-# then a 2px rail filled to the used share, then a 3px rail whose Nord13 edge
-# marks the share of the window that has elapsed. The edge hangs just under
+# then a 2px rail filled to the used share, then a 3px rail whose 4px Nord13
+# edge marks the share of the window that has elapsed. The edge hangs just under
 # the fill, so it reads as a mark on the meter rather than a second bar.
 # Neither rail sets `length`, so GTK gives each one the width of the cell,
 # which is the width of the name and value above it. The rails, not the text,
