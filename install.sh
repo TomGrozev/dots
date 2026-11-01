@@ -62,6 +62,30 @@ link_entry() {
   echo "  Linked $label"
 }
 
+# --- sudo, asked once ---
+
+# Ask for the sudo password here and keep that credential cached for the rest of
+# the run, so pacman, makepkg, yay and the /etc installs do not each ask again.
+# sudo keeps the cache itself; this script never reads or stores a password.
+#   `sudo -v` validates the password and caches the credential.
+#   sudo drops an idle cache after 15 minutes (timestamp_timeout) and an AUR
+#   build runs longer. `sudo -n -v` refreshes that same cache without a prompt
+#   and fails once the cache is gone, so the background loop can neither block
+#   nor hang the install.
+SUDO_KEEPALIVE_PID=""
+prime_sudo() {
+  if [ "$(id -u)" -eq 0 ]; then
+    return 0
+  fi
+  if ! sudo -v; then
+    echo "  WARNING: sudo is not primed; a later step asks for the password again"
+    return 0
+  fi
+  (while sudo -n -v 2>/dev/null; do sleep 60; done) &
+  SUDO_KEEPALIVE_PID=$!
+  trap 'kill "$SUDO_KEEPALIVE_PID" 2>/dev/null' EXIT
+}
+
 # --- Arch Linux system packages ---
 # Runs first because everything below assumes git, curl and zsh exist. Only on
 # Arch hosts: the Mac, the devcontainers and the agent pods get their tools
@@ -69,6 +93,8 @@ link_entry() {
 if [ -f /etc/arch-release ] && [ "$AGENT_POD" != "true" ]; then
   echo ""
   echo "Installing Arch packages..."
+  # One password prompt here covers every root step in this script.
+  prime_sudo
   sudo pacman -S --needed --noconfirm - <"$DOTFILES_DIR/packages/arch.txt"
 
   # AUR packages go through yay; bootstrap it from the prebuilt yay-bin when absent.
@@ -327,45 +353,66 @@ if [ "$AGENT_POD" != "true" ]; then
     if command -v hyprpm >/dev/null 2>&1; then
       echo ""
       echo "Installing Hyprland plugins..."
-      # hyprpm writes /var/cache/hyprpm through sudo. Each hyprpm command that
-      # needs root runs `sudo -k` when it ends (dropSudo in
-      # hyprpm/src/helpers/Sys.cpp), so the next one asks for the password
-      # again. `sudo -v` covers the first one and skips the step when sudo
-      # cannot prompt at all.
-      echo "  hyprpm asks for your sudo password at each step."
-      if ! sudo -v; then
+      # hyprpm writes /var/cache/hyprpm through sudo and runs a bare `sudo -k`
+      # when each privileged command ends (dropSudo in
+      # hyprpm/src/helpers/Sys.cpp), which would throw away the credential
+      # primed at the start and ask for the password again. `sudo -n -v` does
+      # not prompt: prime_sudo already asked, so a failure here means sudo
+      # cannot prompt at all and the plugin build is skipped as before.
+      if ! sudo -n -v 2>/dev/null; then
         echo "  WARNING: plugins skipped, hyprpm needs sudo to write /var/cache/hyprpm"
         echo "  Run in a terminal: hyprpm update && hyprpm add <url> && hyprpm enable <name>"
       else
-        # `add` refuses to build against stale headers, so `update` runs first.
-        # It refreshes the headers after a Hyprland upgrade, rebuilds every
-        # added repository and loads the enabled plugins.
-        hyprpm update ||
-          echo "  WARNING: a plugin failed to rebuild for this Hyprland version"
-        # repo url : hyprpm plugin name
-        plugin_repos=(
-          "https://github.com/sandwichfarm/hyprexpo:hyprexpo"
-          "https://github.com/VirtCode/hypr-dynamic-cursors:dynamic-cursors"
-        )
-        for entry in "${plugin_repos[@]}"; do
-          repo="${entry%:*}"
-          plugin="${entry##*:}"
-          if ! hyprpm list 2>/dev/null | grep -q "Plugin ${plugin}$"; then
-            # `add` asks "Are you sure? [Y/n]" before it clones a repository.
-            # The list above is the trust decision, so the answer comes from
-            # here. The output stays on the terminal: when it was captured, the
-            # question was hidden and the install waited with a blank screen.
-            if ! hyprpm add "$repo" <<<y; then
-              echo "  WARNING: ${plugin} did not build for this Hyprland version; the desktop works without it"
-              continue
+        (
+          set -e
+          # hyprpm finds the superuser binary through PATH (findInPath in
+          # hyprpm/src/helpers/Sys.cpp), so a `sudo` earlier on PATH is the one
+          # it runs. This wrapper ignores exactly that bare `-k` and forwards
+          # every other call to the real sudo, so the single prompt covers the
+          # whole plugin build. Nothing is stored: the wrapper only skips a
+          # cache drop, and the cache expires on its own.
+          SUDO_WRAPPER="$(mktemp -d)"
+          trap 'rm -rf "$SUDO_WRAPPER"' EXIT
+          cat >"$SUDO_WRAPPER/sudo" <<'WRAPPER'
+#!/bin/sh
+# hyprpm drops sudo's cached credential after each privileged command.
+# install.sh asks for the password once, so that drop is ignored here.
+[ "$1" = "-k" ] && [ "$#" -eq 1 ] && exit 0
+exec /usr/bin/sudo "$@"
+WRAPPER
+          chmod 755 "$SUDO_WRAPPER/sudo"
+          export PATH="$SUDO_WRAPPER:$PATH"
+
+          # `add` refuses to build against stale headers, so `update` runs first.
+          # It refreshes the headers after a Hyprland upgrade, rebuilds every
+          # added repository and loads the enabled plugins.
+          hyprpm update ||
+            echo "  WARNING: a plugin failed to rebuild for this Hyprland version"
+          # repo url : hyprpm plugin name
+          plugin_repos=(
+            "https://github.com/sandwichfarm/hyprexpo:hyprexpo"
+            "https://github.com/VirtCode/hypr-dynamic-cursors:dynamic-cursors"
+          )
+          for entry in "${plugin_repos[@]}"; do
+            repo="${entry%:*}"
+            plugin="${entry##*:}"
+            if ! hyprpm list 2>/dev/null | grep -q "Plugin ${plugin}$"; then
+              # `add` asks "Are you sure? [Y/n]" before it clones a repository.
+              # The list above is the trust decision, so the answer comes from
+              # here. The output stays on the terminal: when it was captured, the
+              # question was hidden and the install waited with a blank screen.
+              if ! hyprpm add "$repo" <<<y; then
+                echo "  WARNING: ${plugin} did not build for this Hyprland version; the desktop works without it"
+                continue
+              fi
             fi
-          fi
-          # `enable` also loads the plugin, but it costs one more password
-          # prompt, so a plugin that is already enabled is left alone.
-          if ! hyprpm list 2>/dev/null | grep -A1 "Plugin ${plugin}$" | grep -q "enabled: .*true"; then
-            hyprpm enable "$plugin" || echo "  WARNING: could not enable ${plugin}"
-          fi
-        done
+            # `enable` also loads the plugin; an already-enabled plugin is left
+            # alone so a re-run does not touch the load state.
+            if ! hyprpm list 2>/dev/null | grep -A1 "Plugin ${plugin}$" | grep -q "enabled: .*true"; then
+              hyprpm enable "$plugin" || echo "  WARNING: could not enable ${plugin}"
+            fi
+          done
+        )
       fi
     else
       echo ""
