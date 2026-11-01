@@ -30,7 +30,7 @@ The calibration log lives at `docs/agents/calibration.md` (see `skill://onboard`
 6. **Propose** a ticket menu: enforcement rules for conventions that keep being broken, cleanups, and stack-pack promotions that now meet the bar in `skill://onboard` (Stack Packs). Sort each proposal by how it gets enforced: a **mechanical violation** (a fixed syntactic pattern, a banned API, an import shape, a file location) becomes an automated check wired into the Gate; a **judgement call** becomes one line in `CODING_STANDARDS.md` for reviewers to enforce. If the repo is not onboarded (`CODING_STANDARDS.md` is missing), the first menu item is running `onboard`. The user picks.
     **Done when** the ticket menu is presented.
 
-**Done when** the log is written and the menu is presented. Log changes: hand over to `walkthrough` (read `skill://walkthrough`).
+**Done when** the log is written and the menu is presented. Log changes: hand over to `land` (read `skill://land`).
 
 ## Scout Brief Shape
 

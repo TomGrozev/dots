@@ -8,207 +8,174 @@
   :root { --you:#1d4ed8; --auto:#6b7280; --wait:#b45309; --ink:#111827; --muted:#4b5563; }
   body { font: 16px/1.55 ui-sans-serif, system-ui, -apple-system, sans-serif; color: var(--ink); max-width: 980px; margin: 2.5rem auto; padding: 0 1.25rem; }
   h1 { margin-bottom: .25rem; } .sub { color: var(--muted); margin-top: 0; }
+  h2 { margin-top: 2.25rem; }
   .legend { display:flex; gap:1.25rem; flex-wrap:wrap; margin:1.25rem 0; font-size:.95rem; }
   .chip { display:inline-block; padding:.15rem .6rem; border-radius:.4rem; margin-right:.4rem; }
   .you { background:var(--you); color:#fff; } .auto { background:#e5e7eb; border:1px dashed var(--auto); } .wait { background:#fde68a; border:1px solid var(--wait); }
-  .mermaid { background:#fafafa; border:1px solid #e5e7eb; border-radius:.6rem; padding:1rem; }
+  .mermaid { background:#fafafa; border:1px solid #e5e7eb; border-radius:.6rem; padding:1rem; text-align:center; }
   table { border-collapse: collapse; width:100%; margin:1rem 0 2rem; font-size:.95rem; }
   th, td { text-align:left; vertical-align:top; padding:.5rem .6rem; border-bottom:1px solid #e5e7eb; }
   th { background:#f3f4f6; } code { background:#f3f4f6; padding:.05rem .3rem; border-radius:.25rem; }
+  pre.card { background:#fafafa; border:1px solid #e5e7eb; border-radius:.6rem; padding:1rem; overflow-x:auto; font-size:.9rem; }
+  pre.card code { background:none; padding:0; }
+  .cols { display:grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap:1.5rem; }
+  .cols > div > h3 { margin-top:0; }
+  ul, ol { padding-left:1.25rem; } li { margin:.2rem 0; }
 </style>
 </head>
 <body>
 <h1>Pairing workflow</h1>
-<p class="sub">I am the senior dev; the agent is the junior. The agent writes all code and tests. I make the decisions, review what matters, and tidy by hand where taste matters. I write code only by choice: a tidy after a review, or taking the pen when a build fails twice. The agent's own instructions live in <code>.omp/AGENTS.md</code>, <code>.omp/RULES.global.md</code> (installed as <code>~/.omp/agent/RULES.md</code>) and the skills in <code>.omp/skills/</code> (symlinked into <code>~/.omp/agent/</code>); Matt Pocock's skills install to <code>~/.agents/skills</code> via <code>install.sh</code>. Text version: <a href="pairing-workflow.md">pairing-workflow.md</a>.</p>
+<p class="sub">The agent writes the code and tests. I make the decisions, review, and tidy by hand.</p>
 
-<h2>The workflow at a glance</h2>
+<div class="legend">
+  <span><span class="chip you">blue</span>I act</span>
+  <span><span class="chip auto">grey</span>the agent works</span>
+  <span><span class="chip wait">amber</span>a human stop, only when the ticket has that line</span>
+</div>
+
 <pre class="mermaid">
 flowchart TD
-  A["grill + to-spec<br/>decisions settle in the spec"] --> B["to-tickets<br/>quiz, then tickets"]
-  B --> C{"hitl or afk?"}
-  C -->|hitl| D["implement<br/>one ticket per fresh session"]
-  C -->|afk| F["implement-spec<br/>one branch, one PR"]
-  D --> E["walkthrough<br/>summary"]
-  F --> E
-  E --> L["land"]
-  L --> G["review"]
-  G --> H["tidy"]
-  H --> I["Gate"]
-  I --> J["commit"]
+  Q["to-tickets quiz<br/>I approve the breakdown"]:::you
+  Q -->|"each ticket"| I["implement<br/>one ticket, fresh session"]:::auto
+  Q -->|"afk tickets, no hitl open"| S["implement-spec<br/>one branch, one PR"]:::auto
+  I --> B["before stop<br/>I review the shape or choose"]:::wait
+  B --> W["build<br/>tdd workers"]:::auto
+  W --> A["after stop<br/>I react to the running result"]:::wait
+  A --> R["self-review + Gate"]:::auto
+  R --> L["land<br/>Gate, end card, notes"]:::auto
+  S --> L
+  L --> LQ["landing question<br/>commit, review + tidy, or PR"]:::you
+  classDef you fill:#1d4ed8,stroke:#1d4ed8,color:#fff
+  classDef auto fill:#e5e7eb,stroke:#6b7280,stroke-dasharray:4 3,color:#111827
+  classDef wait fill:#fde68a,stroke:#b45309,color:#111827
 </pre>
 
-<table>
-  <tr><th>Step</th><th>Skill</th><th>What I do</th><th>What the agent does</th></tr>
-  <tr><td>Decisions</td><td><code>grill</code> + <code>to-spec</code></td><td>Answer; settle the how choices that matter</td><td>Writes them into the spec's Implementation and Testing Decisions</td></tr>
-  <tr><td>Tickets</td><td><code>to-tickets</code></td><td>Quiz: override modes, answer <code>decision</code> questions, merge/split, approve once</td><td>Cuts vertical slices, sets mode and <code>**Human:**</code> trigger lines, quizzes me</td></tr>
-  <tr><td>hitl ticket</td><td><code>implement</code></td><td>Answers the shape review; sees the result for <code>see-it-run</code>; review, tidy, land at the end</td><td>Load → shape review (per trigger) → build (tdd) → self-review → Gate → walkthrough</td></tr>
-  <tr><td>afk tickets</td><td><code>implement-spec</code></td><td>Review and tidy on the PR</td><td>Builds all remaining afk tickets on one branch, opens one PR</td></tr>
-  <tr><td>Hand-over</td><td><code>walkthrough</code></td><td>Read the summary</td><td>Explains the change: Gate and a short summary in chat</td></tr>
-  <tr><td>Landing</td><td><code>land</code></td><td>Read the notes; review, tidy, pick</td><td>Writes the notes, asks the landing question, runs review → tidy → Gate → commit, then may suggest <code>calibrate</code></td></tr>
-  <tr><td>Check</td><td><code>calibrate</code></td><td>Run when a spec closes</td><td>Reports drift and rework</td></tr>
-</table>
-
 <h2>hitl or afk</h2>
-<p>Every ticket has an explicit mode, set by <code>to-tickets</code> and overridable by me in the quiz:</p>
-<ul>
-  <li><b>hitl</b> (human in the loop): I review the ticket before it lands. On a tracker the mode is the label <code>ready-for-human</code>.</li>
-  <li><b>afk</b> (away from keyboard): the agent builds it start to finish; the review is offered at landing and I may skip it. Label <code>ready-for-agent</code>.</li>
-</ul>
-<p>A ticket is hitl only when a mistake there gets expensive later. The triggers, and only these, make it hitl:</p>
-<ul>
-  <li><b><code>structure</code></b>: the ticket adds a new module, top-level directory, or a new kind of thing (a shape later code will copy), or places code across a module boundary where no existing example shows how. I answer "Is this the right place, and should it be new?" before the build.</li>
-  <li><b><code>surface</code></b>: the ticket adds or changes load-bearing surface: stored data (schema, migration, persisted file format, event format that outlives a deploy) or an outside contract (public API, CLI flags and output, published export, webhook payload, an interface outside code implements). I answer "Will this shape still be right in a year?" before the build. The concrete list lives once in <code>implement</code> § Surface.</li>
-  <li><b><code>decision</code></b>: a product or behaviour choice the spec did not settle and the agent would otherwise guess. The quiz settles it when possible; otherwise I pick an option in the shape review.</li>
-  <li><b><code>see-it-run</code></b>: UI, feel, or output I must react to. After the build I see the running result before landing.</li>
-  <li><b><code>one-way-door</code></b>: a deploy, a migration on real data, a sent message, or another irreversible outside action. I answer go or no-go immediately before it.</li>
-</ul>
-<p>The first three stop at the <b>shape review</b> before the build. A ticket carries one line per trigger, directly under <code>**Mode:** hitl</code>:</p>
-<pre><code>**Human:** structure: Is ConversationPin the right place, and should it be new?</code></pre>
-<p>Format: <code>**Human:** &lt;trigger&gt;: &lt;specific question for this ticket&gt;</code>. The question names the real thing, not the generic text. A hitl ticket with no <code>**Human:**</code> line is invalid. An afk ticket has no <code>**Human:**</code> line.</p>
-<p><b>Shape review</b>: the agent publishes one r3 page, one screen: the ticket and questions, the intent with acceptance examples, a <b>placement map</b> (a diagram of at most 9 boxes, each marked NEW, CHANGED, REUSED, REMOVED or STORED; each NEW box says why it is new), two checks picked for the trigger, and 1 to 5 decisions each with named options (A, B, ...). Every option carries one reasoning line: when and why a person would pick it, its main gain and its main cost. The reasoning is always shown, also when the agent's pick is hidden. When any trigger on the page hides its pick (<code>structure</code>, <code>one-way-door</code>), every pick on the page is hidden until I answer. A ticket whose only trigger is <code>decision</code> gets a shorter page: no placement map, just the ticket and questions, the intent, and the decisions. I answer with an option letter; a plain "yes" is not an answer. The build does not continue until every decision has an answer; if the review is archived with decisions still open, the agent asks in chat for the missing answers. How the page is built and drawn lives in <code>implement/PLACEMENT-MAP.md</code>.</p>
-<p>Everything else is afk: internal code and types, refactors behind an unchanged contract, bug fixes, tests, config, and copies of a shape an earlier ticket established. Size, complexity, tests, and signature changes inside an existing module are not triggers: those tickets stay afk, and the PR review at landing catches a mistake there. Unsure, the agent recommends afk and says so in the quiz.</p>
-<p>Ticket fields: What to build, Blocked by, Mode, <code>**Human:**</code> lines (hitl only), Status, acceptance criteria. There is no <code>Decisions</code> field: decisions live in the spec.</p>
-
-<h2>How every ticket ends</h2>
-<p><b>1. Walkthrough: the summary.</b> In chat, the agent gives the <b>summary</b>: what and why in one or two sentences, one diagram when a flow, state or structure changed, and the Gate line.</p>
-<p><b>2. Land: notes and the landing question.</b> The walkthrough then reads <code>skill://land</code>. <code>land</code> writes the <b>notes</b> (see Terms) and keeps them out of chat for now; zero notes is normal. Then it asks one question, saying how many notes there are:</p>
-<ul>
-  <li><b>hitl ticket (or ad-hoc implement)</b>: only <b>review, tidy, then commit</b> or <b>PR</b>. Review is required.</li>
-  <li><b>otherwise</b>: <b>commit</b> · <b>review, tidy, then commit</b> · <b>PR</b> · <b>leave it</b>. With at least one note, <code>land</code> recommends review, tidy, then commit (or PR for a multi-file or behavioural change) over commit.</li>
-  <li><b>work that already has an open PR</b> (after <code>implement-spec</code>): no question. <code>land</code> publishes to that PR (step 3) and gives me the URL; I review and tidy there.</li>
-</ul>
-<p><b>3. Publishing: where I read the code.</b> My answer decides where the summary and notes go:</p>
-<ul>
-  <li><b>review, tidy, then commit</b>: the diff goes to r3 against the start commit, with the summary and the files in reading order (entry point first, down the call path, tests beside the code they cover). The summary also lists the <b>defaults</b> (each choice the agent made without asking me, with the alternative as a question) and the <b>claims</b> (each claim with its proof, or marked "unverified"), the same lists the PR page carries; a long list reads better as a link to the PR section. Each note is a line note on its line; I resolve it to accept, or reply.</li>
-  <li><b>PR</b>: the summary is the PR body, with the reading order as a list of paths (GitHub sorts files alphabetically); each note is a review comment on its line.</li>
-  <li><b>commit or leave it</b>: the notes are printed in chat, one line each.</li>
-</ul>
-<p><b>4. Review and tidy</b> (for review, tidy, then commit):</p>
-<ul>
-  <li><b>Review</b>: I annotate the diff; the agent revises and replies until I archive it. It then proposes lessons, one line each, filed by kind: domain terms in <code>GLOSSARY.md</code>, general rules in <code>CODING_STANDARDS.md</code>, real tradeoffs as ADRs. It writes only the lines I accept.</li>
-  <li><b>Tidy</b>: offered once after the review. Where taste matters I refactor or delete anything myself and say "done". The agent reviews my edit as a pair; it edits my code only when asked. Then the Gate runs and the work commits.</li>
-</ul>
-<p><b>PR</b>: the same order on the PR. My review comments go first and the agent fixes them; then my tidy lands as my own commits on the branch, and CI checks them.</p>
-<p>The order is always review → tidy → Gate → land. Review comes first, so I tidy settled code. My tidy is the last edit, so the agent never overwrites it. The Gate runs after my tidy, so it covers my change. On a PR the review and my tidy happen in their own session; <code>land</code> ends once the PR is published. When a <code>**Human:**</code> answer is still owed, it posts the open questions as one PR comment, and the merge waits on my answers. When the last open ticket of a spec lands, or a PR covers the spec's remaining tickets (after merging), <code>land</code> suggests running <code>calibrate</code> in a fresh session, in an onboarded repo that isn't a fork.</p>
-<p>Commit identity: hitl and ad-hoc work commits as me via <code>commit_as_me</code>; afk work commits as the agent, conventional commit.</p>
-
-<h2>Per-skill notes</h2>
-
-<h3>to-tickets</h3>
-<p>Cuts vertical slices against the spec's decisions and asks none of its own. A slice that needs an architectural or testing choice the spec left open is a spec gap: the agent raises it with me and the decision is added to the spec before slicing. It sets each ticket's mode and <code>**Human:**</code> lines per the section hitl or afk, with afk the default. Before publishing it <b>quizzes</b> me: the ticket list with title, blockers, what each delivers, mode, each <code>**Human:**</code> question, and why each hitl ticket needs a human stop. It settles <code>decision</code> triggers in the quiz when it can: each named option carries one reasoning line (when and why to pick it, gain and cost), and the answer goes into the spec. I override modes, add or drop triggers, merge or split, and approve once.</p>
-
-<h3>implement</h3>
-<p>One ticket per fresh session. On a spec, the hitl tickets run first; the afk tickets can run one at a time here or together with <code>implement-spec</code>. The steps:</p>
-<ol>
-  <li><b>Load</b>: the ticket, the spec's stories and Implementation and Testing Decisions, <code>CODING_STANDARDS.md</code>, <code>GLOSSARY.md</code>, the ADRs, and the start commit.</li>
-  <li><b>Shape review</b>, for the triggers <code>structure</code>, <code>surface</code> and <code>decision</code> on the ticket's <code>**Human:**</code> lines: the agent publishes the one-screen r3 page; I answer each decision with an option letter; the build does not continue until each has an answer, and an archived review with open decisions sends the agent to chat for the missing answers. The agent applies the answers and edits later tickets that build on the agreed surface.</li>
-  <li><b>Build</b> with tdd, to the options the shape review agreed. Done when every acceptance criterion has a passing test and no unimplemented bodies remain.</li>
-  <li><b>See it run</b>, for the trigger <code>see-it-run</code>: after the build I see the running result (screenshot, recording, or real command output) and react; the agent fixes the real objections and shows again.</li>
-  <li><b>Self-review</b> with code-review: a Standards reviewer and a Spec reviewer (the Spec one sees only the ticket, stories, diff, and the shape review's answers). Real findings get fixed; the rest become notes.</li>
-  <li><b>Gate</b>.</li>
-  <li><b>One-way-door</b>, for the trigger <code>one-way-door</code>: immediately before the irreversible action I answer go or no-go.</li>
-  <li><b>Walkthrough</b>: see section How every ticket ends.</li>
-</ol>
-<p>Without a ticket (ad-hoc work), the agent first proposes, in one <code>ask</code>, the how choices a spec would have settled and the triggers a ticket would carry, each with a one-line reason. Ad-hoc implement counts as hitl.</p>
-<p>Mid-build surface needs: a new cross-module boundary, a new persisted data shape, or a change to an outside contract stops the build, runs the shape review, and records an ADR. Other public additions it makes and lists as notes.</p>
-<p><b>Take the pen</b>: a build worker fails twice on the same problem with no new hypothesis; the agent hands me the repro and the ruled-out hypotheses, and I take the pen or steer.</p>
-
-<h3>walkthrough</h3>
-<p>Every task that changes files ends here. It explains the change: the Gate, then the summary, covered in section How every ticket ends. Then it always reads <code>skill://land</code>, passing the summary, the ticket reference, the mode, any open PR, and the points the agent kept for notes.</p>
-
-<h3>land</h3>
-<p>Finishes the work. It writes the notes, then asks the landing question, or skips it when the work is already on an open PR. It publishes the summary and notes where I chose, runs the review and the tidy, and commits. It also runs on its own when I ask to land work. When the ticket was the last open one in its spec, in an onboarded repo that isn't a fork, it also suggests running <code>calibrate</code> in a fresh session. Details in section How every ticket ends.</p>
-
-<h2>Pathways</h2>
-<p>I pick the entry point; nothing routes automatically.</p>
 <table>
-  <tr><th>Starting point</th><th>Path</th></tr>
-  <tr><td>Huge or foggy</td><td><code>wayfinder</code> → <code>to-spec</code> → <code>to-tickets</code> → <code>implement</code> per ticket</td></tr>
-  <tr><td>A feature in a repo</td><td><code>grill-with-docs</code> (optionally <code>prototype</code>) → <code>to-spec</code> → <code>to-tickets</code> → <code>implement</code> per ticket</td></tr>
-  <tr><td>A plan or decision, no docs</td><td><code>grill-me</code></td></tr>
-  <tr><td>A bug</td><td><code>diagnosing-bugs</code> → fix + regression test → <code>walkthrough</code></td></tr>
-  <tr><td>A small, clear ask</td><td>just ask → <code>walkthrough</code></td></tr>
-  <tr><td>Ad-hoc surface work, no ticket</td><td><code>implement</code> (proposes the open decisions and the triggers first)</td></tr>
-  <tr><td>A spec with tickets left after the hitl ones</td><td><code>implement-spec</code> (opens one PR; must not start while a hitl ticket is open)</td></tr>
-  <tr><td>After <code>implement-spec</code></td><td><code>walkthrough</code>, then <code>land</code> on its PR (land writes the end-of-work page into the PR body)</td></tr>
-  <tr><td>Before <code>implement-spec</code> starts</td><td>List the spec's open <code>ready-for-human</code> tickets; if any exist, stop and name them</td></tr>
-  <tr><td>An afk prep ticket that must land before a hitl ticket</td><td><code>implement</code>, one at a time (<code>implement-spec</code> cannot start while a hitl ticket is open)</td></tr>
-  <tr><td>New repo for this workflow</td><td><code>onboard</code> (runs <code>setup-matt-pocock-skills</code> first)</td></tr>
-  <tr><td>Workflow changed or older repo setup</td><td><code>onboard</code> (upgrades it: old review entries in the retired formats migrate to <code>**Human:** &lt;trigger&gt;: &lt;question&gt;</code> lines, per <code>onboard/UPGRADE.md</code>; a hitl ticket with no trigger becomes afk after the user is told; a mode and label mismatch is relabelled)</td></tr>
-  <tr><td>Checking drift and rework</td><td><code>calibrate</code></td></tr>
-  <tr><td>A session felt clumsy; improve the agent's setup</td><td><code>retro</code> (upstream)</td></tr>
+  <tr><th></th><th>hitl</th><th>afk</th></tr>
+  <tr><td>Rule</td><td>At least one <code>**Human:**</code> line</td><td>No <code>**Human:**</code> line</td></tr>
+  <tr><td>Label</td><td><code>ready-for-human</code></td><td><code>ready-for-agent</code></td></tr>
+  <tr><td>Stops in <code>implement</code></td><td>One per <code>**Human:**</code> line</td><td>None</td></tr>
+  <tr><td>Review at landing</td><td>Required</td><td>Offered</td></tr>
+  <tr><td>Commit</td><td><code>commit_as_me</code>, as me</td><td>Conventional commit</td></tr>
 </table>
+
+<h2>The Human line</h2>
+<p>One line per stop, directly under <code>**Mode:**</code>:</p>
+<pre class="card"><code>**Human:** before: &lt;the one thing to review&gt;. Why: &lt;the specific risk&gt;.
+**Human:** after: &lt;what to run or show&gt;. Why: &lt;the specific risk&gt;.</code></pre>
+
+<div class="cols">
+  <div>
+    <h3>A valid Why names one of these</h3>
+    <ul>
+      <li>A choice that is hard to undo: a module boundary, stored data, a public contract.</li>
+      <li>Taste that tests cannot judge: UI, names the user sees.</li>
+      <li>I asked to oversee it in the quiz.</li>
+    </ul>
+  </div>
+  <div>
+    <h3>Not a reason</h3>
+    <ul>
+      <li>"It creates new files", alone.</li>
+      <li>"Is this the right place", alone.</li>
+      <li>Unsure? The agent recommends afk and says so.</li>
+      <li>Deploys, migrations on real data, sent messages: no Human line. The ask-first rule covers them.</li>
+    </ul>
+  </div>
+</div>
+
+<h2>The quiz</h2>
+<ul>
+  <li>A numbered list: title, blocked by, what it delivers, mode, Human lines.</li>
+  <li>The hitl tickets in one table: ticket, Human line, Why.</li>
+  <li>The quiz settles <code>before:</code> decisions when it can. The answer goes into the spec, and that Human line goes away.</li>
+  <li>I override any mode. It iterates until I approve.</li>
+</ul>
+
+<h2>The two stops</h2>
+<div class="cols">
+  <div>
+    <h3>Before stop</h3>
+    <ul>
+      <li>Shape review: the skeleton is written, then I see the intent, 2 to 3 examples, the placement map (NEW, CHANGED, REUSED, REMOVED, STORED, with a "Why new" line), two checks, and the decisions.</li>
+      <li>Decision only: one question, 2 or 3 options, one reason each.</li>
+      <li>The agent's pick stays hidden until I reply.</li>
+      <li>The build waits until I approve or change the shape and choose in each decision.</li>
+      <li>Later tickets that build on it get edited to match.</li>
+    </ul>
+  </div>
+  <div>
+    <h3>After stop</h3>
+    <ul>
+      <li>The running result, not a plan: a screenshot, a short recording, or real command output.</li>
+      <li>One line on what to react to.</li>
+      <li>The agent fixes real objections and shows again.</li>
+    </ul>
+  </div>
+</div>
+<p><b>Take the pen</b>, any mode: a build worker fails twice on the same problem with no new hypothesis. I get the repro and the ruled-out hypotheses. I take the pen or give a steer.</p>
+
+<h2>land</h2>
+<p>Every task that changes files ends here.</p>
+<table>
+  <tr><th>#</th><th>Step</th><th>What happens</th></tr>
+  <tr><td>1</td><td>Gate</td><td>Reuses the <code>implement</code> result if no code changed</td></tr>
+  <tr><td>2</td><td>Notes</td><td>One line of code each, 25 words at most; zero is normal</td></tr>
+  <tr><td>3</td><td>End card</td><td>Printed in chat; it also heads the r3 review and the PR body</td></tr>
+  <tr><td>4</td><td>Landing question</td><td>Skipped when the work is already on an open PR</td></tr>
+  <tr><td>5</td><td>r3 review</td><td>I annotate the diff and archive it</td></tr>
+  <tr><td>6</td><td>Tidy</td><td>I edit and say "done"; the agent reviews it as a pair</td></tr>
+  <tr><td>7</td><td>Gate again</td><td>Only when review or tidy changed code</td></tr>
+  <tr><td>8</td><td>Commit or PR</td><td>The chosen landing</td></tr>
+  <tr><td>9</td><td>Calibrate note</td><td>Suggests <code>calibrate</code> when the spec's last ticket lands</td></tr>
+</table>
+
+<div class="cols">
+  <div>
+    <h3>The end card</h3>
+<pre class="card"><code>✓ Gate · 4 files · +120 −30
+&lt;one sentence: what changed and why&gt;
+
+&lt;mermaid diagram, or a part | change table&gt;
+
+Check:
+- `path:line`: &lt;why to look&gt;</code></pre>
+  </div>
+  <div>
+    <h3>Landing question</h3>
+    <table>
+      <tr><th>Option</th><th>hitl</th><th>otherwise</th></tr>
+      <tr><td>commit</td><td></td><td>yes</td></tr>
+      <tr><td>review, tidy, then commit</td><td>yes</td><td>yes</td></tr>
+      <tr><td>PR</td><td>yes</td><td>yes</td></tr>
+      <tr><td>leave it</td><td></td><td>yes</td></tr>
+    </table>
+  </div>
+</div>
+
+<h2>Diagrams and pages</h2>
+<ul>
+  <li>Console: a mermaid block, about 10 boxes at most, short labels.</li>
+  <li>An HTML page on r3 only when I must see the change to judge it:
+    <ul>
+      <li>a UI change, with its states;</li>
+      <li>a change that crosses a boundary: a new module or service, or a new data or API shape;</li>
+      <li>one idea larger than about 400 changed lines or 10 files.</li>
+    </ul>
+  </li>
+  <li>The <code>designer</code> worker draws it: one diagram, about 9 boxes at most, readable without the text.</li>
+</ul>
 
 <h2>Ask vs do</h2>
-<p>The agent asks me before anything hard to reverse or potentially harmful:</p>
+<p>The agent asks me first for:</p>
 <ol>
-  <li><b>publishing</b>: commit, push, tag, PR, merge;</li>
-  <li>deleting or overwriting work it didn't create, or rewriting git history;</li>
-  <li>changing persisted data, a public contract, or an external system (deploys, messages, paid services);</li>
-  <li>anything involving secrets or credentials.</li>
+  <li>publishing: commit, push, tag, PR, merge;</li>
+  <li>deleting or overwriting work it did not create, or rewriting git history;</li>
+  <li>changing persisted data, a public contract, or an external system;</li>
+  <li>anything with secrets or credentials.</li>
 </ol>
-<p>Everything else it decides, states the assumption, and raises it as a note. Questions come batched in one <code>ask</code>.</p>
-
-<h2>Terms</h2>
-<ul>
-  <li><b>Gate</b>: the repo's one check command, in the agent file's <code>## Gate</code> section.</li>
-  <li><b>hitl / afk</b>: the two ticket modes. Defined once in section hitl or afk.</li>
-  <li><b>Load-bearing surface</b>: the stored data and outside contracts that make a ticket carry the <code>surface</code> trigger, section hitl or afk. The rest of the surface (module layout, public function heads and types, cross-module contracts) is surface but not load-bearing: it goes afk, and I review it in the PR.</li>
-  <li><b>Note</b>: a short comment the agent puts on one line of code, at most 25 plain words: what it did, then the other option as a question ("Retries use a fixed 1 s delay. Exponential backoff instead?"). It writes one only when I might want it done another way: a spot it is unsure of, an open review finding, an assumption, a choice that isn't obvious. I resolve it to accept, or reply. Where notes go is in section How every ticket ends.</li>
-  <li><b>Placement map</b>: the diagram in a shape review and on an end-of-work PR: at most 9 boxes, each marked NEW, CHANGED, REUSED, REMOVED or STORED; each NEW box says why it is new. Built by a <code>designer</code> subagent from a content brief. How: <code>implement/PLACEMENT-MAP.md</code>.</li>
-  <li><b>Review / Tidy</b>: the landing steps. Defined once in section How every ticket ends.</li>
-  <li><b>Shape review</b>: the one-screen r3 page the agent publishes before the build for the triggers <code>structure</code>, <code>surface</code> and <code>decision</code>. Defined once in section hitl or afk.</li>
-  <li><b>Stack pack</b>: <code>rule://stack-&lt;name&gt;</code>, what is true of every repo in a stack (e.g. <code>stack-elixir</code>, <code>stack-typescript</code>).</li>
-  <li><b>Surface</b>: module layout, public function heads and types, persisted data shape, cross-module contracts.</li>
-  <li><b>Trigger</b>: one of the five reasons a ticket is hitl (<code>structure</code>, <code>surface</code>, <code>decision</code>, <code>see-it-run</code>, <code>one-way-door</code>), carried on the ticket as a <code>**Human:**</code> line. Defined once in section hitl or afk.</li>
-</ul>
-
-<h2>Diagrams</h2>
-<p>The agent draws diagrams with d2 through <code>bin/diagram</code>, which <code>install.sh</code> links into <code>~/.local/bin</code>. The script checks the same environment variables omp uses to decide whether it can show images (set by Ghostty, kitty, WezTerm and iTerm2; zellij passes images through) and renders an SVG with readable font sizes. When images can't show (SSH, other terminals, or after you say an image didn't show), the agent uses mermaid instead. Text read elsewhere, like r3 summaries and PR bodies, also uses mermaid, which GitHub draws.</p>
-
-<h2>Repo docs</h2>
-<p>Project knowledge has three homes, one kind each:</p>
-<ul>
-  <li><code>GLOSSARY.md</code> (repo root): the domain's terms, meaning what words mean in this project.</li>
-  <li>ADRs (the repo's ADR directory): decisions with real tradeoffs, and why.</li>
-  <li><code>CODING_STANDARDS.md</code> (repo root): how code is written here, as one-line rules; its existence marks the repo as onboarded.</li>
-</ul>
-<p>In <code>docs/agents/</code>:</p>
-<ul>
-  <li><code>calibration.md</code>: the <code>calibrate</code> log.</li>
-  <li><code>issue-tracker.md</code>: written by <code>setup-matt-pocock-skills</code>.</li>
-</ul>
-<p>The Gate lives in the agent file's <code>## Gate</code> section.</p>
-<p>In a fork, these live under <code>.omp/</code> (<code>.omp/GLOSSARY.md</code>, <code>.omp/CODING_STANDARDS.md</code>, <code>.omp/adr/</code>, <code>.omp/docs/agents/</code>, with the agent file at <code>.omp/AGENTS.md</code>), excluded from git.</p>
-
-<h2>Worked examples</h2>
-
-<h3>A small fix</h3>
-<p>"Fix the typo in the missing-user API error." The agent edits the string and runs the Gate, then gives the walkthrough: one sentence on the fix and the Gate line; no notes. It asks commit · review, tidy, then commit · PR · leave it, recommending commit. I pick commit.</p>
-
-<h3>Three afk tickets</h3>
-<p><code>to-tickets</code> splits an internal logging utility into three tickets, none carrying a trigger, no <code>**Human:**</code> lines. Each runs in its own fresh session: load → build → self-review → Gate → walkthrough. On the last one the agent has an assumption worth a note (log level as a string; async flushing; JSON output), so it recommends review, tidy, then commit. The diff goes to r3 with the summary and the notes as line notes; I read them, resolve each, and archive the review. Then it offers the tidy, and I pick commit.</p>
-
-<h3>A hitl ticket</h3>
-<p>A payments spec. While grilling, I settle a spec decision in Implementation Decisions: "retries live in the caller, not the adapter". <code>to-tickets</code> cuts ticket 02, the Stripe adapter, as a small hitl ticket with two <code>**Human:**</code> lines:</p>
-<pre><code>**Human:** surface: Will the PaymentProvider interface still be right in a year?
-**Human:** structure: Is a payments/adapter module the right place for Stripe, and should it be new?</code></pre>
-<p>The <code>surface</code> trigger is there because the <code>PaymentProvider</code> interface is a contract other modules rely on, load-bearing surface. The <code>structure</code> trigger is there because ticket 02 is the first instance of a shape the PayPal and Adyen tickets copy. Those tickets are afk, blocked by ticket 02, and say in "What to build" that they follow that ticket's shape.</p>
-<p>Ticket 02 runs with <code>implement</code>:</p>
-<ol>
-  <li><b>Shape review</b>: the agent writes the <code>PaymentProvider</code> interface and the adapter module shape in the real files, bodies not implemented, then publishes the one-screen r3 page. It carries the intent with acceptance examples, a placement map (the <code>PaymentProvider</code> interface and <code>payments/adapter/</code> module marked NEW, each with a "Why new" line, the existing <code>Payment</code> model marked REUSED, <code>payments/adapter/stripe.py</code> marked STORED for the API key), and the decisions:
-    <ul>
-      <li>A: amount is a Money struct (type safety at the boundary; a conversion at every provider call); B: amount is an integer of minor units (simple and provider-shaped; the unit is convention, not the type).</li>
-      <li>A: the adapter lives in <code>payments/adapter/</code> (a home the PayPal and Adyen tickets copy; a directory before it earns one); B: it sits beside the existing gateway code (no new structure yet; the module boundary arrives later, with churn).</li>
-    </ul>
-    I pick A for both, and archive the review. The agent applies the answers and edits the PayPal and Adyen tickets to match the agreed shape.</li>
-  <li><b>Build</b>: tdd for the Stripe adapter and its test, following the spec's decision on retries.</li>
-  <li><b>Self-review</b>: code-review; real findings fixed, the rest become notes.</li>
-  <li><b>Gate</b>.</li>
-  <li><b>Walkthrough</b>: the summary and the Gate line.</li>
-  <li><b>Land</b>: it's a hitl ticket, so the landing question is only review, tidy, then commit or PR. I pick review, tidy, then commit. The diff goes to r3 with the files in reading order; the review carries the notes as line notes, one per item, and I resolve each as I annotate. It revises until I archive the review. It offers the tidy; I tidy one function myself and say "done"; it reviews my edit as a pair, then runs the Gate and commits as me.</li>
-</ol>
-<p>With ticket 02 done, <code>implement-spec</code> builds the PayPal and Adyen tickets afk on one branch, following ticket 02's shape, and opens one PR. The PR body is the end-of-work page: after the summary it carries one placement map for the whole PR, the defaults the agent picked without asking, and each claim with its proof. The walkthrough hands over and <code>land</code>, seeing the open PR, writes the summary into the PR body and posts the notes as PR review comments on their lines, where I resolve or reply to them; then I tidy as my own commits on the branch.</p>
+<p>Everything else: it decides, states the assumption, and records a note.</p>
 
 <script type="module">
   import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";

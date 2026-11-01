@@ -48,7 +48,7 @@ Present the proposed breakdown as a numbered list. For each ticket, show:
 - **Blocked by**: which other tickets (if any) must complete first
 - **What it delivers**: the end-to-end behaviour this ticket makes work
 - **Mode**: hitl | afk (set by § Human tasks and mode)
-- **Human**: each entry `**Human:** <trigger>: <question>`, or "None" (set by § Human tasks and mode)
+- **Human**: each entry in the Human line grammar (§ Human tasks and mode), or "None"
 
 Ask the user:
 
@@ -56,13 +56,13 @@ Ask the user:
 - Are the blocking edges correct: does each ticket only depend on tickets that genuinely gate it?
 - Should any tickets be merged or split further?
 
-Show the hitl tickets as one compact table, so a tired user can scan the reasons without reading prose:
+Show the hitl tickets as one compact table, so a tired user can scan each stop and its reason without reading prose. The ticket line is one line (`**Human:** before: <the one thing>. Why: <the risk>.`); the table splits it into two columns for scanning:
 
-| Ticket | Trigger | The human answers |
+| Ticket | Human line | Why |
 |---|---|---|
-| 03: Conversation pinning | `structure` | Is ConversationPin the right place, and should it be new? |
+| 03: Conversation pinning | `before: how a saved chat keeps its model when the suite changes` | stored data: the pin is saved per chat and hard to migrate later |
 
-The quiz settles `decision` triggers when it can: ask the question, show the named options (A, B, ...), each option with one reasoning line (when and why a person would pick it, its main gain and its main cost, taken from the spec, the ADRs, and the code, never invented). Put the answer into the spec, and drop the trigger from the ticket. Iterate until the user approves the breakdown.
+The quiz settles `before:` decisions when it can: ask the question, show the named options (A, B, ...), each option with one reasoning line (when and why a person would pick it, its main gain and its main cost, taken from the spec, the ADRs, and the code, never invented). Put the answer into the spec, and remove that Human line from the ticket. Iterate until the user approves the breakdown.
 
 ### 5. Publish the tickets to the configured tracker
 
@@ -85,8 +85,7 @@ Do NOT close or modify any parent issue.
 
 **Mode:** hitl | afk
 
-**Human:** only for hitl, one line per trigger directly under `**Mode:**`:
-`**Human:** <trigger>: <specific question for this ticket>`
+**Human:** only for hitl, one line per stop directly under `**Mode:**` (line form: § Human tasks and mode).
 
 **Status:** ready-for-human (hitl) | ready-for-agent (afk)
 
@@ -120,8 +119,7 @@ hitl | afk
 
 ## Human
 
-Only for hitl, one line per trigger directly under the Mode section:
-`**Human:** <trigger>: <specific question for this ticket>`
+Only for hitl, one line per stop directly under the Mode section (line form: § Human tasks and mode).
 
 </issue-template>
 
@@ -135,26 +133,25 @@ The agent writes the code and tests. The user makes the decisions, reviews, and 
 
 **Mode.** Set each ticket's mode explicitly; the user overrides either way in the quiz (step 4).
 
-- **hitl** (human in the loop): a human stop happens only for a named trigger; label `ready-for-human`. Each trigger names the human stop and its question (§ Human triggers). A hitl ticket with no `**Human:**` line is invalid: add the line, or make the ticket afk.
-- **afk** (away from keyboard): built start to finish without stopping; label `ready-for-agent`. It has no `**Human:**` line; that code gets the review at landing (`land` § Ask).
+- **hitl** (human in the loop): a human stop happens for each `**Human:**` line; label `ready-for-human`. Here `ready-for-human` means the ticket has a human stop. A ticket is hitl if and only if it has at least one `**Human:**` line.
+- **afk** (away from keyboard): built start to finish without stopping; label `ready-for-agent`. It has no `**Human:**` line; that code gets the review at landing (`land` step r3 review).
 
-**Human triggers.** A ticket is hitl only when at least one of these five applies:
+**Human line grammar.** In a hitl ticket, one line per stop, directly under `**Mode:**`:
 
-| Trigger | Applies when | The question the human answers | Stop |
-|---|---|---|---|
-| `structure` | Adds a new module, top-level directory, or new kind of thing (a shape later code will copy), or places code across a module boundary where no existing example shows how | "Is this the right place, and should it be new?" | shape review, before build |
-| `surface` | Adds or changes load-bearing surface: stored data (schema, migration, persisted file format, event format that outlives a deploy) or an outside contract (public API, CLI flags/output, published export, webhook payload, interface outside code implements) | "Will this shape still be right in a year?" | shape review, before build |
-| `decision` | A product or behaviour choice that the spec did not settle and the agent would otherwise guess | "Which option?" | settle in the `to-tickets` quiz if possible; if still open, shape review |
-| `see-it-run` | UI, feel, or output the human must react to | "Does this look and feel right?" | after build, before land: show the running result |
-| `one-way-door` | Deploy, migration on real data, sent messages, paid or other irreversible outside action | "Go or no go?" | immediately before the irreversible action |
+- `**Human:** before: <the one thing to review>. Why: <the specific risk>.` (a stop in `implement` before building that part)
+- `**Human:** after: <what to run or show>. Why: <the specific risk>.` (a stop in `implement` after the build, before `land`)
 
-Size, complexity, tests, bug fixes, and signature changes inside an existing module are not triggers: those tickets stay afk, and the PR review at landing catches a mistake there. When a match is uncertain, recommend afk and say so in the quiz.
+A valid **Why** names one of these:
 
-Every shape review decision must have an answer naming one option letter before the build continues. An archived review with open decisions does not continue the build: the agent asks in chat for the missing answers. A plain "yes" with no option letter is never accepted as an answer.
+- a choice that is hard to undo (a module boundary, stored data, a public contract);
+- taste that tests cannot judge (UI, names the user sees);
+- the user asked to oversee it in the quiz.
 
-The shape review contents live in `implement` (§ Shape review). The placement map drawing rules live in `implement/PLACEMENT-MAP.md`; this skill does not repeat them.
+"It creates new files" or "is this the right place" alone is not a reason. When a match is uncertain, recommend afk and say so in the quiz.
 
-A `structure` ticket can be the first instance of a shape later tickets copy. Cut it into its own small hitl ticket, and make the afk tickets that copy it blocked by it, saying in "What to build" that they follow that ticket's shape. When an afk ticket must come before a hitl one, say so in the quiz, since it splits the spec run.
+**Hard-to-reverse actions get no Human line.** A deploy, a migration on real data, a sent message, or any other irreversible outside action never appears in a ticket: the always-loaded rule in `.omp/AGENTS.md` (ask before anything hard to reverse) covers it on every ticket.
+
+A ticket with a `before:` stop can be the first instance of a shape later tickets copy. Cut it into its own small hitl ticket, and make the afk tickets that copy it blocked by it, saying in "What to build" that they follow that ticket's shape. When an afk ticket must come before a hitl one, say so in the quiz, since it splits the spec run.
 
 **Take the pen.** A build worker failing twice on the same problem hands the pen over (implement HITL.md § Take the pen).
 

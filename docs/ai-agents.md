@@ -19,7 +19,7 @@ The orchestrator manages agent sessions, roles, and tool integrations.
   - **Rules**: Global and role-specific guardrails in `.omp/RULES.global.md` (installed as `~/.omp/agent/RULES.md`) and `.omp/rules/`, including the stack packs (`stack-elixir`, `stack-phoenix`, `stack-typescript`).
   - **Extensions**: Custom functionality plugins in `.omp/extensions/`.
 - **Monitoring**: `WATCHDOG.md` describes the automated oversight process.
-- **Workflow**: See [pairing-workflow.md](pairing-workflow.md) for the collaboration map and [flow diagram](pairing-workflow.html).
+- **Workflow**: See the [pairing workflow](pairing-workflow.html) for the collaboration map.
 
 ## Companion Tools
 
@@ -28,4 +28,4 @@ The orchestrator manages agent sessions, roles, and tool integrations.
 - **Codebase Memory MCP**: Provides a knowledge graph of the repository. Installed as a binary.
 - **CortexKit**: AI toolkit integration found in `.cortexkit/` and `.config/cortexkit/`.
 - **Git Bot Identity**: Specialized extension for managing AI bot identities. See the [Git Bot Identity README](../.omp/extensions/git-bot-identity/README.md).
-- **d2**: diagram renderer, run through `bin/diagram` (linked into `~/.local/bin`), which shows images where omp can (Ghostty, kitty, WezTerm, iTerm2) and tells the agent to use mermaid elsewhere. Binary installed via `install.sh`.
+- **Diagrams**: the agent draws console diagrams as mermaid; rich pages go on r3 (see `.omp/AGENTS.md` § Talking to the user).

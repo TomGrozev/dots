@@ -229,13 +229,13 @@
   <h1>Per-conversation provider pin and model-aware routing</h1>
 
   <div class="triggers">
-    <div class="trigger" id="trigger-structure">
-      <span class="tag">Trigger: structure</span>
-      <p class="q"><span class="human">Human:</span>structure: Is <code>ShhAi.TargetProvider</code> the right home for the selection rule, and should it be a new module?</p>
+    <div class="trigger" id="trigger-pin">
+      <span class="tag">before · shape review</span>
+      <p class="q"><span class="human">Human:</span>before: where the provider pin is stored and how routing reads it. Why: stored data, the pin is saved per chat and hard to migrate later.</p>
     </div>
-    <div class="trigger" id="trigger-surface">
-      <span class="tag">Trigger: surface</span>
-      <p class="q"><span class="human">Human:</span>surface: Does the pin belong on the stored conversation record, in both backends?</p>
+    <div class="trigger" id="trigger-removal">
+      <span class="tag">before · decision</span>
+      <p class="q"><span class="human">Human:</span>before: what happens on the next turn when the pinned instance is removed from config. Why: the choice is hard to undo once stored.</p>
     </div>
   </div>
 

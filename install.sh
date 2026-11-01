@@ -18,7 +18,7 @@ UNAME_ARCH="$(uname -m)"
 # container that clones this repo at runtime and runs
 # `AGENT_POD=true bash install.sh` from the clone (kelos_entrypoint.sh in
 # TomGrozev/devcontainers). The pod's image already carries omp, node/npm, git,
-# gh, zsh and the CLI tools (miao, miao-server, zellij, d2, nvim, yazi, …), so
+# gh, zsh and the CLI tools (miao, miao-server, zellij, nvim, yazi, …), so
 # the sections that install a shell (oh-my-zsh, p10k) or the interactive
 # workspace wiring (dotfile and ~/.config symlinks, Zellij WASM plugins, r3,
 # the captain-miao dashboard) are skipped here: the
@@ -37,7 +37,7 @@ AGENT_POD="${AGENT_POD:-false}"
 mkdir -p "$OMP_AGENT_DIR" "$LOCAL_BIN"
 # ~/.config only ever receives the symlinks and installs the lean profile skips,
 # so it does not create it. ~/.local/bin is different: the pod still gets the
-# codebase-memory-mcp binary and the `diagram` link there.
+# codebase-memory-mcp binary there.
 if [ "$AGENT_POD" != "true" ]; then
   mkdir -p "$HOME/.config"
 fi
@@ -590,10 +590,17 @@ done
 # every other repo still loads.
 link_entry "$DOTFILES_DIR/.omp/RULES.global.md" "$OMP_AGENT_DIR/RULES.md" "~/.omp/agent/RULES.md"
 
-# The pod's agent-tier config names only the three pairing-workflow skills, so
-# the lean profile links those individually instead of the whole skills/ dir.
+# The pod's agent-tier config names the pairing-workflow skills, so the lean
+# profile links those individually instead of the whole skills/ dir.
 if [ "$AGENT_POD" = "true" ]; then
-  for skill in implement walkthrough land; do
+  # The depth-1 sweep above cannot reach a skill link, so a link left by an
+  # older pod is cleared here before the loop relinks.
+  stale_skill="$OMP_AGENT_DIR/skills/walkthrough"
+  if [ -L "$stale_skill" ] && [ ! -e "$stale_skill" ]; then
+    echo "  Removing stale link $stale_skill (source gone)"
+    rm -f "$stale_skill"
+  fi
+  for skill in implement land; do
     link_entry "$DOTFILES_DIR/.omp/skills/$skill" "$OMP_AGENT_DIR/skills/$skill" "~/.omp/agent/skills/$skill"
   done
 fi
@@ -1067,13 +1074,6 @@ if [ "$AGENT_POD" != "true" ]; then
   fi
 fi # AGENT_POD guard: captain-miao, its up-to-date check and install/update
 
-# --- Link the diagram helper ---
-# Unguarded: the pod's AGENTS.md tells the agent to draw flows with
-# `diagram <name>.d2`, and the helper degrades on its own where images cannot be
-# shown (it prints "no images: use mermaid"), so the pod wants this link too.
-# The base image ships d2, which the helper calls.
-link_entry "$DOTFILES_DIR/bin/diagram" "$LOCAL_BIN/diagram" "~/.local/bin/diagram"
-
 # --- Clean up Plannotator (replaced by r3) ---
 # Skipped in AGENT_POD mode, with the r3 blocks below: the pod runs none of
 # these tools.
@@ -1226,17 +1226,17 @@ if command -v npm &>/dev/null; then
     npx skills add hyperlogue/r3 --skill publish-artifacts-to-r3 -a universal -y -g
   fi
 
-  # Diagram design (MIT) draws the placement map in implement/PLACEMENT-MAP.md and
-  # the PR page. Installing the skill writes a pristine references/style-guide.md,
-  # so the `nord` profile is copied over it after every install. A leading profile
-  # header in that file marks the guide as customized, which skips the first-run
-  # style question in every repository without a `.diagram-design` marker (see the
-  # skill's references/profiles.md, "Resolve without a valid marker").
+  # Diagram design (MIT) draws the diagram of an r3 review page. Installing the
+  # skill writes a pristine references/style-guide.md, so the `nord` profile is
+  # copied over it after every install. A leading profile header in that file
+  # marks the guide as customized, which skips the first-run style question in
+  # every repository without a `.diagram-design` marker (see the skill's
+  # references/profiles.md, "Resolve without a valid marker").
   echo "  Installing diagram-design skill..."
   npx skills add cathrynlavery/diagram-design --skill diagram-design -a universal -y -g
 
   # `npx skills add` ships the skill's other scripts but not this one. The guide
-  # runs it from here to check a placement map, so fetch it from the repo's
+  # runs it to check the diagram's geometry (label masks, connectors, ports), so fetch it from the repo's
   # default branch. It imports only the standard library, so it needs no sibling.
   diagram_scripts="$HOME/.agents/skills/diagram-design/scripts"
   if [ -d "$diagram_scripts" ]; then

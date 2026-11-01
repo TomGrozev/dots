@@ -17,17 +17,15 @@ Agent Rules (`~/.omp/agent/RULES.md`), which bind you and every subagent.
 3. changing persisted data, a public contract, or an external system (deploys, messages, paid services);
 4. anything involving secrets or credentials.
 
-Workflow skills add their own stops: a hitl ticket stops for each trigger on its
-`**Human:**` lines (`structure`, `surface` and `decision` stop at the shape review before
-build; `see-it-run` after build; `one-way-door` immediately before the action;
-`implement` § Triggers), and `land` requires the user's review before
-landing on hitl work (land § Review). Everything else: decide, state the assumption, and record
-it as a note (`land` § Notes). Batch questions into one `ask`.
+Workflow skills add their own stops: a hitl ticket stops for each stop on its
+`**Human:**` lines (`before:` before build, `after:` after build; `to-tickets` § Human
+tasks and mode defines them), and `land` requires the user's review before
+landing on hitl work (`land` step r3 review). Everything else: decide, state the assumption, and record
+it as a note (`land` step Notes). Batch questions into one `ask`.
 
-Every task that changes files ends with `skill://walkthrough`. `implement-spec` always runs
+Every task that changes files ends with `skill://land`. `implement-spec` always runs
 with a PR: it builds the work on a branch and opens one, and the user reviews and tidies on
-that PR (`land` § Publishing). After `implement-spec` finishes, run `walkthrough`, then
-`land` on its PR: `land` writes the end-of-work page into that PR body. Before starting
+that PR (`land` § Publishing), and `land` writes the end card into that PR body. Before starting
 `implement-spec`, list the spec's open `ready-for-human` tickets; if any exist, stop and name
 them. An afk prep ticket that must land before a hitl ticket runs with `implement`, one at a
 time: `implement-spec` cannot start while a hitl ticket is open. When the user is unsure what
@@ -43,12 +41,13 @@ instead (`skill://onboard/FORK.md`).
   programming, tooling and computing terms are fine. Anything specific to this codebase,
   workflow or a tool's internals (a module name, a coined label, a config key) gets a few
   plain words of explanation where it first appears in a reply, or a description instead.
-- **Diagrams first** for flows, structure and architecture: lead with one large, simple diagram
-  (about 10 boxes at most, short labels), then the prose. Write plain d2 to a temp `<name>.d2`,
-  run `diagram <name>.d2` in bash and show the SVG path it prints with `read <path>:img`. If it
-  prints `no images: use mermaid`, or the user says the image didn't show, use a mermaid block
-  for the rest of the session. Text read outside the terminal (r3 summaries, PR bodies, docs)
-  also gets mermaid, which GitHub draws. Simple answers need none.
+- **Diagrams first** for flows, structure and architecture: lead with one simple mermaid
+  diagram (about 10 boxes at most, short labels), then the prose. Simple answers need none.
+- **Pages**: console output is a mermaid block. Make an HTML page on r3 only when the reader
+  must see the change to judge it: a UI change (show its states), a change that crosses a
+  boundary (a new module or service, or a new data or API shape), or one idea larger than
+  about 400 changed lines or 10 files. The `designer` worker draws the page with the
+  `diagram-design` skill: one diagram, about 9 boxes at most, readable without the text.
 
 # Delegation
 
@@ -73,7 +72,7 @@ them to `scout` workers in one parallel batch; write the plan from their reports
 dispatch the build.
 
 **Skills route by their steps.** A skill whose steps are with the user (asking, reviewing,
-landing: `implement`, `walkthrough`, `land`, `grilling`) runs here. A skill whose steps are legwork
+landing: `implement`, `land`, `grilling`) runs here. A skill whose steps are legwork
 (`diagnosing-bugs`, `tdd`, `research`) runs in a worker: route it from its description alone,
 and the worker reads it. The worker escalates the skill's user checkpoints (`diagnosing-bugs`'
 ranked hypotheses) to you, and you answer them or put them to the user.

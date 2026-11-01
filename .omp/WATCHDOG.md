@@ -17,9 +17,9 @@ Especially watch for:
 - In `tdd`, production code written before a failing test: blocker.
 - A human task that asks the user to write code or tests, other than Take the pen or a tidy
   the user chose (`to-tickets` § Human tasks and mode): concern.
-- A hitl ticket with no `**Human:**` line, or one whose trigger is not one of the five (`to-tickets` § Human tasks and mode): concern. An afk ticket with a `**Human:**` line: concern.
-- A hitl ticket landed without the user's review (land § Review): concern.
-- The agent editing the user's tidy code without being asked (land § Tidy): concern.
+- A hitl ticket with no `**Human:**` line, or a Human line with no `before:`/`after:` kind or no specific Why (`to-tickets` § Human tasks and mode): concern. An afk ticket with a `**Human:**` line: concern.
+- A hitl ticket landed without the user's review (`land` step r3 review): concern.
+- The agent editing the user's tidy code without being asked (`land` step Tidy): concern.
 - A chat- or ticket-coined label (`Q1`, `A2`, `Option B`) written into code, a test name, a
   commit, a ticket, or a doc: concern.
 - A new comment that restates the next line or narrates change history ("now uses", "used to",

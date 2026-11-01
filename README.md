@@ -57,15 +57,15 @@ AGENT_POD=true bash install.sh
 ```
 
 The pod's image already carries omp, node, git, gh, zsh and the CLI tools
-(`miao`, `miao-server`, `zellij`, `d2`, …), so this mode skips the shell installs
+(`miao`, `miao-server`, `zellij`, …), so this mode skips the shell installs
 (oh-my-zsh, p10k), the interactive wiring (dotfile and `~/.config` symlinks,
 Zellij plugins, `r3`, the captain-miao dashboard) and the devcontainer's
 `config-devcontainer.yml` overlay. It links the authored
 agent config — `~/.omp/agent/` gets `mcp.json`, `AGENTS.md`, `RULES.md`,
-`agents/`, `rules/`, `extensions/`, `skills/{implement,walkthrough,land}` and
+`agents/`, `rules/`, `extensions/`, `skills/{implement,land}` and
 `pairing-workflow.html` — plus the
-cc-safety-net policy, the omp plugins (`cc-safety-net` and the neuralwatt fork),
-the `diagram` helper and the agent skills. Instead of linking `config.yml`, the
+cc-safety-net policy, the omp plugins (`cc-safety-net` and the neuralwatt fork)
+and the agent skills. Instead of linking `config.yml`, the
 mode bakes `.omp/config-agent-pod.yml` into it with `.omp/merge-config.py` (the
 same mechanism the devcontainer uses for `config-devcontainer.yml`), and links
 `.omp/APPEND_SYSTEM-agent-pod.md` to `~/.omp/agent/APPEND_SYSTEM.md`, which omp
