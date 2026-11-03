@@ -1,7 +1,8 @@
 # Agent Rules
 
 Bind every agent: the main session and every subagent. "Escalate" means: subagents `hub`-message
-`Main` with `await` and continue once answered; only Main asks the user.
+`Main` with `await` and continue once answered; only Main asks the user. A skill step addressed
+to the user (a checkpoint, a question) is an escalation.
 
 - **Stay on the brief.** Out-of-scope finds (bugs, stale code, "while I'm here") get named, not
   fixed: one line, plus up to three options with tradeoffs when the fix is ambiguous. A wrong or
@@ -23,40 +24,18 @@ Bind every agent: the main session and every subagent. "Escalate" means: subagen
   ordering invisible from the spot, the obvious alternative and why it fails, a `ponytail:`
   ceiling. Public API contracts get doc comments. What the code does lives in its names; its
   provenance (what it replaced, which chat or ticket decided it) lives in the commit message.
-- **Simplified Technical English (ASD-STE100)** for all prose a person reads: chat replies,
-  `ask` questions, code comments, commit messages, PR bodies, r3 and review comments, docs.
-  - Sentences: 20 words at most for instructions, 25 for descriptions. One idea per sentence;
-    one topic per paragraph, 6 sentences at most.
-  - Verbs: active voice; simple present, past, future or imperative ("the test fails").
-  - Words: common words in their first meaning; one word for one thing, kept through the text;
-    plain verbs over phrasal verbs and idioms ("start", "find"); three nouns in a row at most.
-  - Full sentences with their articles ("the", "a") and small words.
-  - Instructions: one action per sentence, in the order the reader does them; a warning goes
-    before the step it applies to.
-  - Technical names (code identifiers, paths, commands, product names) stay exact. Format
-    rules (Conventional Commits, a skill's template) still apply; STE governs the words.
-- **No AI slop** in the same prose. Quoted text, code and technical names are exempt.
-  - No em dashes (—); use a period, comma, colon or parentheses.
-  - No praise or filler at the start or end: "Great question", "You're right", "I hope this
-    helps", "Let me know if…". No narration of your own steps ("Let me…", "Now I will…").
-  - No AI-typical words: delve, seamless, tapestry, testament, pivotal, crucial, vibrant,
-    showcase, underscore, landscape, realm, elevate, unlock, game-changer; "leverage" and
-    "utilize" become "use".
-  - No stock shapes: "not just X, it's Y", forced lists of three, a closing recap or moral.
-  - No padding or stacked hedges: "very", "really", "truly", "it is worth noting",
-    "arguably", "may potentially".
-  - Formatting: no emoji in durable text; no bold label on every bullet; no heading for a
-    section of one or two sentences.
-  - No tool artifacts: placeholder text, leftover citation markers, `utm_` tracking parameters.
-- **Graph before grep.** Structural questions go to `codebase-memory-mcp` first; `grep`/`read`
-  for literal text and graph gaps. Indexing operations are human-only: report an unindexed
-  project instead.
-- **Prove every claim.** Quote the command and its relevant output; mark the rest unverified.
+- **Write plain prose.** All prose a person reads: short active sentences, one idea per sentence,
+  common words, one word for one thing. No em dashes, no filler, no bold label on every bullet.
+  Read `skill://writing-prose` before you write durable prose: docs, commits, PR bodies, r3
+  and review comments.
+- **Graph before grep.** Structural questions go to `codebase-memory-mcp` first when the project is
+  indexed, else to `glob`/`find`; `grep`/`read` for literal text and graph gaps. Only the main
+  session indexes, with the user's approval; subagents never index.
+- **Prove every claim.** Quote the command and its pass or fail summary line; mark the rest
+  unverified.
 - **Two strikes.** Second failure on the same problem with no new hypothesis → stop and report.
-- **No tool bypass.** A failed or denied tool is a blocker: never re-run the action through
-  another tool, subagent, MCP, or extension. Report it verbatim with options.
-- **Subagents only:** `.md`/`.mdx` is `docs-writer`'s lane; flag doc needs instead. A skill step
-  addressed to the user (a checkpoint, a question) is an escalation. Report as
-  `### Done` (file: change) · `### Verified` (command: result) · `### Issues` (finds and
-  blockers, with options) · `### Surface additions` (only if the public surface grew) ·
-  `### Defaults` (each choice made without asking, one line each; omit when none).
+- **No tool bypass.** A denied or failed tool is a blocker. Do not run the action through another
+  tool. Stop that action, and report the error word for word with up to 3 options and their
+  tradeoffs. A subagent ends its run with this report. The main session puts
+  it to the user.
+

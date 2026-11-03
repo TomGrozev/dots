@@ -107,15 +107,18 @@ retry:
 skills:
   includeSkills:
     - implement
+    - land
+    - writing-prose
     - tdd
     - code-review
-    - land
     - conventional-commit
-    - frontend-design
-    - apple-design
-    # `land` cites `pr`, and `implement` cites `domain-modeling`.
     - pr
     - domain-modeling
+    - frontend-design
+    - apple-design
+    # `implement` reads `tdd`, `code-review` and `domain-modeling`; `land` reads
+    # `conventional-commit` and `pr`; the designer agent reads `frontend-design`
+    # and `apple-design`; `RULES.global.md` reads `writing-prose`.
   enablePiProject: false
 
 # --- Discovery providers -------------------------------------------------------

@@ -1,36 +1,50 @@
 ---
 name: docs-writer
-description: Writes and updates .md/.mdx documentation. Never edits code files.
+description: "Writes and updates .md/.mdx documentation. Never edits code files."
 tools:
   - read
   - write
   - edit
   - grep
   - glob
+  - bash
 model: "@writer"
 output:
   properties:
     summary:
-      metadata:
-        description: One-paragraph summary of what was written and why
       type: string
+      metadata:
+        description: "What was written and why, in one or two sentences."
     files_written:
       metadata:
-        description: Every file created or modified
+        description: Each file written or updated, one item per file; empty when none.
       elements:
         properties:
           path:
-            metadata:
-              description: Project-relative path
             type: string
-          change_type:
             metadata:
-              description: Whether the file was newly created or an existing one edited
-            enum: [created, modified]
+              description: Repo-relative path written.
+          change:
+            type: string
+            metadata:
+              description: "One line: what changed in that file."
   optionalProperties:
-    follow_ups:
+    claims_checked:
       metadata:
-        description: Documentation work discovered but deliberately left out of scope
+        description: Each doc claim checked against the code or a run; empty when none.
+      elements:
+        properties:
+          claim:
+            type: string
+            metadata:
+              description: The claim the doc makes.
+          evidence:
+            type: string
+            metadata:
+              description: The command and its result, or a `file:line` reference.
+    issues:
+      metadata:
+        description: Open questions and blockers; empty when none.
       elements:
         type: string
 ---
@@ -43,4 +57,7 @@ You write and update `.md`/`.mdx` files only. Never edit code files.
   not ask for.
 - Own standalone documentation: READMEs, guides, changelogs, ADRs, skill files, agent
   definitions.
-- Report via the output schema; do not restate file contents in prose.
+- Run commands only to check what a doc says (a command, a flag, an output). Never install,
+  migrate, push or change files outside the docs.
+- Report through the output schema: name each file in `files_written`, and each doc
+  claim you checked in `claims_checked`.

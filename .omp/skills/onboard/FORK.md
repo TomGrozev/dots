@@ -1,22 +1,23 @@
 # Onboard: fork mode
 
-In a fork, nothing but the change itself reaches the eventual PR, so every agent file lives in an untracked `.omp/` directory, added to `.git/info/exclude`.
+In a fork, nothing but the change itself reaches the eventual PR, so every agent file lives in an untracked `.omp/` directory, added to `.git/info/exclude`. Onboard's every-mode rules apply here; this file holds only the fork paths and the fork-only steps.
 
 | What | Path |
 |---|---|
 | Agent file (auto-loaded project context, holds `## Agent skills`) | `.omp/AGENTS.md` |
 | Coding standards, checks, issue-tracker doc | `.omp/CODING_STANDARDS.md`, `.omp/docs/agents/`, and the checks as a `## Checks` section in `.omp/AGENTS.md` |
-| ADRs | `.omp/adr/` |
+| ADRs | `.omp/docs/adr/`, created with the first ADR |
 | Domain terms | `.omp/GLOSSARY.md` |
 
-Wherever the skills say `docs/agents/…`, `GLOSSARY.md`, `CODING_STANDARDS.md` or the ADR directory, read these paths. The `fork` notes in onboard's steps cover guardrails, the checks and calibrate.
+Wherever the skills say `docs/agents/…`, `GLOSSARY.md`, `CODING_STANDARDS.md` or `docs/adr/`, read these paths.
 
-## Running Matt's setup in a fork
+## Steps
 
-`skill://setup-matt-pocock-skills` takes no path argument: it writes a root `GLOSSARY.md` layout, `docs/agents/{issue-tracker,domain,triage-labels}.md`, and an `## Agent skills` block into the repo's `CLAUDE.md`/`AGENTS.md`. So in a fork:
+0. Add `.omp/` to `.git/info/exclude` before anything writes there.
+    **Done when** `git status --porcelain` lists nothing under `.omp/`.
+1. Run `skill://setup-matt-pocock-skills` with the `.omp/` paths from the table in place of its default paths, and finish it. Edit no tracked file.
+2. Edit `.omp/docs/agents/domain.md` and the `## Agent skills` block so every path in them points at the `.omp/` locations.
 
-1. Run `skill://setup-matt-pocock-skills` as written and finish it.
-2. Move what it wrote under `.omp/` (`mv`, since `.omp/` is untracked): the agent file's block into `.omp/AGENTS.md`, `GLOSSARY.md` (and `GLOSSARY-MAP.md` in a multi-context repo) to `.omp/`, the ADR directory to `.omp/adr/`, and `docs/agents/` to `.omp/docs/agents/`.
-3. Edit `.omp/docs/agents/domain.md` and the `## Agent skills` block so every path in them points at the `.omp/` locations.
+Checks discovery in a fork: find the checks the project already uses, in this order: the CI config (`.github/workflows`), then the project's task runner (`mix` aliases, `package.json` scripts, `Makefile`). Write the command in `.omp/AGENTS.md` `## Checks`. When none is found, ask. Add no checks and no hooks to the fork; do not touch its hook.
 
-**Done when** `.omp/` is excluded from git, `.omp/AGENTS.md` has the `## Agent skills` block pointing at the `.omp/` paths and a `## Checks` section, and `.omp/CODING_STANDARDS.md` exists.
+**Done when** `.omp/` is excluded from git, `git status` shows no change to a tracked file, `.omp/AGENTS.md` has the `## Agent skills` block pointing at the `.omp/` paths and a `## Checks` section, and `.omp/CODING_STANDARDS.md` exists.

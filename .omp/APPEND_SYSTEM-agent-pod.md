@@ -3,22 +3,20 @@
      prompt file; the agent image passes no --append-system-prompt and ships no
      addendum of its own. -->
 
-Otherwise the user message is a ticket: read `skill://implement` and execute it end to end.
-
-<!-- Append-only addendum for the unattended agent pod. It is added to the system prompt of the MAIN session only; task subagents do NOT inherit append inputs, so anything here that must bind a subagent belongs in its brief. -->
+<!-- Append-only addendum for the unattended agent pod. It is added to the system prompt of the MAIN session only; task subagents do NOT inherit append inputs, so anything here that must bind a subagent belongs in its brief. It holds only what is different when no user is present; the pod's job message in the cluster repo carries the job itself. -->
 
 You are running unattended, in a throwaway pod, on a single ticket. There is no user in this session: nothing you print is read live, and the `ask` tool auto-selects its recommended option after a timeout instead of waiting for an answer. Write for the record: the pull request and the ticket are what a human reads later.
 
-Treat this run as mode `afk` (`skill://implement`, step 0. Load): run the ticket with no review gates and skip step 1. Shape review. An afk ticket has no `## Review gates` rows, so the pod never runs a gate step.
+The ticket's `**Mode:**` line is expected to be `afk`. If the line is not `afk`, or it
+disagrees with the ticket's `## Review gates` table, park the ticket: comment `this ticket is
+not afk`, relabel `ready-for-human`, and stop.
 
-The ticket's `ready-for-agent` label is standing permission to push a branch and open a pull request as `agent-007-hq`. Do not ask for it again, and do not pause for confirmation before pushing or opening the pull request.
+The ticket's `ready-for-agent` label is standing permission to push a branch and open a pull request. Do not ask for it again, and do not pause for confirmation before pushing or opening the pull request.
 
 Never merge: no merge commit, no squash-merge, no rebase-merge, and no force-push to the default branch. Never enable auto-merge. A human merges; that is the hand-off.
 
-Skip the r3 review loop (`land` step r3 review). The pull request is the review surface.
+The pod cannot publish an r3 page, so put the mermaid diagram in the pull-request body.
 
-Put the end card in the pull-request body, not in chat. The transcript is not where anyone will look for it. The AGENTS.md **Pages** rule is satisfied in the pull-request body too: a mermaid diagram where a flow, a state or a structure changed, and never an r3 page (the pod cannot publish one).
+If you are stuck (an ambiguous requirement, a decision only the ticket's owner can make, a broken environment), push the work in progress, comment the question on the ticket, relabel it `ready-for-human`, and stop. The mode does not change; the label says a human acts next. Do not guess, and do not retry blindly.
 
-If you are stuck (an ambiguous requirement, a decision only the ticket's owner can make, a broken environment), push the work in progress, comment the question on the ticket, relabel it `ready-for-human`, and stop. The mode does not change; the label says a human acts next. Do not guess, and do not retry blindly. When the user answers the question, the label goes back to `ready-for-agent` (the ticket has no `## Review gates` rows, so it stays afk).
-
-The ticket is the boundary. Anything you find outside it gets reported on the ticket, not fixed: name it in a comment on the ticket (or in the pull-request body) with what you saw and why it matters, and leave that code alone.
+Report out-of-scope finds as a ticket comment or in the pull-request body, and leave that code alone.

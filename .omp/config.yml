@@ -73,6 +73,7 @@ task:
     reviewer: "@review"
   eager: always
   batch: true
+  structured: true
   enableEffort: true
   maxEffort: medium
   showResolvedModelBadge: true
@@ -242,7 +243,7 @@ bash:
       approval: prompt
     - match: "*git branch -D*"
       approval: prompt
-    - match: "*git tag -d*"
+    - match: "*git tag *"
       approval: prompt
     - match: "*git filter-branch*"
       approval: prompt
@@ -359,6 +360,8 @@ bash:
     - match: "*gh repo delete*"
       approval: prompt
     - match: "*gh release *"
+      approval: prompt
+    - match: "*gh pr create*"
       approval: prompt
     - match: "*gh pr merge*"
       approval: prompt

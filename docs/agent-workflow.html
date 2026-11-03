@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>Pairing workflow</title>
+<title>Agent workflow</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
   :root { --you:#1d4ed8; --auto:#6b7280; --wait:#b45309; --ink:#111827; --muted:#4b5563; }
@@ -24,7 +24,7 @@
 </style>
 </head>
 <body>
-<h1>Pairing workflow</h1>
+<h1>Agent workflow</h1>
 <p class="sub">The agent writes the code and tests. I make the decisions, review, and tidy by hand.</p>
 
 <div class="legend">
@@ -35,18 +35,21 @@
 
 <pre class="mermaid">
 flowchart TD
-  Q["to-tickets quiz<br/>I approve the breakdown"]:::you
+  D["idea and spec<br/>I set the outcome; the agent drafts it"]:::you
+  D -->|"spec approved"| Q["to-tickets quiz<br/>I approve the breakdown"]:::you
   Q -->|"one ticket"| I["implement<br/>one ticket, fresh session"]:::auto
   Q -->|"all open tickets of a spec"| S["implement-spec<br/>afk and hitl, one session"]:::auto
   I --> B["before build gate<br/>Shape review: I approve the skeleton and map"]:::wait
   S -->|"each ticket"| B
   B --> W["build<br/>tdd workers"]:::auto
   W --> A["after build gate<br/>See it run: I react to the running result"]:::wait
-  A --> R["self-review + checks<br/>once per spec in implement-spec"]:::auto
+  A --> R["self-review per ticket<br/>checks once per spec"]:::auto
   R --> L["land<br/>checks, end card, notes"]:::auto
   L -->|"implement"| LQ["landing question<br/>commit, review + tidy, or PR"]:::you
   L -->|"implement-spec: one publish ask, then PR"| P["PR<br/>one commit per ticket by its mode; on hitl I review before merge"]:::you
   LQ -->|"PR"| P
+  P --> M["merge<br/>required CI check green"]:::you
+  M --> T["retro and calibrate<br/>retro at each spec end; calibrate when due"]:::auto
   classDef you fill:#1d4ed8,stroke:#1d4ed8,color:#fff
   classDef auto fill:#e5e7eb,stroke:#6b7280,stroke-dasharray:4 3,color:#111827
   classDef wait fill:#fde68a,stroke:#b45309,color:#111827
@@ -55,53 +58,42 @@ flowchart TD
 <h2>hitl or afk</h2>
 <table>
   <tr><th></th><th>hitl</th><th>afk</th></tr>
-  <tr><td>Rule</td><td>At least one row in the <code>## Review gates</code> table</td><td>No rows</td></tr>
-  <tr><td>Label</td><td><code>ready-for-human</code></td><td><code>ready-for-agent</code></td></tr>
+  <tr><td>Rule</td><td>The ticket's <code>**Mode:**</code> line says <code>hitl</code></td><td>The ticket's <code>**Mode:**</code> line says <code>afk</code></td></tr>
+  <tr><td>Label</td><td><code>ready-for-human</code>, which says a human acts next</td><td><code>ready-for-agent</code></td></tr>
   <tr><td>Review gates</td><td>One per row</td><td>None</td></tr>
   <tr><td>Runs in</td><td><code>implement</code>, <code>implement-spec</code></td><td><code>implement</code>, <code>implement-spec</code>, an unattended run</td></tr>
-  <tr><td>Review at landing</td><td>Required before merge: my PR review on a PR, the r3 review before a direct commit</td><td>Offered</td></tr>
+  <tr><td>Review at landing</td><td>Required before merge: on a PR, my PR review is the hitl review; on a direct commit, the r3 review in <code>land</code></td><td>Unattended: a PR, and my PR review is the human read. In a session: the r3 review is offered</td></tr>
   <tr><td>Commit</td><td><code>commit_as_me</code> with a conventional message, as me</td><td>Conventional commit</td></tr>
 </table>
-<p>The table decides the mode. The label says who acts next: a stuck unattended run relabels its ticket <code>ready-for-human</code>, and the mode does not change. Ad-hoc work with no ticket counts as hitl.</p>
+<p>The mode rule lives in <code>.omp/skills/to-tickets/SKILL.md</code> § Mode and label: the <code>**Mode:**</code> line is the only source of the mode, and a mismatch with the gate table stops and asks. A stuck unattended run relabels its ticket <code>ready-for-human</code>. Ad-hoc work with no ticket counts as hitl.</p>
 
 <h2>Review gates</h2>
-<p><code>to-tickets</code> owns this table. No other form. <code>When</code> is <code>before build</code> or <code>after build</code>, and a ticket may have both. <code>What</code> names the real thing; <code>Why</code> names the specific risk. In <code>implement</code>, a before build gate runs the Shape review step and an after build gate runs the See it run step.</p>
+<p><code>to-tickets</code> owns the gate table format and the valid reasons; read them in <code>.omp/skills/to-tickets/REVIEW-GATES.md</code>. <code>Review gate</code> is <code>before build</code> or <code>after build</code>, and a ticket may have both. <code>What you review</code> names the real thing; <code>Reason</code> names a reason by its name. In <code>implement</code>, a before build gate runs the Shape review step and an after build gate runs the See it run step.</p>
 <pre class="card"><code>## Review gates
 
-| When | What | Why |
+| Review gate | What you review | Reason |
 |---|---|---|
-| before build | How a saved chat keeps its model when the suite changes | A migration: existing chats must migrate to the new pin field |
+| before build | How a saved chat keeps its model when the suite changes | Migration: the pin is stored per chat and hard to change later |
 | after build | The model picker in the chat header | Names the user sees |</code></pre>
 
 <div class="cols">
   <div>
-    <h3>A valid Why names one of these</h3>
-    <ul>
-      <li>Before build: a migration, a change to data that already exists (a schema change, or a format that existing records must migrate). New tables or fields that need no migration are not a reason.</li>
-      <li>Before build: an outside contract (public API, CLI flags or output, a published export, an event payload).</li>
-      <li>Before build: new structure (a new module, or the first instance of a shape that later tickets copy).</li>
-      <li>After build: taste that tests cannot judge (UI, feel, output, names the user sees).</li>
-      <li>Either kind: I asked for it.</li>
-    </ul>
+    <h3>The six reason names</h3>
+    <p>Before build: <b>Migration</b>, <b>An outside contract</b>, <b>New structure</b>, <b>Open design</b>. After build: <b>Taste</b> that tests cannot judge. Either kind: <b>The user asked</b>.</p>
   </div>
   <div>
     <h3>Not a reason</h3>
-    <ul>
-      <li>"It creates new files" or "is this the right place", alone.</li>
-      <li>Size, complexity, tests, bug fixes.</li>
-      <li>Signature changes inside an existing module.</li>
-      <li>Unsure? The agent recommends afk and says so.</li>
-      <li>Deploys, migrations on real data, sent messages: no review gate. The ask-first rule covers them on every ticket.</li>
-    </ul>
+    <p>The "Not reasons" list lives in <code>.omp/skills/to-tickets/REVIEW-GATES.md</code> with the six gate reasons.</p>
   </div>
 </div>
 
 <h2>The quiz</h2>
 <ul>
   <li>A numbered list: title, blocked by, what it delivers, mode, review gates.</li>
-  <li>The hitl tickets in one table: ticket, when, what, why.</li>
+  <li>A page shows the tickets as a graph, with blockers and review gates marked.</li>
+  <li>The gated tickets in one table: ticket, review gate, what you review, reason.</li>
   <li>A choice I can only judge with the skeleton in view goes into that ticket's shape review as a decision.</li>
-  <li>I override any mode by editing the ticket's Review gates table. It iterates until I approve.</li>
+  <li>I change a mode by editing the ticket's <code>**Mode:**</code> line. It iterates until I approve.</li>
 </ul>
 
 <h2>The two review gates</h2>
@@ -131,22 +123,22 @@ flowchart TD
 <table>
   <tr><th></th><th>Tickets</th><th>Review gates</th><th>Landing</th></tr>
   <tr><td><code>implement</code></td><td>One ticket, one fresh session, any mode</td><td>Each row of its Review gates table</td><td>One <code>land</code>, with the landing question</td></tr>
-  <tr><td><code>implement-spec</code></td><td>All open tickets of one spec, afk and hitl, in one session. At Load it merges the default branch and records the start commit. It claims each ticket when that ticket's build starts: it sets it <code>in-progress</code> and removes <code>ready-for-agent</code>. A ticket already in progress elsewhere is a blocker that is not done.</td><td>All in the main session. A ticket with a before build row gets its shape review when it reaches the frontier, while the other builds go on; a ticket with an after build row gets See it run after its build merges. If I am away, gated tickets wait.</td><td>One integration branch, one <code>land</code> hand-off: one publish ask, one PR that closes every ticket, one commit per ticket by its mode's rule</td></tr>
+  <tr><td><code>implement-spec</code></td><td>All open tickets of one spec, afk and hitl, in one session. It merges the default branch before each ticket merge into the integration branch, and the worker merges the integration tip into its worktree before it reports. It claims each ticket when that ticket's build starts: it sets it <code>in-progress</code> and removes <code>ready-for-agent</code>. A ticket already in progress or <code>in-review</code> elsewhere is a blocker that is not done.</td><td>All in the main session. A ticket with a before build row gets its shape review when it reaches the frontier, while the other builds go on; a ticket with an after build row gets See it run after its build ends and before the worker's self-review. If I am away, tickets with a before build gate wait.</td><td>One integration branch, one <code>land</code> hand-off: one publish ask, one PR that closes every ticket, one commit per ticket by its mode's rule</td></tr>
 </table>
 
 <h2>land</h2>
 <p>Every task that changes files ends here.</p>
 <table>
   <tr><th>#</th><th>Step</th><th>What happens</th></tr>
-  <tr><td>1</td><td>Checks</td><td>Reuses the checks command that <code>implement</code> or <code>implement-spec</code> passes</td></tr>
+  <tr><td>1</td><td>Checks</td><td>Reuses the checks command that <code>implement</code> or <code>implement-spec</code> passes. At merge, the repo's required CI check must pass</td></tr>
   <tr><td>2</td><td>Notes</td><td>A note about code sits on its line; other notes go in the end card's Notes block. 25 words at most; zero is normal</td></tr>
   <tr><td>3</td><td>End card</td><td>Printed in chat; it also heads the r3 review and the PR body. An unattended run puts it in the PR body only</td></tr>
   <tr><td>4</td><td>Landing question</td><td>On an <code>implement-spec</code> hand-off: one publish ask, then the PR path, with fixes from the self-review and checks in one extra commit. Skipped on an unattended run and when the work is already on an open PR someone else made</td></tr>
   <tr><td>5</td><td>r3 review</td><td>I annotate the diff and archive it. On hitl it comes before a direct commit</td></tr>
   <tr><td>6</td><td>Tidy</td><td>I edit and say "done"; the agent reviews it as a pair</td></tr>
   <tr><td>7</td><td>Checks again</td><td>Only when review or tidy changed code</td></tr>
-  <tr><td>8</td><td>Commit or PR</td><td>The chosen landing; then each ticket closes (on a PR: <code>Closes #N</code>)</td></tr>
-  <tr><td>9</td><td>Calibrate note</td><td>Suggests <code>calibrate</code> when the spec's last ticket lands</td></tr>
+  <tr><td>8</td><td>Commit or PR</td><td>The chosen landing. A PR sets the ticket <code>in-review (#&lt;n&gt;)</code>; it is <code>done</code> only at merge. On a PR: <code>Closes #N</code></td></tr>
+  <tr><td>9</td><td>Retro and calibrate note</td><td>Suggests <code>retro</code> at the end of each spec, and <code>calibrate</code> when at least 3 specs have closed since the last log row, and the last row is at least 30 days old</td></tr>
 </table>
 
 <div class="cols">
@@ -163,13 +155,15 @@ Look at:
   <div>
     <h3>Landing question</h3>
     <table>
-      <tr><th>Option</th><th>hitl</th><th>afk</th></tr>
-      <tr><td>commit</td><td></td><td>yes</td></tr>
-      <tr><td>review, tidy, then commit</td><td>yes</td><td>yes</td></tr>
-      <tr><td>PR</td><td>yes</td><td>yes</td></tr>
-      <tr><td>leave it</td><td></td><td>yes</td></tr>
+      <tr><th>Situation</th><th>Options shown</th><th>Recommended</th></tr>
+      <tr><td>Unattended run</td><td>none</td><td>PR</td></tr>
+      <tr><td><code>implement-spec</code> hand-off</td><td>one publish question, then the PR path</td><td>PR</td></tr>
+      <tr><td>An open PR made by someone else</td><td>none; publish to it</td><td>n/a</td></tr>
+      <tr><td>hitl</td><td>review, tidy, then commit; PR</td><td>PR when multi-file</td></tr>
+      <tr><td>afk, behavioural or multi-file</td><td>review, tidy, then commit; PR; leave it</td><td>review, tidy, then commit</td></tr>
+      <tr><td>afk, typo, config value or rename</td><td>commit; review, tidy, then commit; PR; leave it</td><td>commit</td></tr>
     </table>
-    <p>On hitl, a direct commit needs my r3 review first. On a PR, my PR review is the hitl review, and the PR waits for it before it merges.</p>
+    <p>On hitl, a direct commit needs my r3 review first. On a PR, my PR review is the hitl review, and the PR waits for it before it merges. <code>commit</code> is not offered for behavioural or multi-file afk work, because it skips the review. If both a note and a multi-file change apply, recommend PR.</p>
   </div>
 </div>
 
@@ -183,18 +177,11 @@ Look at:
       <li>one idea larger than about 400 changed lines or 10 files.</li>
     </ul>
   </li>
-  <li>The <code>designer</code> worker draws it: one diagram, about 9 boxes at most, readable without the text.</li>
+  <li>A <code>task</code> worker draws it: one diagram, about 9 boxes at most, readable without the text.</li>
 </ul>
 
 <h2>Ask vs do</h2>
-<p>The agent asks me first for:</p>
-<ol>
-  <li>publishing: commit, push, tag, PR, merge;</li>
-  <li>deleting or overwriting work it did not create, or rewriting git history;</li>
-  <li>changing persisted data, a public contract, or an external system (deploys, messages, paid services);</li>
-  <li>anything with secrets or credentials.</li>
-</ol>
-<p>Review gates come on top: each row of a hitl ticket's Review gates table, and my review before a hitl change merges. Everything else: it decides, states the assumption, and records a note.</p>
+<p>The ask-first list lives in <code>AGENTS.md</code> § Ask before you act. Review gates come on top: each row of a hitl ticket's Review gates table, and my review before a hitl change merges. Everything else: it decides, states the assumption, and records a note.</p>
 
 <script type="module">
   import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";

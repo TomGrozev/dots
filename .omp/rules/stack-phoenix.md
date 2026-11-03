@@ -1,7 +1,7 @@
 ---
-description: "Phoenix stack pack for the pairing workflow: contexts as the boundary, the web layer and Ecto, LiveView/HEEx, Phoenix checks."
+description: "Phoenix stack pack for the agent workflow: contexts as the boundary, the web layer and Ecto, LiveView/HEEx, Phoenix checks."
 condition: ".*"
-scope: "tool:edit(**/lib/*_web/**), tool:write(**/lib/*_web/**), tool:edit(**/*.heex), tool:write(**/*.heex), tool:edit(**/*_live.ex), tool:write(**/*_live.ex)"
+scope: "tool:edit(**/lib/*_web/**), tool:write(**/lib/*_web/**), tool:edit(**/*.heex), tool:write(**/*.heex), tool:edit(**/*_live.ex), tool:write(**/*_live.ex), tool:edit(**/test/**/*_web/**), tool:write(**/test/**/*_web/**), tool:ast_edit(**/*.ex), tool:ast_edit(**/*.heex)"
 interruptMode: never
 ---
 
@@ -14,7 +14,7 @@ Rules for Phoenix apps and libraries with a Phoenix web layer. Generic Elixir ru
 - A context module (`MyApp.Accounts`) and its public functions are the cross-module contract; its internal modules (`MyApp.Accounts.*`) are private unless exported.
 - The web layer (`MyAppWeb`) calls context functions, never `Repo` or a context's internal modules.
 - In the web layer, `Ecto.Changeset` is the only Ecto module used; keep `import Ecto.Query`, schemas, and `Repo` inside contexts.
-- Ecto schemas and migrations are persisted data shape: a **new** schema or a **change** to one is a review gate (`to-tickets` § Review gates, reason 1 or 2). PubSub message structs, behaviours, and protocols are contracts: a new one across a boundary with no existing example is a review gate too.
+- Ecto schemas and migrations are persisted data shape: a **change** to an existing schema is Migration; a **new** schema with no existing example is New structure. Either is a review gate. PubSub message structs, behaviours, and protocols are contracts: a new one across a boundary is An outside contract, and also a review gate.
 - One context per domain area, named for the noun (`Accounts`, `Billing`); its schema's `changeset/2` stays `@doc false`, and its public functions return tagged tuples.
 
 ## Conventions
@@ -30,7 +30,7 @@ Rules for Phoenix apps and libraries with a Phoenix web layer. Generic Elixir ru
 - Generated LiveViews and pages follow the `phx.gen` layout; keep it rather than hand-rolling structure.
 - Function components declare `attr`/`slot` blocks above the function, with `attr :rest, :global` and `doc:` strings.
 - LiveView pages define `render/1` before `mount/3`, and every callback carries `@impl Phoenix.LiveView`.
-- Test LiveViews with `live/2` and `render_click/2` / `render_submit/3`; integration tests use `async: false`, pure component tests `async: true`.
+- Test LiveViews with `live/2` and `render_click/2` / `render_submit/3`; keep `async: true`. Set `async: false` only for a case that shares global state, and name the shared state in a comment.
 - Fetch outbound HTTP with `Req` (`:req`), which ships with Phoenix.
 - `phx.gen.auth` auth lives at the router level; the assign is `@current_scope`, never `@current_user`.
 
@@ -40,4 +40,4 @@ Rules for Phoenix apps and libraries with a Phoenix web layer. Generic Elixir ru
 
 ## Default checks
 
-Phoenix 1.8 generates a `precommit` alias (`compile --warnings-as-errors`, `deps.unlock --unused`, `format`, `test`); extend it with `credo --strict` as in `stack-elixir`, and record it as the repo's checks in the agent file's `## Checks` section (`skill://onboard`).
+Phoenix 1.8 generates a `precommit` alias (`compile --warnings-as-errors`, `deps.unlock --unused`, `format`, `test`); extend it with `credo --strict` as in `stack-elixir`, and record it as the repo's checks in the agent file's `## Checks` section.

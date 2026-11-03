@@ -9,6 +9,10 @@
       "type": "http",
       "url": "https://mcp.grep.app"
     },
+    "deepwiki": {
+      "type": "http",
+      "url": "https://mcp.deepwiki.com/mcp"
+    },
     "codebase-memory-mcp": {
       "command": "/bin/sh",
       "args": ["-c", "exec \"$(command -v codebase-memory-mcp || echo \"$HOME/.local/bin/codebase-memory-mcp\")\" \"$@\"", "cbm"],

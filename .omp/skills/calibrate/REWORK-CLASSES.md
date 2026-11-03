@@ -11,7 +11,7 @@ it reworks when identifiable:
 
 - **a. Structure**: module/file structure or boundaries were wrong: splitting a monolith,
   moving logic between contexts, re-layering the same surface again. Class (a) rework on a
-  shape a shape review owns (reason 3 in `to-tickets` § Review gates) is explained by
+  shape a shape review owns (the **New structure** reason in `skill://to-tickets/REVIEW-GATES.md`) is explained by
   that review's answer; unexplained only when no such answer exists. *e.g. splitting
   `BackendClient` into `StreamHandler`/`SSEParser`/`RequestContext`.*
 - **b. Duplication**: duplicated code paths, the same thing done two ways, or dead code
@@ -21,17 +21,22 @@ it reworks when identifiable:
   learned. *e.g. per-request `SessionStore` → persistent `Conversation`.*
 - **d. Bug**: it didn't work: a bug or missed edge case. *e.g. cache entry shape mismatch.*
 - **e. UI churn**: visual/design rework in production code. Mark it **structural** when it
-  reshapes components/LiveViews rather than styling. *e.g. table → card queue.*
+  reshapes components/LiveViews rather than styling. *e.g. table → card queue.* Record
+  structural UI churn as `e (structural)` in `Class`; plain `e` is styling. Only
+  `e (structural)` counts in the metric.
 - **f. Prototype replaced**: prototype/spike code promoted to production, then replaced.
   *e.g. ApexCharts spike → inline SVG.*
 - **g. Other**: say what (tooling, deps, CI, toolchain drift).
 
 ## Target metric: unexplained rework
 
-**Unexplained rework** = commits in **a**, **b**, and **structural e** that cite no new
-- requirement, ticket, or ADR. This is what the pairing workflow exists to drive down: a shape
+**Unexplained rework** = commits in **a**, **b**, and **structural e** that cite no new requirement, ticket, or ADR. This is what the agent workflow exists to drive down: a shape
 re-changed with no new decision behind it. ADRs written at surface changes count as a decision,
-and so do ADRs written from an accepted review gate answer (`implement/HITL.md` § Shape review).
+and so do ADRs written from an accepted review gate answer (a `before build` gate whose question the build answered).
+
+A citation counts only when it is newer than the reworked SHA and names the decision that
+caused the change. A blanket ticket reference, or one older than the reworked code, does not
+count. A doubtful case counts as unexplained, so the metric errs high.
 
 - **c** is learning, not failure: tallied, never counted in the metric.
 - **d** is tracked separately: a rising bug count points at acceptance criteria/tests, not at
@@ -43,5 +48,5 @@ and so do ADRs written from an accepted review gate answer (`implement/HITL.md` 
 
 One row per run, appended; a short synthesis paragraph under each run with SHA evidence.
 
-| Date | Window (from..to) | Commits | a | b | c | d | e (struct) | f | g | Unexplained |
-|---|---|---|---|---|---|---|---|---|---|---|
+| Date | Window (from..to) | Commits | a | b | c | d | e (structural) | f | g | Unexplained | Gates changed / total |
+|---|---|---|---|---|---|---|---|---|---|---|---|

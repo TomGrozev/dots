@@ -13,7 +13,6 @@ My personal dotfiles, mainly used to set up dev pods and AI-assisted coding.
 - **OMP (Orchestrator)**: High-level agent management, roles, skills, and rules (`.omp/`).
 - **Codebase Memory**: Knowledge graph MCP for structural codebase analysis.
 - **Companion Tools**: Captain Miao (session manager) and r3 (review tool).
-- **CortexKit**: AI toolkit integration (`.cortexkit/`, `.config/cortexkit/`).
 
 ### Editor & Git
 - **Neovim**: LazyVim-based configuration with custom development plugins (`.config/nvim/`).
@@ -42,7 +41,7 @@ The install script performs the following:
 1. **Symlinks**: Maps dotfiles from `~/dotfiles` to home directory, backing up existing files with `.bak`.
 2. **Shell**: Installs Oh My Zsh and required plugins (syntax highlighting, autosuggestions) and Powerlevel10k.
 3. **Tooling**: Installs binaries for `codebase-memory-mcp`, `captain-miao`, `flate`, and `r3`.
-4. **Configuration**: Sets up `.config/` subdirectories for `gh`, `nvim`, `ghostty`, `yazi`, `zellij`, `btop`, `cortexkit`, and `captain-miao`.
+4. **Configuration**: Sets up `.config/` subdirectories for `gh`, `nvim`, `ghostty`, `yazi`, `zellij`, `btop`, and `captain-miao`.
 5. **Agents**: Installs essential agent skills (Matt Pocock engineering skills, conventional-commit, frontend-design, avoid-ai-writing) via npm.
 6. **Integration**: Configures `r3` public URLs for Coder workspaces.
 7. **Arch Linux packages**: On Arch hosts only, installs `packages/arch.txt` with pacman and `packages/aur.txt` with yay (bootstrapped if missing), and on any Linux host without omp, downloads the latest omp release into `~/.local/bin`. Find packages installed outside the lists with `pacman -Qqen` (repo) and `pacman -Qqem` (AUR).
@@ -63,7 +62,7 @@ Zellij plugins, `r3`, the captain-miao dashboard) and the devcontainer's
 `config-devcontainer.yml` overlay. It links the authored
 agent config (`~/.omp/agent/` gets `mcp.json`, `AGENTS.md`, `RULES.md`,
 `agents/`, `rules/`, `extensions/`, `skills/{implement,land}` and
-`pairing-workflow.html`) plus the
+`agent-workflow.html`) plus the
 cc-safety-net policy, the omp plugins (`cc-safety-net` and the neuralwatt fork)
 and the agent skills. Instead of linking `config.yml`, the
 mode bakes `.omp/config-agent-pod.yml` into it with `.omp/merge-config.py` (the

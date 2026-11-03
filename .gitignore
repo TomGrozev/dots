@@ -5,8 +5,6 @@
 # Zellij WASM plugins (downloaded by install.sh)
 .config/zellij/plugins/
 
-.cortexkit/
-
 # git-bot-identity dev deps (bun install inside .omp/extensions/git-bot-identity/)
 node_modules/
 package-lock.json

@@ -316,7 +316,7 @@ if [ "$AGENT_POD" != "true" ]; then
   echo ""
   echo "Creating .config symlinks..."
 
-  config_dirs=(btop gh ghostty nvim cortexkit yazi zellij)
+  config_dirs=(btop gh ghostty nvim yazi zellij)
 
   # The Polar Hyprland desktop only exists on Arch desktops; macOS,
   # devcontainers, agent pods and headless hosts get none of its configs or
@@ -564,10 +564,10 @@ fi
 
 # The lean agent-pod profile links only the authored config the pod runs on:
 # WATCHDOG.md, config-devcontainer.yml and skills/ belong to the laptop and
-# devcontainer installs; the pod's skills/ is narrowed to the pairing-workflow skills
+# devcontainer installs; the pod's skills/ is narrowed to the agent-workflow skills
 # linked after the loop. mcp.json is linked in both modes: the codebase-memory
-# server is how the pod's agent learns the ticket's repo, and the other two are
-# hosted.
+# server is how the pod's agent learns the ticket's repo, and the other three are
+# hosted (context7, gh_grep, deepwiki).
 if [ "$AGENT_POD" = "true" ]; then
   omp_entries=(config.yml mcp.json AGENTS.md agents extensions rules)
 else
@@ -590,8 +590,11 @@ done
 # every other repo still loads.
 link_entry "$DOTFILES_DIR/.omp/RULES.global.md" "$OMP_AGENT_DIR/RULES.md" "~/.omp/agent/RULES.md"
 
-# The pod's agent-tier config names the pairing-workflow skills, so the lean
-# profile links those individually instead of the whole skills/ dir.
+# The pod's agent-tier config names the agent-workflow skills, so the lean
+# profile links those individually instead of the whole skills/ dir: implement
+# and land run the ticket, and writing-prose serves the commit and PR prose
+# that RULES.md requires. The pod parks hitl tickets and writes no tickets, so
+# to-tickets and the hitl-only skills stay out.
 if [ "$AGENT_POD" = "true" ]; then
   # The depth-1 sweep above cannot reach a skill link, so a link left by an
   # older pod is cleared here before the loop relinks.
@@ -600,14 +603,14 @@ if [ "$AGENT_POD" = "true" ]; then
     echo "  Removing stale link $stale_skill (source gone)"
     rm -f "$stale_skill"
   fi
-  for skill in implement land; do
+  for skill in implement land writing-prose; do
     link_entry "$DOTFILES_DIR/.omp/skills/$skill" "$OMP_AGENT_DIR/skills/$skill" "~/.omp/agent/skills/$skill"
   done
 fi
 
 # Fixed path to the workflow map, independent of where the repo is cloned, so
 # the agent's instructions can point at it.
-link_entry "$DOTFILES_DIR/docs/pairing-workflow.html" "$OMP_AGENT_DIR/pairing-workflow.html" "~/.omp/agent/pairing-workflow.html"
+link_entry "$DOTFILES_DIR/docs/agent-workflow.html" "$OMP_AGENT_DIR/agent-workflow.html" "~/.omp/agent/agent-workflow.html"
 
 # --- Bake the mode's overlay into config.yml ---
 # A PI_CONFIG_FILES env var could select an overlay dynamically for shells that
@@ -1212,8 +1215,9 @@ if command -v npm &>/dev/null; then
   npx skills add https://github.com/emilkowalski/skills --skill apple-design -a universal -y -g
 
   # On-demand prose review (MIT). Its companion npm package
-  # avoid-ai-writing-detector supplies the prose gate in the Makefile `check`
-  # target; `npx` fetches it at gate time, so no global install is needed.
+  # avoid-ai-writing-detector is the deterministic prose gate that the local
+  # writing-prose skill runs; `npx` fetches it at gate time, so no global install
+  # is needed.
   echo "  Installing avoid-ai-writing skill..."
   npx skills add conorbronsdon/avoid-ai-writing --skill avoid-ai-writing -a universal -y -g
 
@@ -1223,6 +1227,10 @@ if command -v npm &>/dev/null; then
   if [ "$AGENT_POD" != "true" ]; then
     echo "  Installing r3 review skill..."
     npx skills add hyperlogue/r3 --skill publish-artifacts-to-r3 -a universal -y -g
+
+    # Pre-PR security review of a diff (Apache-2.0), for interactive sessions only.
+    echo "  Installing security-review skill..."
+    npx skills add getsentry/skills --skill security-review -a universal -y -g
   fi
 
   # Diagram design (MIT) draws the diagram of an r3 review page. Installing the
