@@ -62,7 +62,7 @@ Show the hitl tickets as one compact table, so a tired user can scan each gate a
 | Ticket | Review gate | What you review | Reason |
 |---|---|---|---|
 
-If the breakdown is large, offer a page: the tickets as a graph, with blockers and hitl gates marked. The page shows the tickets, their blockers and the hitl gates.
+If the breakdown is large, show the tickets as a graph with their blockers and hitl gates (AGENTS.md § Pages says when it is a page).
 
 Iterate until the user approves the breakdown.
 

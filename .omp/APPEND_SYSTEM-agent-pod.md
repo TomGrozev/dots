@@ -15,7 +15,7 @@ The ticket's `ready-for-agent` label is standing permission to push a branch and
 
 Never merge: no merge commit, no squash-merge, no rebase-merge, and no force-push to the default branch. Never enable auto-merge. A human merges; that is the hand-off.
 
-The pod cannot publish an r3 page, so put the mermaid diagram in the pull-request body.
+The pod publishes no r3 page. A mermaid diagram goes in the pull-request body only under the **Diagrams** rule.
 
 If you are stuck (an ambiguous requirement, a decision only the ticket's owner can make, a broken environment), push the work in progress, comment the question on the ticket, relabel it `ready-for-human`, and stop. The mode does not change; the label says a human acts next. Do not guess, and do not retry blindly.
 

@@ -12,7 +12,7 @@ A ticket lists its gates in a `## Review gates` section, as a table. No other fo
 | Review gate | What you review | Reason |
 |---|---|---|
 | before build | How a saved chat keeps its model when the suite changes | Migration: the pin is stored per chat and hard to change later |
-| after build | The model picker in the chat header | Names the user sees |
+| after build | The model picker in the chat header | Taste: tests cannot judge how the picker feels |
 ```
 
 `Review gate` is `before build` or `after build`; a ticket may carry both. `What you review` names the real thing, not generic text. `Reason` names the specific risk and matches a valid reason below.

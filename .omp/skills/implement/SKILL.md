@@ -8,7 +8,7 @@ disable-model-invocation: true
 
 Implement the work described by one ticket. One ticket per fresh session, every mode: the ticket is self-contained, so nothing from another ticket's session is needed. You orchestrate; `task` workers do the build legwork (AGENTS.md § Route).
 
-The steps below run in every mode. A hitl ticket adds two review gates; `implement/HITL.md` holds the gate steps, the surface definition and the page rules. This file says only when to open it.
+The steps below run in every mode. A hitl ticket adds two review gates; `implement/HITL.md` holds the gate steps and the surface definition. This file says only when to open it.
 
 ## Steps
 
@@ -53,7 +53,7 @@ Run the checks in the order in `skill://land/CHECKS.md`. No user (unattended run
 **Done when** the checks pass, with their command and output tail shown.
 
 ### 4. Finish
-Hand over to `land` (read `skill://land`), passing the ticket reference (ad-hoc: pass `hitl` as the mode with no ticket reference), the mode, the start commit, the checks command, and the points kept for notes. This skill makes no commits. Many tickets from one spec in a single session use `implement-spec` instead of repeating this skill.
+Hand over to `land` (read `skill://land`), passing the ticket reference (ad-hoc: pass `hitl` as the mode with no ticket reference), the mode, the start commit, the checks command and its pass line, the ticket's r3 artifact id when a gate made one, and the points kept for notes. This skill makes no commits. Many tickets from one spec in a single session use `implement-spec` instead of repeating this skill.
 
 **Done when** `land` has them.
 

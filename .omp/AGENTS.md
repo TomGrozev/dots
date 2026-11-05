@@ -12,7 +12,8 @@ Agent Rules (`~/.omp/agent/RULES.md`), which bind you and every subagent.
 # Ask before you act
 
 Ask the user before anything hard to reverse or potentially harmful:
-1. publishing: push, tag, PR and merge. A local commit is not publishing, on any branch;
+1. publishing: push, tag, and opening or merging a PR. Local commits and local merges between
+   branches or worktrees are not publishing;
 2. deleting or overwriting work the agent did not create, or rewriting git history;
 3. changing persisted data, a public contract, or an external system (deploys, messages, paid services);
 4. anything involving secrets or credentials.
@@ -39,16 +40,15 @@ the repo-root docs (`GLOSSARY.md`, `CODING_STANDARDS.md`, the ADR directory) liv
   programming, tooling and computing terms are fine. Anything specific to this codebase,
   workflow or a tool's internals (a module name, a coined label, a config key) gets a few
   plain words of explanation where it first appears in a reply, or a description instead.
-- **Diagrams first** for flows, structure and architecture: lead with one simple mermaid
-  diagram (about 10 boxes at most, short labels), then the prose. Simple answers need none.
-- **Pages**: an HTML page on r3 shows a change the reader must see to judge. In the console,
-  use a mermaid block. Make the page only when the reader must see the change to
-  judge it: a UI change (show its states), a change that crosses a boundary (a new module or
-  service, or a new data or API shape), or one idea larger than about 400 changed lines or
-  10 files. Read `skill://diagram-design` for the layout and the diagram type. Publish with
-  `skill://publish-artifacts-to-r3`. A `task` worker draws the page: one diagram, about
-  9 boxes at most, readable without the text. A skill that makes a page says only what its
-  page holds; the layout, style and diagram type are the worker's choice.
+- **Diagrams**: draw a mermaid diagram only for a flow or a structure of 3 or more parts that
+  prose cannot carry. Never for a UI (show a screenshot), and never to recap the turn.
+- **Pages**: a page is a one-screen HTML artifact on r3. It shows what chat text and a diff
+  cannot: how the parts of a change fit together, the states of a UI, or 2 to 3 designs side by
+  side. Make one when the reader must see that shape to judge the work: a UI change; a new
+  module, API, data shape or migration; a change of more than about 10 files or 400 lines; a
+  choice between designs; or a ticket graph of 6 or more tickets. Also make one when the user
+  asks. Otherwise chat, a table or the diff is enough. A `task` worker builds it: screenshots
+  for UI states, else one diagram with `skill://diagram-design`, 9 boxes at most.
 
 # Delegation
 
