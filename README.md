@@ -44,7 +44,7 @@ The install script performs the following:
 4. **Configuration**: Sets up `.config/` subdirectories for `gh`, `nvim`, `ghostty`, `yazi`, `zellij`, `btop`, and `captain-miao`.
 5. **Agents**: Installs essential agent skills (Matt Pocock engineering skills, conventional-commit, frontend-design, avoid-ai-writing) via npm.
 6. **Integration**: Configures `r3` public URLs for Coder workspaces.
-7. **Arch Linux packages**: On Arch hosts only, installs `packages/arch.txt` with pacman and `packages/aur.txt` with yay (bootstrapped if missing), and on any Linux host without omp, downloads the latest omp release into `~/.local/bin`. Find packages installed outside the lists with `pacman -Qqen` (repo) and `pacman -Qqem` (AUR).
+7. **Arch Linux packages**: On Arch hosts only, installs `packages/arch.txt` with pacman and `packages/aur.txt` with yay (bootstrapped if missing). On any Linux host, installs omp into `~/.local/bin` when no omp exists, and runs `omp update` when that copy is present; an omp that lives elsewhere on `PATH` (devcontainer image, system install) is left alone. The omp plugins are reinstalled on each run so they follow their npm range and git branch. Find packages installed outside the lists with `pacman -Qqen` (repo) and `pacman -Qqem` (AUR).
 8. **Dictation (Arch Linux desktop)**: On Arch desktops only (not macOS, devcontainers, agent pods or headless hosts), installs OpenWhispr from the AUR and a systemd user service running the vendored `openwhispr-soniox-proxy` in `.config/openwhispr-soniox-proxy/` (MIT; see its `LICENSE`). In OpenWhispr, set **Settings → Speech to Text → Custom** to endpoint `http://127.0.0.1:8788/v1`, model `stt-async-v5`, and your Soniox API key. The unit sets `SONIOX_REGION=jp`; the API key must come from a project in that region (supported values: `us`, `eu`, `jp`, `in`).
 
 ### Agent Pod Mode
@@ -70,7 +70,9 @@ same mechanism the devcontainer uses for `config-devcontainer.yml`), and links
 `.omp/APPEND_SYSTEM-agent-pod.md` to `~/.omp/agent/APPEND_SYSTEM.md`, which omp
 appends to the main session's system prompt. The image itself ships no omp
 config, and its `skills.includeSkills` allowlist in that overlay decides which
-installed skills the pod's agent can actually read.
+installed skills the pod's agent can actually read. The same overlay turns off
+omp's startup update check and background self-update, because the pod image
+owns the binary.
 
 Binary installs that the image does not ship still run in this mode, because each
 is guarded by a presence check: `codebase-memory-mcp` lands in `~/.local/bin` on

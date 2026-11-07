@@ -110,3 +110,13 @@ bash:
     # --- Fallback: everything else in the box just runs ---
     - match: "*"
       approval: allow
+
+# --- No self-updating in an image-built container ----------------------------
+# The devcontainers repo rebuilds the image with a new omp, and a container's
+# filesystem is discarded on rebuild, so a self-update here can only drift from
+# the image it was built from. Turn off both the background install and the
+# startup check that announces one; rebuilding the image is what moves omp.
+update:
+  auto: false
+startup:
+  checkUpdate: false

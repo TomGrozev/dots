@@ -673,32 +673,51 @@ mkdir -p "$CCSN_DIR"
 ln -sfn "$DOTFILES_DIR/.cc-safety-net/policy.json" "$CCSN_DIR/policy.json"
 echo "  Linked ~/.cc-safety-net/policy.json"
 
-# --- Install omp (Linux) ---
-# The devcontainer and pod images ship omp; a bare Linux host (e.g. Arch) does
-# not. Presence-checked, so it is a no-op wherever omp already exists. Updates
-# afterwards are omp's own job, so this only fetches the latest release once.
-if [ "$UNAME_OS" = "linux" ] && ! command -v omp &>/dev/null; then
-  case "$UNAME_ARCH" in
-  x86_64) omp_arch="x64" ;;
-  aarch64 | arm64) omp_arch="arm64" ;;
-  *) omp_arch="" ;;
-  esac
-  if [ -n "$omp_arch" ]; then
+# --- Install or update omp (Linux) ---
+# This script only manages the copy it put in ~/.local/bin. A host that already
+# has omp elsewhere on PATH — the devcontainer and pod images ship one, and a
+# system install can provide one — keeps that binary: it is managed by the image
+# or the OS, so we leave it untouched. Present in ~/.local/bin → `omp update`
+# patches it in place, so a re-run keeps it current instead of leaving it at the
+# version that first ran. Missing everywhere → fetch the latest release once.
+# The update is best effort: a failure warns and the rest of the install
+# continues, because the binary that is already there still works.
+if [ "$UNAME_OS" = "linux" ]; then
+  if [ -x "$LOCAL_BIN/omp" ]; then
     echo ""
-    echo "Installing omp..."
-    curl -fsSL -o "$LOCAL_BIN/omp" \
-      "https://github.com/can1357/oh-my-pi/releases/latest/download/omp-linux-$omp_arch"
-    chmod +x "$LOCAL_BIN/omp"
-    export PATH="$LOCAL_BIN:$PATH"
+    echo "Updating omp..."
+    "$LOCAL_BIN/omp" update ||
+      echo "  WARNING: omp update failed; run it again once the network is reachable"
+  elif command -v omp &>/dev/null; then
+    echo ""
+    echo "  Leaving $(command -v omp) alone: not installed by this script, managed outside ~/.local/bin"
   else
-    echo "  Skipping omp: unsupported arch $UNAME_ARCH"
+    case "$UNAME_ARCH" in
+    x86_64) omp_arch="x64" ;;
+    aarch64 | arm64) omp_arch="arm64" ;;
+    *) omp_arch="" ;;
+    esac
+    if [ -n "$omp_arch" ]; then
+      echo ""
+      echo "Installing omp..."
+      curl -fsSL -o "$LOCAL_BIN/omp" \
+        "https://github.com/can1357/oh-my-pi/releases/latest/download/omp-linux-$omp_arch"
+      chmod +x "$LOCAL_BIN/omp"
+      export PATH="$LOCAL_BIN:$PATH"
+    else
+      echo "  Skipping omp: unsupported arch $UNAME_ARCH"
+    fi
   fi
 fi
 
-# --- Install omp plugins ---
+# --- Install or update omp plugins ---
 # omp npm plugins installed into ~/.omp/plugins/. omp's plugin state is runtime-
 # managed (package.json + omp-plugins.lock.json), so we run the installer rather than
-# committing a manifest. Idempotent: re-running on an already-installed plugin is a no-op.
+# committing a manifest. `omp update --plugins` is not the update path here: it only
+# upgrades marketplace plugins (name@marketplace), and both specs below are an npm
+# name and a git URL. A plain `omp install` of an installed plugin is refused, so
+# --force re-resolves the spec — the latest npm release for cc-safety-net, the
+# branch head for the fork — and reinstalls it when it moved.
 # cc-safety-net: PreToolUse hook blocking destructive commands (rm -rf, git reset --hard,
 # git push --force, etc.) and secret-file reads (~/.ssh/*, .env, ~/.aws, …). Strict
 # preset: set CC_SAFETY_NET_LEVEL=strict in the environment (e.g. .zshenv) — check the
@@ -712,8 +731,8 @@ OMP_PLUGINS=(cc-safety-net "https://github.com/TomGrozev/fork-pi-neuralwatt#feat
 if command -v omp &>/dev/null; then
   for plugin in "${OMP_PLUGINS[@]}"; do
     echo ""
-    echo "Installing $plugin plugin for omp..."
-    omp install "$plugin"
+    echo "Installing or updating $plugin plugin for omp..."
+    omp install --force "$plugin"
   done
 fi
 

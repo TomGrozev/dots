@@ -258,3 +258,14 @@ bash:
     # --- Fallback: everything else in the box just runs ---
     - match: "*"
       approval: allow
+
+# --- No self-updating in an image-built pod ----------------------------------
+# The pod image carries the omp it was built with and the pod's filesystem is
+# thrown away when the task ends, so a background self-update would spend a
+# download on a launch that never comes. Turn off both the background install
+# and the startup check that announces one; a newer omp arrives by rebuilding
+# the image.
+update:
+  auto: false
+startup:
+  checkUpdate: false
