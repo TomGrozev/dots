@@ -24,7 +24,7 @@ cycleOrder:
 symbolPreset: nerd
 theme:
   dark: dark-nord
-setupVersion: 2
+setupVersion: 3
 defaultThinkingLevel: auto
 statusLine:
   transparent: true
@@ -32,8 +32,21 @@ statusLine:
   showHookStatus: false
   preset: custom
   leftSegments:
-    [pi, vim, model, mode, collab, stream, path, git, pr, context_pct, cost]
-  rightSegments: [session_name, status]
+    - pi
+    - vim
+    - model
+    - mode
+    - collab
+    - stream
+    - path
+    - git
+    - pr
+    - context_pct
+    - cache
+    - cost
+  rightSegments:
+    - session_name
+    - status
   sessionAccent: true
 terminal:
   showProgress: true
@@ -102,7 +115,6 @@ tools:
     bash: allow
     eval: allow
     task: allow
-    hub: allow
     fetch: allow
     web_search: allow
     browser: allow
@@ -111,18 +123,6 @@ tools:
     mcp__codebase_memory_mcp_delete_project: deny
     mcp__codebase_memory_mcp_index_repository: prompt
     mcp__codebase_memory_mcp_ingest_traces: prompt
-bash:
-  patterns:
-    - match: "*.ssh/*"
-      approval: deny
-    - match: "*id_rsa*"
-      approval: deny
-    - match: "*id_ed25519*"
-      approval: deny
-    - match: "*.gnupg*"
-      approval: deny
-    - match: "*.aws/*"
-      approval: deny
 # ponytail: patterns copied from omp v18.17.0 DEFAULT_BASH_INTERCEPTOR_RULES (arrays replace defaults); re-sync on omp upgrades.
 bashInterceptor:
   enabled: true
@@ -163,6 +163,18 @@ bashInterceptor:
     - pattern: '^\s*(?:curl\s+(?:-[sSLfq]+\s+|--(?:silent|show-error|location|fail|quiet)\s+)*[''"]?https?://\S+?[''"]?|wget\s+(?:-q\s+)?-q?O\s*-\s+[''"]?https?://\S+?[''"]?)\s*$'
       tool: read
       message: 'Use the `read` tool on the URL; it returns reader text instead of raw HTML (append :raw for the original).'
+bash:
+  patterns:
+    - match: "*.ssh/*"
+      approval: deny
+    - match: "*id_rsa*"
+      approval: deny
+    - match: "*id_ed25519*"
+      approval: deny
+    - match: "*.gnupg*"
+      approval: deny
+    - match: "*.aws/*"
+      approval: deny
     - match: "*.kube/config*"
       approval: deny
     - match: "*.docker/config.json*"
@@ -503,6 +515,7 @@ compaction:
   thresholdTokens: 160000
   idleEnabled: true
   idleThresholdTokens: 100000
+  experimentalContextManagement: true
 ttsr:
   contextMode: discard
   repeatMode: after-gap
@@ -515,9 +528,10 @@ treeFilterMode: default
 error:
   notify: "on"
 power:
-  experimentalContextManagement: true
   sleepPrevention: idle
 hideThinkingBlock: false
 personality: pragmatic
 isolation:
   backend: auto
+update:
+  auto: true

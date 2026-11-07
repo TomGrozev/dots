@@ -1,8 +1,9 @@
 # Agent Rules
 
-Bind every agent: the main session and every subagent. "Escalate" means: subagents `hub`-message
-`Main` with `await` and continue once answered; only Main asks the user. A skill step addressed
-to the user (a checkpoint, a question) is an escalation.
+Bind every agent: the main session and every subagent. "Escalate" means: a subagent writes
+`agent://Main` and calls `wait` for the answer, then continues; only Main asks the user. A skill
+step addressed to the user (a checkpoint, a question) is an escalation. A subagent's
+`write agent://all` fails: only Main broadcasts.
 
 - **Stay on the brief.** Out-of-scope finds (bugs, stale code, "while I'm here") get named, not
   fixed: one line, plus up to three options with tradeoffs when the fix is ambiguous. A wrong or

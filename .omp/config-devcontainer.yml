@@ -23,7 +23,6 @@ tools:
     bash: allow
     eval: allow
     task: allow
-    hub: allow
     fetch: allow
     web_search: allow
     security_scan: allow

@@ -95,7 +95,8 @@ Use the `task` tool's templates: shared `# Goal` / `# Constraints` / `# Contract
 `# Target` / `# Change` / `# Acceptance`.
 - **Name the skill, don't paste it.** Answer in the brief every question that the skill would
   ask a user. When the conversation has not answered it, ask the user first.
-- **Decide before dispatching.** Workers `hub`-message `Main` with `await` when stuck.
+- **Decide before dispatching.** A worker that gets stuck writes `agent://Main` and calls `wait`
+  for the answer.
 - **Least privilege**: scope to the files the job needs; `isolated: true` for parallel or
   substantial writes.
 - **A subagent starts blank**, with no conversation history and no user, and acts only on the brief.
