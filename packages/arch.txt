@@ -68,3 +68,5 @@ yamllint
 opentofu
 sops
 age
+git-lfs
+direnv
