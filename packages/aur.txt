@@ -1,5 +1,4 @@
 asdf-vm
-rtk
 wlr-which-key
 lutgen-bin
 nordic-theme

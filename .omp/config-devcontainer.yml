@@ -14,8 +14,8 @@
 #
 # Under approvalMode: yolo omp's built-in critical-command guard is bypassed (rm -rf /,
 # fork bombs, host shutdown, ...), which is why those catastrophic-command denies are
-# restated explicitly here (with leading * to defeat wrapper-prefix rewrites like
-# `rtk`, `sudo`, or `time`) rather than being inherited from the base config.
+# restated explicitly here (with leading * to defeat wrapper prefixes like
+# `sudo` or `time`) rather than being inherited from the base config.
 
 tools:
   approvalMode: yolo

@@ -170,8 +170,8 @@ tools:
 # precedent, because approvalMode: yolo bypasses omp's built-in critical-command
 # guard (recursive root deletes, fork bombs, host shutdown, ...). Those
 # catastrophic-command denies are therefore restated explicitly rather than
-# inherited, with a leading `*` so that wrapper prefixes (`rtk`, `sudo`, `time`,
-# ...) cannot rewrite the command out from under the pattern. The
+# inherited, with a leading `*` so that wrapper prefixes (`sudo`, `time`, ...)
+# cannot hide the command from the pattern. The
 # credential-material denies are absolute and carry no override. The trailing
 # blanket `allow` is required because arrays replace wholesale: the list must
 # state its own complete policy rather than rely on a lower layer's.

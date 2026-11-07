@@ -1,5 +1,7 @@
 # Checks order
 
+The caller dispatches a worker with these steps. The worker reports the command and its pass line; failing output stays in its context.
+
 Run the first source that exists, and stop there:
 
 1. The checks command the caller passed in.

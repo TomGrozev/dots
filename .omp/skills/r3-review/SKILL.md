@@ -5,9 +5,16 @@ description: "Runs one human review round on r3 from omp: publish the diff, wait
 
 # r3 review rounds
 
-A round is one human review on r3. Run `r3 guide` once per session, and `r3 guide diff` before
-the first diff; they own the commands, replies and re-anchoring. This skill adds only what this
+A round is one human review on r3. Run `r3 guide` once per session for replies, restore and
+watch; the publishing worker runs `r3 guide diff` itself. This skill adds only what this
 workflow and omp need.
+
+Publishing is a worker's job. Dispatch `sonic` for a diff or a new version of one, `task` when
+it must draw a page or diagram. Give it the
+artifact id, the base, the order file and your summary text. It writes the page and the diff
+artifact, runs `r3 publish` and returns the URLs; its result auto-delivers, so end the turn
+after dispatch and do not call `wait`. You write the summary and thread text, never the page
+HTML.
 
 ## The artifact
 
@@ -17,8 +24,8 @@ version. The user archives the artifact at the end of each round, so a later rou
 answer copied to a thread after the archive, starts with `r3 restore <id>`. The id goes in the
 hand-over to `land`.
 
-Publish the patch in reading order: entry point first, then down the call path, with tests
-beside the code they cover. List the paths in an order file and pass it to git:
+The worker publishes the patch in reading order: entry point first, then down the call path,
+with tests beside the code they cover. List the paths in an order file and pass it to git:
 
 ```sh
 git add -N <new files>   # untracked files reach `git diff` only as intent-to-add
@@ -31,8 +38,8 @@ r3 writes need `R3_AGENT_SESSION`; the `r3-agent-session` extension sets it. Nev
 
 ## A page
 
-A page that the **Pages** rule calls for is a separate `html` artifact. Link it from the diff's
-summary. Decisions and answers stay in threads on the diff.
+A page that the **Pages** rule calls for is a separate `html` artifact. The worker builds it and
+links it from the diff's summary. Decisions and answers stay in threads on the diff.
 
 ## Waiting
 
