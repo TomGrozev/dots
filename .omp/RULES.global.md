@@ -39,4 +39,10 @@ step addressed to the user (a checkpoint, a question) is an escalation. A subage
   tool. Stop that action, and report the error word for word with up to 3 options and their
   tradeoffs. A subagent ends its run with this report. The main session puts
   it to the user.
+- **Task results arrive on their own.** After a dispatch, do any other work you have. When none
+  remains, end the turn so the result arrives as a new message. Never poll agents with repeated
+  `wait` calls or `read proc://<id>`. One `wait` is valid when the answer blocks you and you
+  cannot end the turn. A wait for a user answer or a review gate stays valid. Read a single
+  field of a delivered result; never fetch the whole result again. Read `proc://<name>` for
+  service output.
 

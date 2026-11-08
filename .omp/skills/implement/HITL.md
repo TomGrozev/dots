@@ -24,7 +24,7 @@ A **load-bearing surface** is the part of that surface worth a review gate, beca
 
 **Decision form**: one line for the question, then 2 options (sometimes 3), named A, B, C, each with one reason line (when a person picks it, its main gain, its main cost), taken from the spec, the ADRs and the code, never invented. In a shape review the map and the evidence speak first, so hold your pick until the user answers; reveal it with its reason only after the user replies.
 
-**Wait** for the round to end and every decision to have a choice; then the build starts. End your turn after publishing and do not call `wait` for the worker; its URLs auto-deliver. Each decision needs a reply that names an option. A bare "yes" with open decisions is not an answer, so ask which option. If the user archives with a decision open, ask it in chat before the build.
+**Wait** for the round to end and every decision to have a choice; then the build starts. End your turn after publishing so the worker's URLs arrive; do not poll the worker (`wait` in a loop, `read proc://<id>`). A wait for the user's answer stays valid. Each decision needs a reply that names an option. A bare "yes" with open decisions is not an answer, so ask which option. If the user archives with a decision open, ask it in chat before the build.
 
 **Apply** each batch of answers as it lands, one action at a time:
 1. Write an ADR (`domain-modeling` format) for each answer that fixes a hard-to-undo choice (load-bearing surface). The ADR goes in `docs/adr/` (fork: `.omp/docs/adr/`).

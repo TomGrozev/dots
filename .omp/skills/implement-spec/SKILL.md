@@ -12,9 +12,10 @@ This skill is a thin wrapper. `task` workers build each ticket with `skill://tdd
 orchestrate from the main session, the only session with the user. Keep one todo item per
 ticket plus landing, never one per sub-step.
 
-After a dispatch, do any other work you have; when there is none, end your reply. Do not call
-the `wait` tool: a finished worker's result arrives as a new message and starts your next turn.
-Read one field with `agent://<id>/<field>`; check a running job with `read proc://<id>`.
+After a dispatch, do any other work you have. When none remains, end the turn: a finished
+worker's result arrives as a new message and starts your next turn. Do not poll (`wait` in a
+loop, `read proc://<id>`); call `wait` once only when the answer blocks you and you cannot end
+the turn. Read one field with `agent://<id>/<field>`.
 
 Keep the `context_notes` notebook as the run's decision
 log, not a transcript: the digest path, the active tickets with their worker ids, landed

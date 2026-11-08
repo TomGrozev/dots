@@ -11,10 +11,10 @@ modelRoles:
   designer: anthropic/claude-opus-5-5:auto
   commit: neuralwatt/qwen3.6-35b-fast:off
   advisor: neuralwatt/glm-5.3-flash:low
-  vision: neuralwatt/gemma-4-31b:off
+  vision: neuralwatt/qwen-3.8-27b:off
   default: neuralwatt/deepseek-v4.1-flash:auto
   memory: neuralwatt/deepseek-v4.1-flash-flex:low
-  judge: neuralwatt/clef-flash
+  judge: neuralwatt/mammoth-1
   web: web/exa
 cycleOrder:
   - smol
@@ -123,35 +123,42 @@ tools:
     mcp__codebase_memory_mcp_delete_project: deny
     mcp__codebase_memory_mcp_index_repository: prompt
     mcp__codebase_memory_mcp_ingest_traces: prompt
-# ponytail: patterns copied from omp v18.17.0 DEFAULT_BASH_INTERCEPTOR_RULES (arrays replace defaults); re-sync on omp upgrades.
+read:
+  defaultLimit: 150
+  summarize:
+    enabled: true
+    prose: false
+# ponytail: patterns started as a copy of omp v18.17.0 DEFAULT_BASH_INTERCEPTOR_RULES (an array
+# replaces all defaults) and were edited here since, so they are not a verbatim copy of any release.
+# Re-diff against the installed omp source on every upgrade before assuming parity.
 bashInterceptor:
   enabled: true
   patterns:
-    - pattern: '^\s*(?:(?:head|tail|less|more)\s+|cat\s+(?!\s|(?:[02-9]>{1,2}\|?\s*[^\s>|]\S*\s+)*(?:<<|1?>(?!&)|&>)))'
+    - pattern: '^\s*(?!tail\b[^;&|\n]*\s(?:-[A-Za-z0-9]*[fF][A-Za-z0-9]*|--follow(?:=\S*)?)(?=\s|;|&|\||$))(?:(?:head|tail|less|more)\s+|cat\s+(?!\s|(?:[02-9]>{1,2}\|?\s*[^\s>|]\S*\s+)*(?:<<|1?>(?!&)|&>)))'
       tool: read
-      message: 'Use the `read` tool instead of cat/head/tail. It provides better context and handles binary files.'
+      message: 'Use the `read` tool instead of cat/head/tail. Pass the target as `path`: {"path":"src/app.ts","i":"Reading app.ts"} for the first 150 lines, {"path":"src/app.ts:120-180"} for lines 120-180, {"path":"log.txt:-80"} for the last 80 lines. To follow a growing log, use `bash` with `name` and `ready`, then `read proc://<name>`.'
     - pattern: '^\s*(grep|rg|ripgrep|ag|ack)\s+'
       tool: grep
-      message: 'Use the `grep` tool instead of grep/rg. It respects .gitignore and provides structured output.'
+      message: 'Use the `grep` tool instead of grep/rg/ag/ack. Pass {"pattern":"TODO","path":"src","i":"Searching TODO in src"}; a directory `path` already searches recursively and `.gitignore` is respected. Drop -n, -H, -r and -i: use "case":false for -i, and move an --include glob into `path`, e.g. "src/**/*.ts".'
     - pattern: '^\s*(find|fd|locate)\s+.*(-name|-iname|-type|--type|-glob)'
       tool: glob
-      message: 'Use the `glob` tool instead of find/fd. It respects .gitignore and is faster for glob patterns.'
+      message: 'Use the `glob` tool instead of find/fd. Pass the pattern as `path`: {"path":"src/**/*.ts","i":"Listing TS files"}. Convert -name "*.ts" to "**/*.ts", keep -type f implicit, and pass "gitignore":false to include ignored files.'
     - pattern: '^\s*sed\s+(-i|--in-place)'
       tool: edit
-      message: 'Use the `edit` tool instead of sed -i. It provides diff preview and fuzzy matching.'
+      message: 'Use the `edit` tool instead of sed -i. Follow its active schema: use `path`, `old_string` and `new_string`, or a hashline `input` patch.'
     - pattern: '^\s*perl\s+.*-[pn]?i'
       tool: edit
-      message: 'Use the `edit` tool instead of perl -i. It provides diff preview and fuzzy matching.'
+      message: 'Use the `edit` tool instead of perl -i. Follow its active schema: use `path`, `old_string` and `new_string`, or a hashline `input` patch.'
     - pattern: '^\s*awk\s+.*-i\s+inplace'
       tool: edit
-      message: 'Use the `edit` tool instead of awk -i inplace. It provides diff preview and fuzzy matching.'
+      message: 'Use the `edit` tool instead of awk -i inplace. Follow its active schema: use `path`, `old_string` and `new_string`, or a hashline `input` patch.'
     - pattern: '^\s*(?:(?:echo|printf)\s+|cat\s*<<|cat(?=\s+(?:\d+|&)?>)\s+)(?:(?:\\[\s\S]|\$\((?:[^()"''`]|"[^"]*"|''[^'']*''|`[^`]*`|\([^()]*\))*\)|\$\{[^{}]*\}|`[^`]*`|\$(?!\((?:[^()"''`]|"[^"]*"|''[^'']*''|`[^`]*`|\([^()]*\))*\)|\{[^{}]*\})|`(?![^`]*`)|[^"''>;&|\n\\$`]|(?<=[<>])&|(?<![<>])&(?=>)|(?<=(?:^|\s)[02-9])>{1,2}\|?|"[^"]*"|''[^'']*'')|(?<!\||>|(?:^|\s)[02-9])>{1,2}\|?\s*(?:"/dev/(?:null|tty|stdout|stderr)"|''/dev/(?:null|tty|stdout|stderr)''|/dev/(?:null|tty|stdout|stderr))(?=[\s;&|]|$))*(?<!\||>|(?:^|\s)[02-9])>{1,2}\|?\s*(?!(?:"/dev/(?:null|tty|stdout|stderr)"|''/dev/(?:null|tty|stdout|stderr)''|/dev/(?:null|tty|stdout|stderr))(?:[\s;&|]|$))[$\w./~"''-]'
       tool: write
-      message: 'Use the `write` tool instead of echo/cat redirection. It handles encoding and provides confirmation. `write` replaces the whole file; to append to an existing file, use `edit` to insert after its last line.'
+      message: 'Use `write` with {"path":"notes.txt","content":"full file text","i":"Writing notes.txt"}. It returns a receipt. To append, use `edit` with its active schema.'
     - pattern: '^\s*nohup\s+|(?<!&)\&\s*$'
       tool: bash
       message: 'Use `bash` with `name` instead of nohup or background shell syntax so the service stays observable and managed.'
-    - pattern: '^\s*(?:(?:bun|npm|pnpm|yarn)\s+(?:run\s+)?(?:dev|start)(?:\s|$)|(?:vite|next\s+dev|nuxt\s+dev|nodemon|lldb|gdb|tail\s+-f)(?:\s|$)|docker\s+compose\s+up(?!.*(?:\s-d(?:\s|$)|--detach))(?:\s|$))'
+    - pattern: '^\s*(?:(?:bun|npm|pnpm|yarn)\s+(?:run\s+)?(?:dev|start)(?:\s|$)|(?:vite|next\s+dev|nuxt\s+dev|nodemon|lldb|gdb|tail\b[^;&|\n]*\s(?:-[A-Za-z0-9]*[fF][A-Za-z0-9]*|--follow(?:=\S*)?)(?=\s|;|&|\||$))(?=\s|;|&|\||$)|docker\s+compose\s+up(?!.*(?:\s-d(?:\s|$)|--detach))(?:\s|$))'
       tool: bash
       message: 'Use `bash` with `name` for services, watchers, and debuggers; inspect with `read proc://<name>`.'
     - pattern: '^\s*(?:(?:bun|npm|pnpm|yarn)\s+(?:run\s+)?\S+|cargo\s+watch|watchexec|pytest|vitest|jest|tsc)(?:.|\n)*(?:--watch|-w)(?:\s|$)'
@@ -457,9 +464,11 @@ retry:
       - neuralwatt/glm-5.3-flash:high
       - neuralwatt/mimo-v2.6-pro:auto
     slow:
+      - neuralwatt/kimi-k3.1-pro:high
       - neuralwatt/glm-5.3:high
       - neuralwatt/mimo-v2.6-pro:high
     plan:
+      - neuralwatt/kimi-k3.1-pro:high
       - neuralwatt/glm-5.3:high
       - neuralwatt/mimo-v2.6-pro:high
     task:
@@ -472,6 +481,7 @@ retry:
     writer:
       - neuralwatt/deepseek-v4.1-flash:low
     review:
+      - neuralwatt/kimi-k3.1-pro:high
       - neuralwatt/glm-5.3:high
       - neuralwatt/mimo-v2.6-pro:high
     designer:
@@ -482,9 +492,9 @@ retry:
     advisor:
       - neuralwatt/deepseek-v4.1-flash:low
     vision:
-      - neuralwatt/qwen-3.8-27b:low
-    judge:
-      - "@tiny"
+      - neuralwatt/gemma-4-31b:off
+    # No judge chain: omp's judgment path never reads retry.fallbackChains, and it
+    # drops chat models such as @tiny once a decision model is the primary.
     web:
       - web/public
   usageAwareFallback: false

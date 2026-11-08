@@ -65,7 +65,7 @@ Commits in this skill depend on mode:
 
 A review or a PR carries the end card, then each note as a comment on its line. The files go in **reading order**: entry point first, down the call path, tests beside the code they cover. On the PR path, the user's PR review is the hitl review: `land` ends at publication, and the merge waits on it.
 
-Publishing is a worker's job: dispatch `sonic` for a diff with your summary, `task` when it must draw a page or diagram. It writes the artifacts, runs `r3 publish` and returns the URLs; its result auto-delivers, so do not call `wait`. You write the end card, the notes and the threads, never the page HTML.
+Publishing is a worker's job: dispatch `sonic` for a diff with your summary, `task` when it must draw a page or diagram. It writes the artifacts, runs `r3 publish` and returns the URLs; its result auto-delivers, so do not poll it (`wait` in a loop, `read proc://<id>`). You write the end card, the notes and the threads, never the page HTML.
 
 - **r3**: one review round (`skill://r3-review`) with the end card as the summary and each note as a thread.
 - **PR**: GitHub lists files alphabetically, so write the reading order as a list of paths under the end card in the PR body, in `skill://pr`'s shape (`gh pr edit <n> --body-file`, or the body of `gh pr create`). When the **Pages** rule calls for a page, link it from the body. The PR body is the end-of-work page, so after the end card and reading order it carries one more block:
