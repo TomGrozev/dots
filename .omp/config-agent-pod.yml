@@ -148,6 +148,17 @@ disabledProviders:
 ask:
   timeout: 120
 
+# --- Background work in print mode ---------------------------------------------
+# The pod runs `omp -p`, which ends the process when the main turn ends and
+# cancels every background job still running. The main session dispatches its
+# legwork (investigation and build) as background `task` workers, so a main turn
+# that ends after a dispatch kills that work and still exits 0, and Kelos marks
+# the task Succeeded.
+# printWake keeps print mode alive until those jobs finish and wakes the session
+# with each result. The entrypoint's --max-time still bounds the whole run.
+async:
+  printWake: true
+
 # --- Tools and approvals -------------------------------------------------------
 # approvalMode: yolo is required for an unattended run — the base config pins
 # `write`, which stalls on anything outside workspace-write, and a stalled tool
