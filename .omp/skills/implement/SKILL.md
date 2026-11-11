@@ -6,7 +6,7 @@ disable-model-invocation: true
 
 # Implement
 
-Implement the work described by one ticket. One ticket per fresh session, every mode: the ticket is self-contained, so nothing from another ticket's session is needed. You orchestrate; `task` workers do the build legwork (AGENTS.md § Route).
+Implement the work described by one ticket. One ticket per fresh session, every mode: the ticket is self-contained, so nothing from another ticket's session is needed. You orchestrate; `task` workers do the build legwork (AGENTS.md § Delegation).
 
 The steps below run in every mode. A hitl ticket adds two review gates; `implement/HITL.md` holds the gate steps and the surface definition. This file says only when to open it.
 
@@ -16,6 +16,8 @@ After a dispatch, do any other work you have. When none remains, end the turn: a
 
 ### 0. Load
 Read the ticket (the argument: a tracker reference or a local ticket path) and state its title back to the user in one line. If the reference matches no ticket or more than one, list the matches and ask before you read further.
+
+A local ticket marked `in-review (#<n>)` is not work to start: check PR #n, set the ticket to `done` when it merged, naming the PR, and report it.
 
 The ticket's `**Mode:**` line alone picks the branch below; the gate table only says which gates run. When the line and the table disagree, stop and ask the user.
 
@@ -45,7 +47,7 @@ hitl with an `after build` row: run `HITL.md` § See it run after step 1, before
    - spec: the spec path and the ticket path, and the shape review's answers; ad-hoc work has no ticket, so use the step 0 `ask` answers as the spec input; the digest is for you alone;
    - standards: the repo's documented standards, plus the Agent Rules' **Durable names** and **Comments carry the why**, so the Standards reviewer checks every new name and comment with eyes that did not write them.
 
-   The Spec reviewer receives only those and the diff, never your reasoning. Fix what's real; the rest become notes (`land` step Notes).
+   The Spec reviewer receives only those and the diff, never your reasoning. Fix what's real; the rest become notes (`land` § Write the notes).
 
 **Done when** the review axes are reported, with what's real fixed and the rest kept for the notes.
 
@@ -64,4 +66,4 @@ Trigger: a worker must add or change a public function head, a module layout or 
 - hitl: stop; the main session runs a new Shape review for it (`HITL.md` § Shape review).
 - afk: make the smallest change that works and report it.
 
-Record: a module layout or stored data shape change gets an ADR (`domain-modeling` format) in `docs/adr/` (fork: `.omp/docs/adr/`); any other public addition is a note (`land` step Notes). A signature change inside an existing module needs no gate.
+Record: a module layout or stored data shape change gets an ADR (`domain-modeling` format) in `docs/adr/` (fork: `.omp/docs/adr/`), following `skill://writing-prose` with its gate run; any other public addition is a note (`land` § Write the notes). A signature change inside an existing module needs no gate.

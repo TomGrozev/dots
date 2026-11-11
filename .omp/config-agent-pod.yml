@@ -116,7 +116,7 @@ skills:
     - apple-design
     # `implement` reads `tdd`, `code-review` and `domain-modeling`; `land` reads
     # `conventional-commit` and `pr`; the designer agent reads `frontend-design`
-    # and `apple-design`; `RULES.global.md` reads `writing-prose`.
+    # and `apple-design`; the workflow skills read `writing-prose`.
   enablePiProject: false
 
 # --- Discovery providers -------------------------------------------------------

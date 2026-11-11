@@ -61,7 +61,7 @@ The pod's image already carries omp, node, git, gh, zsh and the CLI tools
 Zellij plugins, `r3`, the captain-miao dashboard) and the devcontainer's
 `config-devcontainer.yml` overlay. It links the authored
 agent config (`~/.omp/agent/` gets `mcp.json`, `AGENTS.md`, `RULES.md`,
-`agents/`, `rules/`, `extensions/`, `skills/{implement,land}` and
+`PERSONALITY.md`, `agents/`, `rules/`, `extensions/`, `skills/{implement,land}` and
 `agent-workflow.html`) plus the
 cc-safety-net policy, the omp plugins (`cc-safety-net` and the neuralwatt fork)
 and the agent skills. Instead of linking `config.yml`, the

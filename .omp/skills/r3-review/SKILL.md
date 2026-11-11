@@ -14,7 +14,8 @@ it must draw a page or diagram. Give it the
 artifact id, the base, the order file and your summary text. It writes the page and the diff
 artifact, runs `r3 publish` and returns the URLs; its result auto-delivers, so end the turn
 after dispatch and do not poll it (`wait` in a loop, `read proc://<id>`). You write the summary
-and thread text, never the page HTML.
+and thread text, never the page HTML. That text is durable: write it to `skill://writing-prose`
+and run its gate on it before you hand it to the worker.
 
 ## The artifact
 

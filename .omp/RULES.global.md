@@ -1,48 +1,31 @@
 # Agent Rules
 
-Bind every agent: the main session and every subagent. "Escalate" means: a subagent writes
-`agent://Main` and calls `wait` for the answer, then continues; only Main asks the user. A skill
-step addressed to the user (a checkpoint, a question) is an escalation. A subagent's
-`write agent://all` fails: only Main broadcasts.
+Bind the main session and every subagent. "Escalate" means: a subagent writes `agent://Main` and
+calls `wait` for the answer, then continues; only Main asks the user. A skill step addressed to
+the user is an escalation. A subagent's `write agent://all` fails, since only Main broadcasts.
 
-- **Stay on the brief.** Out-of-scope finds (bugs, stale code, "while I'm here") get named, not
-  fixed: one line, plus up to three options with tradeoffs when the fix is ambiguous. A wrong or
-  blocked brief, or a decision only the user can make → escalate; never guess.
-- **Simplest correct code.** First understand the task and trace the real flow, then stop at the
-  first rung that holds: needn't exist → reuse what's in the codebase → stdlib → native platform
-  feature → installed dependency → one line → minimal new code. No unrequested abstractions,
-  boilerplate, or dependencies; deletion over addition. Bugs: fix the root cause once, in the
-  shared function, after checking every caller. Shortcuts with a known ceiling get a `ponytail:`
-  comment naming it and the upgrade path. Never trade away validation at trust boundaries,
-  data-loss handling, security, accessibility, or anything requested (doubt a requested piece,
-  "need X, or does Y cover it?") → escalate.
-- **Durable names.** Code, tests, commits, tickets, specs, ADRs and docs outlive the conversation:
-  name each thing by its domain term or a durable reference (issue number, ADR path, `file:line`).
-  Labels coined in a chat or a ticket's breakdown (`Q1`, `A2`, `Option B`, `Phase 2`) stay where
-  they were coined; to carry a decision out, restate it in words.
-- **Comments carry the why.** A comment says what a reader six months on would miss and the code
-  cannot show: a constraint imposed from outside (vendor, protocol, platform), an invariant or
-  ordering invisible from the spot, the obvious alternative and why it fails, a `ponytail:`
-  ceiling. Public API contracts get doc comments. What the code does lives in its names; its
-  provenance (what it replaced, which chat or ticket decided it) lives in the commit message.
-- **Write plain prose.** All prose a person reads: short active sentences, one idea per sentence,
-  common words, one word for one thing. No em dashes, no filler, no bold label on every bullet.
-  Read `skill://writing-prose` before you write durable prose: docs, commits, PR bodies, r3
-  and review comments.
-- **Graph before grep.** Structural questions go to `codebase-memory-mcp` first when the project is
-  indexed, else to `glob`/`find`; `grep`/`read` for literal text and graph gaps. Only the main
-  session indexes, with the user's approval; subagents never index.
-- **Prove every claim.** Quote the command and its pass or fail summary line; mark the rest
-  unverified.
-- **Two strikes.** Second failure on the same problem with no new hypothesis → stop and report.
-- **No tool bypass.** A denied or failed tool is a blocker. Do not run the action through another
-  tool. Stop that action, and report the error word for word with up to 3 options and their
-  tradeoffs. A subagent ends its run with this report. The main session puts
-  it to the user.
-- **Task results arrive on their own.** After a dispatch, do any other work you have. When none
-  remains, end the turn so the result arrives as a new message. Never poll agents with repeated
-  `wait` calls or `read proc://<id>`. One `wait` is valid when the answer blocks you and you
-  cannot end the turn. A wait for a user answer or a review gate stays valid. Read a single
-  field of a delivered result; never fetch the whole result again. Read `proc://<name>` for
-  service output.
-
+- **Stay on the brief.** Name out-of-scope finds in one line, not a fix; an ambiguous
+  fix gets up to three options. A wrong brief or a user-only decision escalates: a guess costs
+  more than a question.
+- **Simplest correct code.** Trace the real flow, then stop at the first rung that holds: existing
+  code, stdlib, platform feature, installed dependency, one line, minimal new code. Fix bugs at the
+  root cause once, after checking callers. A shortcut with a known ceiling gets a `ponytail:`
+  comment naming it and the upgrade path. Keep trust-boundary validation, security and
+  accessibility, or escalate.
+- **Durable names.** Labels made up in chat or a ticket breakdown (`Q1`, `Option B`, `Phase 2`)
+  stay there. Code, tests, commits, tickets and docs name things by their domain term or a
+  durable reference (issue number, ADR path, `file:line`), because a later reader never saw the
+  chat.
+- **Comments carry the why.** A comment says only what a reader in six months could not get from
+  the code: a rule imposed from outside, an ordering or invariant not visible at that spot, or
+  why the obvious approach fails. Do not restate what the next line does or record what the code
+  replaced; that goes in the commit message.
+- **Prove every claim.** Say done or passing only for what you ran, and name the command. Mark
+  the rest unverified.
+- **Graph first.** Structural questions (callers, definitions, impact) go to `codebase-memory-mcp`
+  when the project is indexed; see `rule://codebase-memory`.
+- **Two strikes.** A second failure on the same problem without a new hypothesis means the model
+  is wrong: stop and report, since another blind attempt wastes time.
+- **No tool bypass.** A block naming a replacement tool ("Use the `glob` tool instead") is a
+  redirect: use it. A denial naming no alternative stops the action: report the error word for
+  word with up to three options, because a workaround hides the refusal.

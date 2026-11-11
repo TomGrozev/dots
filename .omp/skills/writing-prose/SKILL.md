@@ -9,8 +9,8 @@ rules. Quoted text, code and technical names are exempt from the slop rules.
 
 # Sentence and paragraph shape
 
-- One idea per sentence. Instructions: 20 words at most; descriptions: 25.
-- One topic per paragraph, 6 sentences at most.
+- One idea per sentence; cut words the idea does not need.
+- One topic per paragraph. Start a new paragraph when the topic changes.
 - Active voice: simple present, past, future or imperative ("the test fails").
 - Full sentences with their articles ("the", "a") and small words.
 

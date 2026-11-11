@@ -1,5 +1,3 @@
-providers:
-  autoThinkingMaxEffort: high
 modelRoles:
   slow: anthropic/claude-opus-5-5:auto
   plan: anthropic/claude-opus-5-5:auto
@@ -72,6 +70,8 @@ autolearn:
   enabled: false
 mnemopi:
   llmMode: smol
+  recallLimit: 3
+  autoRetain: false
 edit:
   mode: hashline
   fuzzyMatch: true
@@ -109,6 +109,8 @@ disabledProviders:
 advisor:
   enabled: false
   syncBacklog: "off"
+  reviewMode: agent-end
+  continueSeverity: blocker
 tools:
   approvalMode: write
   approval:

@@ -7,6 +7,13 @@ description: How and when to use codebase-memory-mcp's knowledge graph instead o
 If your tool list has no `mcp__codebase_memory_mcp_*` entries, this doesn't apply to you:
 work from the evidence you were given plus `read`/`grep`.
 
+## Graph before grep
+
+Structural questions (who calls this, what breaks if I change it, where is it defined) go to
+the graph tools first. Use `grep` and `read` for literal text, for gaps the graph does not
+cover, and when the project is not indexed. Only the main session runs an index, and only with
+the user's approval; subagents never index.
+
 ## Decision matrix
 
 | Question              | Tool call                                          |

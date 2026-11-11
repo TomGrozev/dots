@@ -569,9 +569,9 @@ fi
 # server is how the pod's agent learns the ticket's repo, and the other three are
 # hosted (context7, gh_grep, deepwiki).
 if [ "$AGENT_POD" = "true" ]; then
-  omp_entries=(config.yml mcp.json AGENTS.md agents extensions rules)
+  omp_entries=(config.yml mcp.json AGENTS.md PERSONALITY.md agents extensions rules)
 else
-  omp_entries=(config.yml config-devcontainer.yml mcp.json AGENTS.md WATCHDOG.md agents extensions rules skills)
+  omp_entries=(config.yml config-devcontainer.yml mcp.json AGENTS.md PERSONALITY.md WATCHDOG.md agents extensions rules skills)
 fi
 
 for entry in "${omp_entries[@]}"; do
@@ -592,8 +592,8 @@ link_entry "$DOTFILES_DIR/.omp/RULES.global.md" "$OMP_AGENT_DIR/RULES.md" "~/.om
 
 # The pod's agent-tier config names the agent-workflow skills, so the lean
 # profile links those individually instead of the whole skills/ dir: implement
-# and land run the ticket, and writing-prose serves the commit and PR prose
-# that RULES.md requires. The pod parks hitl tickets and writes no tickets, so
+# and land run the ticket, and writing-prose holds the plain-prose rules for
+# commit and PR prose. The pod parks hitl tickets and writes no tickets, so
 # to-tickets and the hitl-only skills stay out.
 if [ "$AGENT_POD" = "true" ]; then
   # The depth-1 sweep above cannot reach a skill link, so a link left by an
@@ -608,8 +608,8 @@ if [ "$AGENT_POD" = "true" ]; then
   done
 fi
 
-# Fixed path to the workflow map, independent of where the repo is cloned, so
-# the agent's instructions can point at it.
+# Fixed path to the workflow map, independent of where the repo is cloned; it
+# is linked for the human reader.
 link_entry "$DOTFILES_DIR/docs/agent-workflow.html" "$OMP_AGENT_DIR/agent-workflow.html" "~/.omp/agent/agent-workflow.html"
 
 # --- Bake the mode's overlay into config.yml ---

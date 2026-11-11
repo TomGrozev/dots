@@ -45,11 +45,11 @@ flowchart TD
   W --> A["after build gate<br/>See it run: a thread on the same diff"]:::wait
   A --> R["self-review per ticket<br/>checks once per spec"]:::auto
   R --> L["land<br/>checks, end card, notes"]:::auto
-  L -->|"implement"| LQ["landing question<br/>commit, review + tidy, or PR"]:::you
+  L -->|"implement"| LQ["landing question<br/>review + tidy, commit for a typo, or PR"]:::you
   L -->|"implement-spec: one publish ask, then PR"| P["PR<br/>one commit per ticket by its mode; on hitl I review before merge"]:::you
   LQ -->|"PR"| P
   P --> M["merge<br/>required CI check green"]:::you
-  M --> T["retro and calibrate<br/>retro at each spec end; calibrate when due"]:::auto
+  M --> T["retro and calibrate<br/>land suggests them after a spec's last ticket"]:::auto
   classDef you fill:#1d4ed8,stroke:#1d4ed8,color:#fff
   classDef auto fill:#e5e7eb,stroke:#6b7280,stroke-dasharray:4 3,color:#111827
   classDef wait fill:#fde68a,stroke:#b45309,color:#111827
@@ -62,7 +62,7 @@ flowchart TD
   <tr><td>Label</td><td><code>ready-for-human</code>, which says a human acts next</td><td><code>ready-for-agent</code></td></tr>
   <tr><td>Review gates</td><td>One per row</td><td>None</td></tr>
   <tr><td>Runs in</td><td><code>implement</code>, <code>implement-spec</code></td><td><code>implement</code>, <code>implement-spec</code>, an unattended run</td></tr>
-  <tr><td>Review at landing</td><td>Required before merge: the final diff as a new version of the ticket's r3 artifact, then my tidy and commit; on a PR, my PR review is the hitl review</td><td>Unattended: a PR, and my PR review is the human read. In a session: the r3 review is offered</td></tr>
+  <tr><td>Review at landing</td><td>Required before merge: the final diff as a new version of the ticket's r3 artifact, then my tidy and commit; on a PR, my PR review is the hitl review</td><td>Unattended: a PR, and my PR review is the human read. In a session: the landing review is offered</td></tr>
   <tr><td>Commit</td><td><code>commit_as_me</code> with a conventional message, as me</td><td>Conventional commit</td></tr>
 </table>
 <p>The mode rule lives in <code>.omp/skills/to-tickets/SKILL.md</code> § Mode and label: the <code>**Mode:**</code> line is the only source of the mode, and a mismatch with the gate table stops and asks. A stuck unattended run relabels its ticket <code>ready-for-human</code>. Ad-hoc work with no ticket counts as hitl.</p>
@@ -132,28 +132,34 @@ flowchart TD
 <h2>land</h2>
 <p>Every task that changes files ends here.</p>
 <table>
-  <tr><th>#</th><th>Step</th><th>What happens</th></tr>
-  <tr><td>1</td><td>Checks</td><td>Reuses the checks result that <code>implement</code> or <code>implement-spec</code> passes, when no file changed since it ran; otherwise runs them again. At merge, the repo's required CI check must pass</td></tr>
-  <tr><td>2</td><td>Notes</td><td>A note about code sits on its line; other notes go in the end card's Notes block. 25 words at most; zero is normal</td></tr>
-  <tr><td>3</td><td>End card</td><td>Printed in chat; it also heads the r3 review and the PR body. An unattended run puts it in the PR body only</td></tr>
-  <tr><td>4</td><td>Landing question</td><td>On an <code>implement-spec</code> hand-off: one publish ask, then the PR path, with fixes from the self-review and checks in one extra commit. Skipped on an unattended run and when the work is already on an open PR someone else made</td></tr>
-  <tr><td>5</td><td>r3 review</td><td>The current diff is published to the ticket's artifact, and open threads move to it as <code>r3 guide</code> says. I annotate it and archive it, which ends the round, and the agent archives the page. A page sits beside the diff when the Pages rule calls for one, linked from the diff summary. On hitl it comes before the tidy and commit</td></tr>
-  <tr><td>6</td><td>Tidy</td><td>I edit and say "done"; the agent reviews it as a pair</td></tr>
-  <tr><td>7</td><td>Checks again</td><td>Only when review or tidy changed code</td></tr>
-  <tr><td>8</td><td>Commit or PR</td><td>The chosen landing. A PR sets the ticket <code>in-review (#&lt;n&gt;)</code>; it is <code>done</code> only at merge. On a PR: <code>Closes #N</code></td></tr>
-  <tr><td>9</td><td>Retro and calibrate note</td><td>Suggests <code>retro</code> at the end of each spec, and <code>calibrate</code> when at least 3 specs have closed since the last log row, and the last row is at least 30 days old</td></tr>
+  <tr><th>Step</th><th>What happens</th></tr>
+  <tr><td>Check</td><td>Reuses the checks result that <code>implement</code> or <code>implement-spec</code> passes, when no file changed since it ran; otherwise runs them again. At merge, the repo's required CI check must pass</td></tr>
+  <tr><td>Write the notes</td><td>A note about code sits on its line; other notes go in the end card's Notes block. 25 words at most; zero is normal</td></tr>
+  <tr><td>Show the card</td><td>Printed in chat; it also heads the landing review and the PR body. An unattended run puts it in the PR body only</td></tr>
+  <tr><td>Ask how to land</td><td>One ask: my recommendation in plain words, then only the options the situation allows. The run then reads the file for the chosen option and follows only it</td></tr>
 </table>
+<table>
+  <tr><th>Option</th><th>Reads</th><th>What happens</th></tr>
+  <tr><td>review, tidy, then commit</td><td><code>REVIEW.md</code>, then <code>COMMIT.md</code></td><td>The current diff is published to the ticket's artifact, and open threads move to it as <code>r3 guide</code> says. I annotate it and archive it, which ends the round, and the agent archives the page. A page sits beside the diff when the Pages rule calls for one, linked from the diff summary. Then the conventions are filed, I tidy and say "done", the agent reviews it as a pair, and the checks re-run when review or tidy changed code. On hitl the commit comes after this review</td></tr>
+  <tr><td>commit</td><td><code>COMMIT.md</code></td><td>A conventional commit, by <code>commit_as_me</code> on hitl. The ticket goes <code>done</code></td></tr>
+  <tr><td>PR</td><td><code>PR.md</code></td><td>A branch, the PR body carrying the card, notes and defaults, and <code>Closes #N</code>. The ticket goes <code>in-review (#n)</code>, and <code>done</code> only at merge. On an <code>implement-spec</code> hand-off: one publish ask, then this path, with fixes from the self-review and checks in one extra commit</td></tr>
+  <tr><td>leave it</td><td>nothing more</td><td>The work stays uncommitted</td></tr>
+</table>
+<p>After the last open ticket of a spec lands, <code>land</code> suggests <code>retro</code> in that session, and <code>calibrate</code> when the last log row is at least 30 days old and 3 specs have closed since. It does this only when the repo is onboarded, not a fork, and not unattended. <code>onboard</code> offers the calibrate baseline.</p>
 
 <div class="cols">
   <div>
     <h3>The end card</h3>
-<pre class="card"><code>✓ checks · 4 files · +120 −30
-&lt;one sentence: what changed and why&gt;
+<pre class="card"><code>&lt;one sentence: what changed and why; skip for a typo, config value or rename&gt;
+&lt;only when checks fail: ✗ &lt;command&gt;: &lt;what failed&gt;&gt;
 
 &lt;screenshot link for a UI change; else a part | change table, 5 rows at most; or nothing&gt;
 
 Look at:
-- `path:line`: &lt;why to look&gt;</code></pre>
+- `path:line`: what to check there and why it matters, e.g. what breaks if it is wrong (3 at most; drop the section when none)
+
+Notes:
+- a risk to know before merge, or another way to do it, when it has no code line; one line each, 2 at most</code></pre>
   </div>
   <div>
     <h3>Landing question</h3>
@@ -162,11 +168,12 @@ Look at:
       <tr><td>Unattended run</td><td>none</td><td>PR</td></tr>
       <tr><td><code>implement-spec</code> hand-off</td><td>one publish question, then the PR path</td><td>PR</td></tr>
       <tr><td>An open PR made by someone else</td><td>none; publish to it</td><td>n/a</td></tr>
-      <tr><td>hitl</td><td>review, tidy, then commit; PR</td><td>review, tidy, then commit</td></tr>
-      <tr><td>afk, behavioural or multi-file</td><td>review, tidy, then commit; PR; leave it</td><td>review, tidy, then commit</td></tr>
+      <tr><td>hitl (any ticket hitl, or no ticket)</td><td>review, tidy, then commit; PR</td><td>review, tidy, then commit</td></tr>
+      <tr><td>afk, behavioural or multi-file, with a note that spans several files</td><td>review, tidy, then commit; PR; leave it</td><td>PR</td></tr>
+      <tr><td>afk, behavioural or multi-file, otherwise</td><td>review, tidy, then commit; PR; leave it</td><td>review, tidy, then commit</td></tr>
       <tr><td>afk, typo, config value or rename</td><td>commit; review, tidy, then commit; PR; leave it</td><td>commit</td></tr>
     </table>
-    <p>On hitl the default is the r3 review on the ticket's artifact, then my tidy, then a commit as me. On a PR, my PR review is the hitl review, and the PR waits for it before it merges. <code>commit</code> is not offered for behavioural or multi-file afk work, because it skips the review. On afk, if both a note and a multi-file change apply, recommend PR.</p>
+    <p>On hitl the default is the landing review on the ticket's artifact, then my tidy, then a commit as me. On a PR, my PR review is the hitl review, and the PR waits for it before it merges. <code>commit</code> is not offered for behavioural or multi-file afk work, because it skips the review; when that change has a note and spans several files, recommend PR.</p>
   </div>
 </div>
 

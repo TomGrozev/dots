@@ -1,82 +1,57 @@
 ---
 name: land
-description: "Ends the work on a finished change: checks, notes, end card, then review, tidy and commit, or a PR. Runs after any finished file change, and when the user asks to land work."
+description: "Ends the work on a finished change: checks, notes, end card, then one of four landings: review then commit, commit, a PR, or leave it. Runs after any finished file change, and when the user asks to land work."
 ---
 
 # Land
 
-Ends a finished change: the user sees what changed, reviews where it matters, and the change gets committed or put on a PR.
+Ends a finished change: the user sees what changed, reviews where it matters, then it lands.
 
-Before step 1, find these in the conversation or the hand-over: the ticket reference(s), the mode, the start commit, the checks command and its result, the ticket's r3 artifact id, an open PR, and the points gathered for notes. When one is missing, work it out (for example, the start commit from the branch's merge base), or treat the work as hitl. Work with no ticket (ad-hoc, `calibrate`) lands as hitl.
+**Inputs** from the conversation or hand-over: ticket references, mode, start commit, checks command and pass line, r3 artifact id, open PR, note points. Derive a missing one (start commit: `git merge-base <default> HEAD`). No ticket or no mode means hitl; one spec's tickets in one session go through `implement-spec`.
 
-## Steps
+## Readable output
 
-0. **In-review tickets**. At the start, for each local ticket with `**Status:**` `in-review (#<n>)`: check PR #n; when it merged, set the ticket's `**Status:**` to `done`, naming the PR.
-1. **Checks**. Reuse the pass line from the hand-over when no file changed since it ran. Otherwise dispatch one `sonic` worker to run the checks in the order in `skill://land/CHECKS.md`. It reports the command and the pass line, or the failing tests. **Done when** the checks command and its pass line are in hand, or the absence is stated.
-2. **Notes**. Write the notes from the worker reports (the build note points and the `summary`, `issues`, `defaults` and `surface_additions` fields from their brief's `outputSchema`; for work with no such schema, the reports as written), `git diff --stat` since the start commit, and the commit messages. Send a `scout` to read the full diff and return candidate notes as `file:line`. Read a hunk inline only to check a note. A note about code sits on one line of code (`file:line`). A note with no code line (a tracker edit, an assumption or default, a convention you propose) goes in the end card's Notes block. A note covers a risk the user must know about before merge, or a spot they might reasonably want done another way. No status lines, no "all good", nothing the diff already shows plainly. One or two short sentences, at most 25 words: what you did, then the other option as a question. Good: "Retries use a fixed 1 s delay. Exponential backoff instead?" At most 3 notes in chat. Every note about code goes as a line comment on the r3 diff or PR. On a commit or "leave it" landing there is neither, so print every note in chat, one line each. Chat otherwise shows only the top 3 as the card's Look at bullets. **Done when** every note is written, or there are none.
-3. **End card**. Print the card below in chat. The same card heads the r3 review summary and the PR body. An **unattended run** is a run with no user: the card goes in the PR body only, not chat. About 15 lines plus the visual; no paragraphs; do not repeat the ticket; no lines that only say "all good".
+Every human output opens with the answer or choice, then what changed in plain words, then what the user does next. Lists stop at 3. Say a mode or gate as plain words ("review this before merge"), not a label.
 
-   ```
-   <✓ or ✗> checks · <N> files · +<added> −<deleted>
-   <one sentence: what changed and why, naming the mechanism the user can explain without the AI; skip that for a typo, config value or rename>
+```
+<one sentence: what changed and why, in words the user can repeat; skip for a typo, config value or rename>
+<only when checks fail: ✗ <command>: <what failed>>
 
-   <one visual: a screenshot link for a UI change; else a table `part | change`, 5 rows at most; or nothing for a one-part change>
+<one visual: a screenshot link for a UI change; else a `part | change` table, 5 rows at most; nothing for a one-part change>
 
-   Look at:
-   - `path:line`: <12 words at most on why to look>   (3 bullets at most; omit the section if none)
+Look at:
+- `path:line`: what to check there and why it matters, e.g. what breaks if it is wrong (3 at most; drop the section when none)
 
-   Notes:
-   - <one line per note with no code line; a risk to know before merge or another way to do it; omit the section when none>
-   ```
+Notes:
+- a risk to know before merge, or another way to do it, when it has no code line; one line each, 2 at most; the user asks for more (drop the section when none)
+```
 
-   **Done when** the card is printed.
-4. **Landing question**. Otherwise one `ask`. On an `implement-spec` hand-off, first commit what the final self-review and the checks fixed in one extra commit; the mode is hitl when any ticket is hitl; step 8 closes every ticket. On the open-PR case, publish to that PR (§ Publishing, PR) and then go to step 9. The one publish question follows the ask-before-publish rule in AGENTS.md § Ask before you act. Offer the options for the situation:
+Where notes go:
+- A note about one line of code becomes a comment on that line in r3 or the PR. It names the choice made and asks about the other option, for example `src/session.ts:88`: lock only the write instead? With no r3 or PR, these print in chat.
+- The 3 most important code notes also appear in the card as Look at.
+- A note with no code line goes in the card's Notes block.
 
-   | Situation | Options shown | Recommended |
-   |---|---|---|
-   | Unattended run | none | PR |
-   | `implement-spec` hand-off | one publish question, then the PR path | PR |
-   | An open PR made by someone else | none; publish to it | n/a |
-   | hitl | review, tidy, then commit; PR | review, tidy, then commit |
-   | afk, behavioural or multi-file | review, tidy, then commit; PR; leave it | review, tidy, then commit |
-   | afk, typo, config value or rename | commit; review, tidy, then commit; PR; leave it | commit |
+**Final report** after landing: the card, then `Committed <sha>`, `PR: <url>` or `Left uncommitted`.
 
-   - **review, tidy, then commit**: steps 5, 6, 7, then step 8 as a commit (see Landing rules), citing the ticket. On hitl a direct commit needs the r3 review first.
-   - **commit**: steps 7 and 8 as a commit (see Landing rules), citing the ticket.
-   - **PR**: a `feat/…`, `fix/…` or `chore/…` branch, steps 7 and 8 on that branch (Landing rules), then `gh pr create`, publish to it (§ Publishing, PR), and surface the URL. The PR waits for the user's review before it merges.
-   - **leave it**: the change stays uncommitted.
+**Unattended run**: no user, so no chat card or question; the run takes the PR path and the card goes in the PR body.
 
-   On afk, if both a note and a multi-file change apply, recommend PR.
+## The run
 
-   **Done when** one option is chosen and handed to its steps, or on an open PR the card and notes are posted, with the PR URL surfaced.
-5. **r3 review**. Only for **review, tidy, then commit**. Run the r3 round (§ Publishing) through a worker that publishes and returns the URLs; you write the end card, the threads and the decisions. The user annotates the diff and replies to the notes; revise and reply until the user archives it. Then propose what the annotations teach, one line each, filed by the test in `skill://land/FILING.md`; a stack-generic convention seen here is noted for stack-pack promotion. Write only the lines the user accepts. **Done when** the user has archived the review artifact and the accepted lines are written.
-6. **Tidy**. Only for **review, tidy, then commit**. Offered once after the review. Ask whether the user wants to refactor or delete anything themselves where taste matters. If yes: the user edits and says "done"; review the edit as a pair (point out pushback, offer one insight), editing the user's code only when asked. **Done when** the user has declined or said "done", and when tidied, the pair review has happened.
-7. **Checks again**. When the review or the tidy changed code, dispatch one `sonic` worker to re-run the checks as in step 1. Otherwise the step 1 result stands. **Done when** the checks pass on the code being committed.
-8. **Commit or PR**. Carry out the chosen landing (Landing rules below). Then close each ticket: on a direct commit, set the local ticket's `**Status:**` to `done` (or close the tracker issue); on the PR path, set the local ticket's `**Status:**` to `in-review (#<n>)` when the PR opens; the ticket is not done and is not on the frontier. When the PR merges, `Closes #N` in the PR body closes each tracker ticket, and the next `land` or `implement-spec` run sets the local ticket's `**Status:**` to `done`, naming the PR. When a note proposed a convention and the user accepted it, file it by the test in `skill://land/FILING.md`; this needs the user, so it is interactive only. On an unattended run, a proposed convention stays a note in the PR body. **Done when** the commit exists, or the PR is open with its URL surfaced, or the change stays uncommitted by the user's choice; and the tickets are closed.
-9. **Retro and calibrate note**. Runs on every exit, including "leave it" and the PR paths. On an unattended run, skip this step. When the ticket just landed was the last open ticket of its spec (check the tracker; a local ticket lives beside its spec in `.scratch/<slug>/`), or the work is on a PR that covers every remaining open ticket of the spec (then: "after merging, run `retro`"), the repo is onboarded (`CODING_STANDARDS.md` exists) and it is not a fork, close with one line suggesting the user run `retro` in this session, while the transcript is fresh; skip it when the run had no friction. Also read the `Date` column of the calibration log, `docs/agents/calibration.md` (fork: `.omp/docs/agents/calibration.md`): suggest `calibrate` when the last row is at least 30 days old, or at least 3 specs have closed since it. **Done when** the note is printed or the conditions do not hold.
+**Check**. Reuse the hand-over pass line if no file changed since. Else one `sonic` worker runs the checks in `CHECKS.md` order, reporting the command and pass line or the failing tests. **Done when** the pass line is in hand, or its absence is stated.
 
-## Landing rules
+**Write the notes**. Build them from the workers' `summary`, `issues`, `defaults` and `surface_additions`, `git diff --stat` since the start commit, and the commit messages; a `scout` reads the full diff and returns candidates as `file:line`. A note is a risk to know before merge, or another way to do it. One or two sentences, 25 words at most, nothing the diff shows. **Done when** every note is written, or there are none.
 
-Commits in this skill depend on mode:
-- **afk**: conventional commit: read `skill://conventional-commit` and write the message to it.
-- **hitl**: stage files, then call `commit_as_me` with the conventional-commit message. If it errors (user declined/no UI), show the returned `git commit -F <file>` command and wait; never commit yourself.
+**Show the card**. Print the card. About 15 lines, no paragraphs. The same card is the r3 summary and the PR body. **Done when** the card is printed.
 
-## Publishing
+**Ask how to land**. One `ask`: the recommendation in plain words first, then only the options the situation allows, for example, for an afk typo, "I'd commit this: commit, review first, or PR?". The publish question follows AGENTS.md § Ask before you act. **Done when** one option is chosen.
 
-A review or a PR carries the end card, then each note as a comment on its line. The files go in **reading order**: entry point first, down the call path, tests beside the code they cover. On the PR path, the user's PR review is the hitl review: `land` ends at publication, and the merge waits on it.
+Read the file for the chosen option and follow only it.
 
-Publishing is a worker's job: dispatch `sonic` for a diff with your summary, `task` when it must draw a page or diagram. It writes the artifacts, runs `r3 publish` and returns the URLs; its result auto-delivers, so do not poll it (`wait` in a loop, `read proc://<id>`). You write the end card, the notes and the threads, never the page HTML.
+- **review, tidy, then commit**: `REVIEW.md`. For hitl and afk behavioural or multi-file work. Hitl commits after the review.
+- **commit**: `COMMIT.md`. For an afk typo, config value or rename.
+- **PR**: `PR.md`. For an `implement-spec` hand-off, an unattended run, and an afk change with a note that spans several files.
+- **leave it**: no file. The work stays uncommitted; report the card and `Left uncommitted`.
 
-- **r3**: one review round (`skill://r3-review`) with the end card as the summary and each note as a thread.
-- **PR**: GitHub lists files alphabetically, so write the reading order as a list of paths under the end card in the PR body, in `skill://pr`'s shape (`gh pr edit <n> --body-file`, or the body of `gh pr create`). When the **Pages** rule calls for a page, link it from the body. The PR body is the end-of-work page, so after the end card and reading order it carries one more block:
-  - **Defaults**: each choice made without asking the user, one line each, with the alternative as a question. Collected from the workers' `outputSchema`: their `defaults` fields, plus `summary`, `issues` and `surface_additions` for anything a default explains, and your own choices.
+Hitl, which includes no ticket, offers only review then commit and PR. Afk behavioural or multi-file work adds leave it and drops plain commit: recommend PR when the change has a note and spans several files, else review. An open PR made by someone else, or an unattended run, asks nothing and goes to `PR.md`, which carries the card and notes and surfaces the URL.
 
-  A claim with no other proof on the PR (a command with its output, or a link) goes in the end card. Add no separate **Claims** block.
-
-  A See it run gate (a hitl gate that shows the built feature running) shows its running result (screenshot, recording, or real command output) in the PR body too: the PR is where that result gets judged. Then post each note as a review comment on its line:
-
-  ```sh
-  gh api repos/{owner}/{repo}/pulls/<n>/comments -f body=... -f path=... -F line=... -f side=RIGHT -f commit_id=<head sha>
-  ```
-
-  The user's tidy (their own commits on the branch, covered by CI) happens in their own session. The repo needs a required CI check on the default branch before merge; `onboard` offers to turn it on.
+**After the landing**: when the repo is onboarded, not a fork, and not unattended, run `retro` when the ticket just landed was its spec's last open ticket; skip it when the run had no friction. Suggest `calibrate` when the last `Date` row of `docs/agents/calibration.md` is at least 30 days old and 3 specs have closed since.

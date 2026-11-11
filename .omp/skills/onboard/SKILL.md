@@ -19,7 +19,7 @@ Where onboarding writes is the single source of truth for the repo's agent rules
 
 When a file the workflow uses already exists (`GLOSSARY.md`, `CODING_STANDARDS.md`, an ADR directory, `docs/agents/`), use it in place and add to it. Never replace it. The exception is the agent scaffolding in a `fork` (`AGENTS.md`, `CLAUDE.md`): onboard does not edit them there and writes `.omp/AGENTS.md`.
 
-What goes where: file each proposed line by the test in `skill://land/FILING.md`. It also covers the fork paths under `.omp/`.
+What goes where: file each proposed line by the test in `skill://land/FILING.md`. Every line you write into a repo doc is durable prose: write it to `skill://writing-prose` and run its gate on it. It also covers the fork paths under `.omp/`.
 
 Conventions are repo-specific. A stack-generic candidate goes to the stack-pack promotion list (below), not to `CODING_STANDARDS.md`.
 

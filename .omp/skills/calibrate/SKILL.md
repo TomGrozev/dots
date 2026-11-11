@@ -25,7 +25,7 @@ The calibration log lives at `docs/agents/calibration.md` (fork: `.omp/docs/agen
     **Done when** the unexplained-rework count is computed from the tally.
 4. **Detect drift** (when `CODING_STANDARDS.md` exists; otherwise state "skipped, not onboarded"): violations of recorded conventions, the same thing done two ways, duplicated paths, dead code, and gate/lint rules disabled or loosened since the last run.
     **Done when** each drift finding is listed with `file:line`, or "none" is stated.
-5. **Log**: create or append to `docs/agents/calibration.md` in the format from `skill://calibrate/REWORK-CLASSES.md`.
+5. **Log**: create or append to `docs/agents/calibration.md` in the format from `skill://calibrate/REWORK-CLASSES.md`. The entry is durable prose: write it to `skill://writing-prose` and run its gate on it.
     **Done when** the entry is written to `docs/agents/calibration.md`.
 6. **Propose** a ticket menu: enforcement rules for conventions that keep being broken, cleanups, and stack-pack promotions (promote when 3+ stack-generic conventions recur across 2+ repos of that stack; repo-specific conventions stay out of packs). Sort each proposal by how it gets enforced: a **mechanical violation** (a fixed syntactic pattern, a banned API, an import shape, a file location) becomes an automated check wired into the checks; a **judgement call** becomes one line in `CODING_STANDARDS.md` for reviewers to enforce. If the repo is not onboarded (`CODING_STANDARDS.md` is missing), the first menu item is running `onboard`. The user picks.
     **Done when** the ticket menu is presented.

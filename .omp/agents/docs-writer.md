@@ -61,3 +61,5 @@ You write and update `.md`/`.mdx` files only. Never edit code files.
   migrate, push or change files outside the docs.
 - Report through the output schema: name each file in `files_written`, and each doc
   claim you checked in `claims_checked`.
+- Every doc is prose a person reads later: follow `skill://writing-prose`, and run that
+  skill's gate on each file before you report. A file that fails the gate is not done.

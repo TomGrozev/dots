@@ -6,7 +6,7 @@ Each row is a legacy signal you find by inspecting the repo, and its migration. 
 
 In `fork`, read the paths through [FORK.md](FORK.md): the agent file is `.omp/AGENTS.md`, and every repo doc below lives under `.omp/`. Moves there are plain `mv`, since `.omp/` is untracked.
 
-Tickets means open local tickets (`.scratch/*/issues/*.md`) and open tracker issues labelled `ready-for-agent` or `ready-for-human`. It also includes tickets with `**Status:** in-progress`; list them apart from the others.
+Tickets means open local tickets (`.scratch/*/issues/*.md`) and open tracker issues labelled `ready-for-agent` or `ready-for-human`. It also includes tickets with `**Status:** in-progress`; list them apart from the others. Every ticket line you rewrite is durable prose: follow `skill://writing-prose` and run its gate on it.
 
 Labels follow the ticket's mode: `hitl` → `ready-for-human`, `afk` → `ready-for-agent`. When a ticket has no `**Mode:**` line, ask the user. Read `skill://to-tickets/REVIEW-GATES.md` for the gate table format.
 
