@@ -90,6 +90,10 @@ prime_sudo() {
 # Runs first because everything below assumes git, curl and zsh exist. Only on
 # Arch hosts: the Mac, the devcontainers and the agent pods get their tools
 # elsewhere (Homebrew / the image). --needed makes re-runs skip installed packages.
+# hyprland and hyprtoolkit are listed even though hyprpm and hyprpolkitagent pull
+# them in: --needed never upgrades a package that only ever arrived as a
+# dependency, so the next hyprgraphics or aquamarine soname bump would break the
+# transaction on an out-of-date system.
 if [ -f /etc/arch-release ] && [ "$AGENT_POD" != "true" ]; then
   echo ""
   echo "Installing Arch packages..."

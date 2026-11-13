@@ -34,6 +34,8 @@ chromium
 firefox
 wl-clipboard
 wtype
+hyprland
+hyprtoolkit
 hyprlock
 hypridle
 hyprpolkitagent
