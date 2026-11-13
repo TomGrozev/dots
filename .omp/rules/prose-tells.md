@@ -1,5 +1,5 @@
 ---
-description: "Answer text: drop em dashes and AI-tell words"
+description: "Durable text: drop em dashes and AI-tell words"
 condition:
   - "—"
   - "(?i)\\bdelv(e|es|ed|ing)\\b"
@@ -12,11 +12,11 @@ condition:
   - "(?i)\\bGreat question\\b"
   - "(?i)\\bI hope this helps\\b"
   - "(?i)\\bLet me know if\\b"
-scope: text
+scope: tool
 interruptMode: never
 ---
 
-That word or dash is an AI tell. Drop it from your next answers: use a period, comma, colon or
-parentheses instead of a dash, and "use" instead of "leverage" or "utilize". Open with the answer
-and close on the last fact, with no praise or offer of more help. Read `skill://writing-prose`
-for the full list.
+That word or dash is an AI tell in durable text. Chat replies are exempt. Before the turn ends,
+fix it in what you just wrote: a file, a commit message, a PR body or an artifact. Use a period,
+comma, colon or parentheses instead of a dash, and "use" instead of "leverage" or "utilize". Read
+`skill://writing-prose` for the full list.
