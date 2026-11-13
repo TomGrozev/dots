@@ -14,13 +14,23 @@
  * command-line `--no-gpg-sign` countermands `-S`, and this tool never passes
  * one.
  *
- * ── Third option: commit as the bot instead ─────────────────────────────────
- * If the human changes their mind at the dialog they can pick "Commit as the
- * bot". That commits the same staged changes through the extension's NORMAL bot
+ * ── The dialog offers four choices (two when no bot is configured) ──────────
+ * The gate prefers `ctx.ui.formDialog` (one HTML `<form>`, where the agent
+ * cannot answer the radio group) and falls back to `ctx.ui.select` on hosts
+ * without it. Both surfaces offer Cancel (the default), "the human with the
+ * bot Co-authored-by", "the human without a trailer", and, only when a bot is
+ * configured, "the bot".
+ *
+ * The two human choices differ only in the trailer: the with-trailer choice
+ * appends `Co-authored-by: <bot name> <bot email>`, while the without-trailer
+ * choice commits the message with any bot trailer already in it stripped.
+ *
+ * ── The bot choice: commit as the bot instead ───────────────────────────────
+ * That commits the same staged changes through the extension's NORMAL bot
  * write path: bot author and committer, the bot's own signing key, and the
  * bot-scoped `prepare-commit-msg` hook that records the human as
  * `Co-authored-by`. The write-class env is resolved IN PROCESS by the grant
- * server's own resolver (`deps.resolveBotWriteEnv`) — never by shelling through
+ * server's own resolver (`deps.resolveBotWriteEnv`), never by shelling through
  * the shim and never by a second credential path. The message is stripped of
  * the bot self-trailer this tool would otherwise append for the human path.
  * With no bot config the bot row is not offered; a configured bot whose
@@ -73,6 +83,8 @@ export interface CommitAsMeDetails {
 	subject: string;
 	/** Which identity authored and committed: the human, or the bot (chosen at the gate). */
 	identity: "human" | "bot";
+	/** Whether the approved commit carries the bot's `Co-authored-by` trailer. */
+	withBotTrailer: boolean;
 }
 
 /** Structural slice of `ExtensionAPI` this install needs (narrow for tests). */
@@ -173,19 +185,68 @@ async function readHumanIdentity(repo: string, env: Record<string, string>): Pro
 }
 
 /** Read the just-created commit's short hash/subject, tagged with the identity used. */
-async function readHead(repo: string, env: Record<string, string>, identity: "human" | "bot"): Promise<CommitAsMeDetails> {
+async function readHead(
+	repo: string,
+	env: Record<string, string>,
+	identity: "human" | "bot",
+	withBotTrailer: boolean,
+): Promise<CommitAsMeDetails> {
 	const show = await runGit(repo, ["log", "-1", "--format=%h%n%s"], env);
 	const [hash = "", subject = ""] = show.stdout.trimEnd().split("\n");
-	return { hash, subject, identity };
+	return { hash, subject, identity, withBotTrailer };
+}
+
+/** Escape an interpolated value for HTML text; the form parser decodes the entities. */
+function escapeHtml(value: string): string {
+	return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+/**
+ * The preferred gate: one HTML `<form>` whose radio group the human submits.
+ * Cancel is checked by default, so a bare Submit (or Esc, which resolves
+ * `undefined`) declines. The message `<pre>` holds the escaped message
+ * verbatim: no reflow, no indentation, no added newlines.
+ */
+function buildCommitForm(
+	humanLabel: string,
+	bot: CommitAsMeBot | null,
+	stat: string,
+	message: string,
+): string {
+	const trailer = bot ? `Co-authored-by: ${bot.name} <${bot.email}>` : null;
+	// The with-trailer row only means something with a bot to credit, so it is
+	// omitted (as on the select) when no bot is configured.
+	const withTrailerRow = trailer
+		? `<label><input type="radio" name="commit_as" value="human-trailer"> Commit as me — with the bot Co-authored-by</label>\n`
+		: "";
+	const botRow = bot
+		? `<label><input type="radio" name="commit_as" value="bot"> Commit as the bot — ${escapeHtml(`${bot.name} <${bot.email}>`)} signs, and you are Co-authored-by</label>\n`
+		: "";
+	const messageNote = trailer
+		? `Commit message (the with-trailer choice appends ${escapeHtml(trailer)}):`
+		: "Commit message:";
+	return `<form method="dialog">
+<p>⚠ Approving commits AS YOU — ${escapeHtml(humanLabel)} — as author and committer, signed with YOUR GPG key (e.g. a YubiKey PIN + touch).</p>
+<fieldset>
+<legend>Commit the staged changes as…</legend>
+<label><input type="radio" name="commit_as" value="cancel" checked> Cancel — do not commit</label>
+${withTrailerRow}<label><input type="radio" name="commit_as" value="human"> Commit as me — without a trailer</label>
+${botRow}</fieldset>
+<p>Staged changes:</p>
+<pre>${escapeHtml(stat)}</pre>
+<p>${messageNote}</p>
+<pre>${escapeHtml(message)}</pre>
+</form>`;
 }
 
 /**
  * Core flow: verify UI, verify something is staged, build both candidate
- * messages, gate on the human's explicit approval via a select, then commit as
- * the human — or, if the human changes their mind and picks the bot row,
+ * messages, gate on the human's explicit approval via a form dialog (or a
+ * select on hosts without one), then commit as the human (with or without the
+ * bot trailer) or, if the human changes their mind and picks the bot row,
  * through the normal bot write path (bot author/committer, bot signing key, the
  * bot hook's human trailer). Throws on every failure (the harness surfaces it
- * as a tool error) — never commits without approval.
+ * as a tool error) and never commits without approval.
  */
 async function runCommitAsMe(
 	params: { message: string; cwd?: string | undefined },
@@ -216,59 +277,85 @@ async function runCommitAsMe(
 	const stat = (await runGit(repo, ["diff", "--cached", "--stat"], env)).stdout.trimEnd();
 	// Read the bot identity on demand (config may have changed since install).
 	const bot = await deps.getBot();
-	// Human path: the bot is the trailer. Bot path: the human becomes the
-	// trailer (added by the bot commit hook), so the bot must not credit itself
-	// — strip any bot `Co-authored-by` line from the message.
-	const humanMessage = withBotTrailer(params.message, bot);
-	const botMessage = withoutBotTrailer(params.message, bot);
+	// `base` is the message with any bot trailer stripped; the with-trailer
+	// choice re-appends it, while the without-trailer and bot choices commit
+	// `base` (the bot path has its own hook crediting the human).
+	const base = withoutBotTrailer(params.message, bot);
+	const humanWithTrailer = withBotTrailer(base, bot);
 
 	const human = await readHumanIdentity(repo, env);
 	const humanLabel = `${human.name} <${human.email}>`;
-	const approveLabel = `Commit as ${humanLabel}`;
 	const cancelLabel = "Cancel — do not commit";
+	const withTrailerLabel = `Commit as ${humanLabel} — with the bot Co-authored-by`;
+	const withoutTrailerLabel = `Commit as ${humanLabel} — without a trailer`;
 	// Offer the bot row only when a bot identity is configured: without one the
-	// resolver can only refuse, so the honest select omits it. (A configured bot
+	// resolver can only refuse, so the honest gate omits it. (A configured bot
 	// whose creds/signing fail later still fails closed on selection.)
 	const botLabel = bot ? `Commit as the bot ${bot.name} <${bot.email}>` : null;
 
-	// Gate with a SELECT, never a yes/no confirm: the cursor starts on Cancel, so
-	// a stray Enter (or Escape/undefined) declines. Committing requires moving to
-	// and deliberately choosing an approve row, which names the identity and
-	// their signing key.
 	ctx.ui.notify(
 		`commit_as_me: approving commits AS YOU — ${humanLabel} — signed with YOUR GPG key (e.g. YubiKey PIN + touch).`,
 		"warning",
 	);
-	const options: { label: string; description: string }[] = [
-		{
-			label: cancelLabel,
-			description: "Nothing is committed. The agent hands you the exact git command to run yourself.",
-		},
-		{
-			label: approveLabel,
-			description: `Author + committer: ${humanLabel}\nSigned with YOUR GPG key — e.g. a YubiKey (PIN + touch)\n\nStaged changes:\n${stat}\n\nCommit message:\n${humanMessage}`,
-		},
-	];
-	if (botLabel && bot) {
-		options.push({
-			label: botLabel,
-			description: `Author + committer: ${bot.name} <${bot.email}>\nSigned with the BOT's passphrase-less GPG key\nCo-authored-by: you (${humanLabel}) — added by the bot commit hook\n\nStaged changes:\n${stat}\n\nCommit message:\n${botMessage}`,
-		});
-	}
-	const choice = await ctx.ui.select(
-		"⚠  COMMIT AS YOURSELF — you are the author & signer",
-		options,
-		{ initialIndex: 0, selectionMarker: "radio" },
-	);
 
-	const approveAsHuman = choice === approveLabel;
-	const approveAsBot = botLabel !== null && choice === botLabel;
-	if (!approveAsHuman && !approveAsBot) {
-		const messageFile = writeMessageFile(humanMessage);
+	// Prefer the HTML form surface; only its exact approve values commit. A
+	// select fallback keeps the same rows on hosts without `formDialog`.
+	let choice: string | undefined;
+	if (typeof ctx.ui.formDialog === "function") {
+		const result = await ctx.ui.formDialog(buildCommitForm(humanLabel, bot, stat, base));
+		// Radio values arrive as a string; Esc/cancel resolves undefined and the
+		// form's free-text "Other" row submits an arbitrary string. Both decline.
+		const value = result?.data.commit_as;
+		choice = typeof value === "string" ? value : undefined;
+	} else {
+		const options: { label: string; description: string }[] = [
+			{
+				label: cancelLabel,
+				description: "Nothing is committed. The agent hands you the exact git command to run yourself.",
+			},
+		];
+		if (bot) {
+			options.push({
+				label: withTrailerLabel,
+				description: `Author + committer: ${humanLabel}\nSigned with YOUR GPG key — e.g. a YubiKey (PIN + touch)\nBot Co-authored-by: ${bot.name} <${bot.email}>\n\nStaged changes:\n${stat}\n\nCommit message:\n${humanWithTrailer}`,
+			});
+		}
+		options.push({
+			label: withoutTrailerLabel,
+			description: `Author + committer: ${humanLabel}\nSigned with YOUR GPG key — e.g. a YubiKey (PIN + touch)\nNo Co-authored-by trailer\n\nStaged changes:\n${stat}\n\nCommit message:\n${base}`,
+		});
+		if (bot && botLabel) {
+			options.push({
+				label: botLabel,
+				description: `Author + committer: ${bot.name} <${bot.email}>\nSigned with the BOT's passphrase-less GPG key\nCo-authored-by: you (${humanLabel}) — added by the bot commit hook\n\nStaged changes:\n${stat}\n\nCommit message:\n${base}`,
+			});
+		}
+		// The cursor starts on Cancel, so a stray Enter (or Escape/undefined)
+		// declines. Committing requires deliberately choosing an approve row.
+		const selected = await ctx.ui.select(
+			"⚠  COMMIT AS YOURSELF — you are the author & signer",
+			options,
+			{ initialIndex: 0, selectionMarker: "radio" },
+		);
+		choice =
+			selected === withTrailerLabel
+				? "human-trailer"
+				: selected === withoutTrailerLabel
+					? "human"
+					: selected === botLabel
+						? "bot"
+						: undefined;
+	}
+
+	const asHumanWithTrailer = choice === "human-trailer";
+	const asHumanWithoutTrailer = choice === "human";
+	const asBot = bot !== null && choice === "bot";
+	if (!asHumanWithTrailer && !asHumanWithoutTrailer && !asBot) {
+		const messageFile = writeMessageFile(humanWithTrailer);
 		throw new Error(`User declined commit_as_me; give them the command to run: git commit -F ${messageFile}`);
 	}
 
-	if (approveAsBot && bot) {
+	if (asBot && bot) {
 		// Reuse the grant server's own write-class resolver IN PROCESS (the same
 		// one the shim asks over the socket): bot author/committer, bot signing
 		// key, and the bot-scoped prepare-commit-msg hook that adds the human
@@ -279,13 +366,11 @@ async function runCommitAsMe(
 		}
 		// Non-interactive: the bot key is passphrase-less, so no pinentry; a
 		// signing failure must fail closed, not prompt.
-		const commit = await withMessageFile(botMessage, file =>
-			runGit(repo, ["commit", "-F", file], { ...env, ...granted.env }),
-		);
+		const commit = await withMessageFile(base, file => runGit(repo, ["commit", "-F", file], { ...env, ...granted.env }));
 		if (commit.code !== 0) {
 			throw new Error(commit.stderr.trim() || commit.stdout.trim() || `commit_as_me: git commit exited ${commit.code}`);
 		}
-		return await readHead(repo, env, "bot");
+		return await readHead(repo, env, "bot", false);
 	}
 
 	// Real git, human env, interactive stdin for pinentry. `-S` forces a
@@ -293,11 +378,12 @@ async function runCommitAsMe(
 	// repo-local false must not silently produce an unsigned commit); only an
 	// explicit `--no-gpg-sign` would countermand it, and none is passed. The
 	// signing key and pinentry come from the human's own config/keyring.
-	const commit = await withMessageFile(humanMessage, file => runGit(repo, ["commit", "-S", "-F", file], env, true));
+	const message = asHumanWithTrailer ? humanWithTrailer : base;
+	const commit = await withMessageFile(message, file => runGit(repo, ["commit", "-S", "-F", file], env, true));
 	if (commit.code !== 0) {
 		throw new Error(commit.stderr.trim() || commit.stdout.trim() || `commit_as_me: git commit exited ${commit.code}`);
 	}
-	return await readHead(repo, env, "human");
+	return await readHead(repo, env, "human", asHumanWithTrailer);
 }
 
 /**
@@ -315,11 +401,16 @@ export function installCommitAsMe(pi: CommitAsMeHookApi, deps: CommitAsMeDeps): 
 		name: "commit_as_me",
 		label: "Commit as me",
 		description:
-			"Commit the staged changes as the HUMAN user (author and committer, signed with the human's own GPG key), with the agent bot as the Co-authored-by trailer — or, if the human changes their mind at the dialog, as the BOT instead (bot author/committer, bot signing key, human Co-authored-by). Use this for ready-for-human (hitl) tickets and ad-hoc work: stage the files and write the conventional-commit message first. It shows the human a confirmation dialog and only commits once they deliberately pick an identity; on decline it returns a `git commit -F <file>` command to hand back to them. Requires an interactive terminal (not available to subagents).",
+			"Commit the staged changes as the HUMAN user (author and committer, signed with the human's own GPG key). The confirmation dialog offers the human with the agent bot as the Co-authored-by trailer, the human without a trailer, and when a bot is configured, the BOT instead (bot author/committer, bot signing key, human Co-authored-by). Use this for ready-for-human (hitl) tickets and ad-hoc work: stage the files and write the conventional-commit message first. It shows the human a confirmation dialog and only commits once they deliberately pick an identity; on decline it returns a `git commit -F <file>` command to hand back to them. Requires an interactive terminal (not available to subagents).",
 		parameters: schema,
 		async execute(_toolCallId, params, _signal, _onUpdate, ctx): Promise<AgentToolResult<CommitAsMeDetails>> {
 			const details = await runCommitAsMe(params, ctx, deps);
-			const actor = details.identity === "human" ? "the human" : "the bot";
+			const actor =
+				details.identity === "bot"
+					? "the bot"
+					: details.withBotTrailer
+						? "the human, with the bot trailer"
+						: "the human, without a trailer";
 			return { content: [{ type: "text", text: `${details.hash} ${details.subject} (committed as ${actor})` }], details };
 		},
 	});

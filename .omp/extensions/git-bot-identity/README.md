@@ -160,15 +160,23 @@ The extension provides two ways to land a commit, chosen by ticket mode:
 
 ### `commit_as_me`
 
-Agent-callable tool that commits the staged changes under **one of two identities the human picks in the dialog**:
+Agent-callable tool that commits the staged changes under the identity the human picks in the dialog. The gate prefers the HTML **form dialog** (`ui.formDialog`): one `<form>` with a radio group, a warning that approving commits AS THE HUMAN and signs with THEIR GPG key, the staged `git diff --cached --stat`, and the exact message. It offers four choices (two when no bot is configured):
+
+1. Cancel: checked by default, so a bare Submit, Esc, or a dismissal declines.
+2. Commit as me, with the bot Co-authored-by: appends `Co-authored-by: <bot name> <bot email>`; offered only when a bot is configured.
+3. Commit as me, without a trailer: always offered; any bot trailer already in the message is stripped.
+4. Commit as the bot: offered only when a bot is configured.
+
+Only an exact radio value (`human-trailer`, `human`, or `bot` when configured) approves. The form's automatic free-text `Other` answer, an unknown value, a dismissal, or Esc all decline. **The dialog is the gate: the agent cannot answer it.** On hosts without `formDialog` the tool falls back to a `select` with the same choices in the same order, the cursor on Cancel (`initialIndex: 0`), and per-row descriptions naming the author, committer, and signing key with the staged stat and message.
+
+The flow:
 
 1. Verifies something is staged (`git diff --cached`); errors if not.
-2. Shows the human a select with three rows — **Cancel** (the default cursor row, so a stray Enter/Escape declines), **Commit as <human>**, and, when a bot account is configured, **Commit as the bot <name> <email>**. Each row states the author/committer and signing key and shows the staged `git diff --cached --stat` and the message. **The dialog is the gate — the agent cannot answer it.**
-3. On **Commit as <human>**, builds the final message (appending `Co-authored-by: <bot name> <bot email>` unless already present; omitted when no bot config) and runs the **real** `git` (never the shim) with the human's pristine pre-neutralization environment: real `PATH`, the human's own git config and signing. It forces a signature with `-S`, so `commit.gpgsign=false` in **any** config scope — a repo-local false included — can never leave a commit-as-me commit unsigned; only an explicit command-line `--no-gpg-sign` would countermand it, and none is passed. The signing key and pinentry come from the human's own config/keyring, and it inherits stdin so a smart-card PIN/touch prompt keeps its terminal. With no usable signing key the commit fails closed (no unsigned fallback).
-4. On **Commit as the bot**, commits the same staged changes through the extension's normal bot write path — bot author/committer, the bot's own GPG key, and the human as `Co-authored-by` (added by the bot `prepare-commit-msg` hook). The bot self-trailer is stripped from the message first. The write-class env is resolved **in process** by the grant server's own resolver, never via the shim; if resolution fails (no/invalid config) the commit fails closed with the reason. The bot identity shown in the dialog is read from the live config on demand, so a config edited after the session started is reflected without a rebind.
-5. Returns the new commit's short hash and subject, and the identity that committed.
+2. On a **human** choice, builds the final message (the with-trailer choice appends the bot trailer unless already present; the without-trailer choice strips it) and runs the **real** `git` (never the shim) with the human's pristine pre-neutralization environment: real `PATH`, the human's own git config and signing. It forces a signature with `-S`, so `commit.gpgsign=false` in **any** config scope (including a repo-local false) can never leave a commit-as-me commit unsigned; only an explicit command-line `--no-gpg-sign` would countermand it, and none is passed. The signing key and pinentry come from the human's own config/keyring, and it inherits stdin so a smart-card PIN/touch prompt keeps its terminal. With no usable signing key the commit fails closed (no unsigned fallback).
+3. On **Commit as the bot**, commits the same staged changes through the extension's normal bot write path: bot author and committer, the bot's own GPG key, and the human as `Co-authored-by` (added by the bot `prepare-commit-msg` hook). The bot self-trailer is stripped from the message first. The write-class env is resolved **in process** by the grant server's own resolver, never via the shim; if resolution fails (no/invalid config) the commit fails closed with the reason. The bot identity shown in the dialog is read from the live config on demand, so a config edited after the session started is reflected without a rebind.
+4. Returns the new commit's short hash and subject, the identity that committed, and whether the bot trailer is present.
 
-Failures are returned as tool errors with **no commit**: nothing staged, no UI available (headless/subagent), the human declined, or the bot path could not resolve credentials. On decline the error carries the exact command to run manually, e.g. `git commit -F <file>`, where `<file>` holds the final message.
+Failures are returned as tool errors with **no commit**: nothing staged, no UI available (headless/subagent), the human declined, or the bot path could not resolve credentials. On decline the error carries the exact command to run manually, e.g. `git commit -F <file>`, where `<file>` holds the final message with the bot trailer (the same message the with-trailer choice would commit).
 
 
 ## Development

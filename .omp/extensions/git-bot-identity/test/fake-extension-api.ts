@@ -3,7 +3,7 @@
  * Only the surface git-bot-identity.ts touches.
  */
 import type { BashToolCallEvent, ExtensionContext, ExecOptions, ExecResult, ToolCallEvent, ToolCallEventResult } from "@oh-my-pi/pi-coding-agent";
-import type { ExtensionCommandContext, ExtensionUIDialogOptions, ExtensionUIContext, SessionStartEvent, ToolDefinition, ToolResultEvent } from "@oh-my-pi/pi-coding-agent";
+import type { ExtensionCommandContext, ExtensionFormDialogResult, ExtensionUIDialogOptions, ExtensionUIContext, SessionStartEvent, ToolDefinition, ToolResultEvent } from "@oh-my-pi/pi-coding-agent";
 import { z } from "@oh-my-pi/pi-coding-agent";
 import type { logger as PiLogger } from "@oh-my-pi/pi-utils";
 
@@ -143,6 +143,8 @@ export interface FakeUiSurface {
 	input(title: string, placeholder?: string): Promise<string | undefined>;
 	confirm(title: string, message: string): Promise<boolean>;
 	notify(message: string, type?: "info" | "warning" | "error"): void;
+	/** Present only when the test supplies `script.forms`, so select-fallback tests keep an old host. */
+	formDialog?(html: string, dialogOptions?: ExtensionUIDialogOptions): Promise<ExtensionFormDialogResult | undefined>;
 }
 
 export interface FakeUiRecord {
@@ -153,6 +155,9 @@ export interface FakeUiRecord {
 	selectCalls: { title: string; options: (string | { label: string; description?: string })[]; dialogOptions: ExtensionUIDialogOptions | undefined }[];
 	inputCalls: { title: string; placeholder: string | undefined }[];
 	confirmCalls: { title: string; message: string }[];
+	// The submitted HTML is recorded verbatim so tests can assert the form's
+	// rows, the checked default, and the escaped message payload.
+	formCalls: { html: string; dialogOptions: ExtensionUIDialogOptions | undefined }[];
 	notifications: { message: string; type: "info" | "warning" | "error" | undefined }[];
 }
 
@@ -165,15 +170,22 @@ export interface FakeUiRecord {
  * confirm invocation are recorded for assertions.
  */
 export function makeFakeUi(
-	script: { selects?: (string | undefined)[]; inputs?: (string | undefined)[]; confirms?: (boolean | undefined)[] } = {},
+	script: {
+		selects?: (string | undefined)[];
+		inputs?: (string | undefined)[];
+		confirms?: (boolean | undefined)[];
+		forms?: (ExtensionFormDialogResult | undefined)[];
+	} = {},
 ) {
 	const selectCalls: FakeUiRecord["selectCalls"] = [];
 	const inputCalls: FakeUiRecord["inputCalls"] = [];
 	const confirmCalls: FakeUiRecord["confirmCalls"] = [];
+	const formCalls: FakeUiRecord["formCalls"] = [];
 	const notifications: FakeUiRecord["notifications"] = [];
 	const selectAnswers = [...(script.selects ?? [])];
 	const inputAnswers = [...(script.inputs ?? [])];
 	const confirmAnswers = [...(script.confirms ?? [])];
+	const formAnswers = [...(script.forms ?? [])];
 
 	const ui: FakeUiSurface = {
 		async select(title, options, dialogOptions) {
@@ -197,6 +209,15 @@ export function makeFakeUi(
 		},
 	};
 
+	// Only hosts with a form surface get one; a test that supplies `forms`
+	// opts into the form path, every other test exercises the select fallback.
+	if (script.forms) {
+		ui.formDialog = async (html, dialogOptions) => {
+			formCalls.push({ html, dialogOptions });
+			return formAnswers.shift();
+		};
+	}
+
 	const ctx = (overrides: { mode?: string; hasUI?: boolean; cwd?: string } = {}): Partial<ExtensionContext> =>
 		({
 			ui,
@@ -205,7 +226,19 @@ export function makeFakeUi(
 			cwd: overrides.cwd ?? process.cwd(),
 		}) as unknown as Partial<ExtensionContext>;
 
-	return { ui, selectCalls, inputCalls, confirmCalls, notifications, selectAnswers, inputAnswers, confirmAnswers, ctx };
+	return {
+		ui,
+		selectCalls,
+		inputCalls,
+		confirmCalls,
+		formCalls,
+		notifications,
+		selectAnswers,
+		inputAnswers,
+		confirmAnswers,
+		formAnswers,
+		ctx,
+	};
 }
 
 export type FakeUiHarness = ReturnType<typeof makeFakeUi>;

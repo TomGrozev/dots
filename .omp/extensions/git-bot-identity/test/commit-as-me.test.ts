@@ -27,8 +27,11 @@ const TRAILER = `Co-authored-by: ${BOT.name} <${BOT.email}>`;
 
 const HUMAN_NAME = "Human Dev";
 const HUMAN_EMAIL = "human@example.com";
-/** The exact label the human must pick to approve; Cancel is the default. */
-const APPROVE = `Commit as ${HUMAN_NAME} <${HUMAN_EMAIL}>`;
+const HUMAN_LABEL = `${HUMAN_NAME} <${HUMAN_EMAIL}>`;
+/** The select/fallback labels; Cancel is the default cursor row. */
+const CANCEL = "Cancel — do not commit";
+const WITH_TRAILER = `Commit as ${HUMAN_LABEL} — with the bot Co-authored-by`;
+const WITHOUT_TRAILER = `Commit as ${HUMAN_LABEL} — without a trailer`;
 /** The exact label the human picks to switch to the bot at the dialog. */
 const BOT_CHOICE = `Commit as the bot ${BOT.name} <${BOT.email}>`;
 
@@ -100,7 +103,7 @@ const REFUSE_BOT: () => Promise<GrantDecision> = async () => ({
 function makeTool(
 	bot: typeof BOT | null,
 	resolveBotWriteEnv: () => Promise<GrantDecision> = REFUSE_BOT,
-): { api: FakeExtensionAPI; tool: { execute: (...args: unknown[]) => Promise<{ details?: unknown }> } } {
+): { api: FakeExtensionAPI; tool: { execute: (...args: unknown[]) => Promise<{ content?: unknown; details?: unknown }> } } {
 	const api = new FakeExtensionAPI();
 	installCommitAsMe(api as unknown as CommitAsMeHookApi, { getBot: async () => bot, humanEnv, resolveBotWriteEnv });
 	const tool = api.tools["commit_as_me"];
@@ -187,14 +190,16 @@ describe("commit_as_me", () => {
 	test("approved: commits as the human identity with the bot trailer appended", async () => {
 		stage("a.txt", "hello\n");
 		const { tool } = makeTool(BOT);
-		const ui = makeFakeUi({ selects: [APPROVE] });
+		const ui = makeFakeUi({ selects: [WITH_TRAILER] });
 		const ctx = ui.ctx({ cwd: repo }) as ExtensionContext;
 
 		const result = await tool.execute("call-1", { message: "feat: add a file" }, undefined, undefined, ctx);
 		const details = result.details as CommitAsMeDetails;
 		expect(details.identity).toBe("human");
+		expect(details.withBotTrailer).toBe(true);
 		expect(details.subject).toBe("feat: add a file");
 		expect(details.hash).toMatch(/^[0-9a-f]{7,}$/);
+		expect((result.content as { text: string }[])[0]!.text).toContain("(committed as the human, with the bot trailer)");
 
 		const head = headFields();
 		expect(head.authorName).toBe(HUMAN_NAME);
@@ -212,8 +217,7 @@ describe("commit_as_me", () => {
 		expect(call.title).toContain("COMMIT AS YOURSELF");
 		expect(call.dialogOptions?.initialIndex).toBe(0);
 		const labels = call.options.map(o => (typeof o === "string" ? o : o.label));
-		expect(labels[0]).toContain("Cancel");
-		expect(labels[1]).toBe(APPROVE);
+		expect(labels).toEqual([CANCEL, WITH_TRAILER, WITHOUT_TRAILER, BOT_CHOICE]);
 		// The approve row states who authors/signs AND shows the staged stat and
 		// the final (trailered) message.
 		const approve = call.options[1] as { description: string };
@@ -227,13 +231,31 @@ describe("commit_as_me", () => {
 		expect(ui.notifications.some(n => n.type === "warning" && n.message.includes(HUMAN_NAME))).toBe(true);
 	});
 
+	test("without a trailer: commits as the human with no Co-authored-by, even when the message carried one", async () => {
+		stage("a.txt", "hello\n");
+		const { tool } = makeTool(BOT);
+		const ui = makeFakeUi({ selects: [WITHOUT_TRAILER] });
+		const ctx = ui.ctx({ cwd: repo }) as ExtensionContext;
+
+		const result = await tool.execute("call-1", { message: `feat: no trailer\n\n${TRAILER}` }, undefined, undefined, ctx);
+
+		const details = result.details as CommitAsMeDetails;
+		expect(details.identity).toBe("human");
+		expect(details.withBotTrailer).toBe(false);
+		expect((result.content as { text: string }[])[0]!.text).toContain("(committed as the human, without a trailer)");
+		const head = headFields();
+		expect(head.authorName).toBe(HUMAN_NAME);
+		expect(head.body).not.toContain("Co-authored-by:");
+		expect(head.body).toContain("feat: no trailer");
+	});
+
 	test("repo-local commit.gpgsign=false does not stop signing: the tool forces -S", async () => {
 		// The repo's own config says false (see beforeEach); the human's global
 		// config is /dev/null. A commit-as-me commit must still be signed.
 		expect(git(["config", "commit.gpgsign"]).out.trim()).toBe("false");
 		stage("a.txt", "hello\n");
 		const { tool } = makeTool(BOT);
-		const ui = makeFakeUi({ selects: [APPROVE] });
+		const ui = makeFakeUi({ selects: [WITH_TRAILER] });
 		const ctx = ui.ctx({ cwd: repo }) as ExtensionContext;
 
 		await tool.execute("call-1", { message: "feat: signed anyway" }, undefined, undefined, ctx);
@@ -250,7 +272,7 @@ describe("commit_as_me", () => {
 		const emptyRing = mkdtempSync(join("/tmp", "gbi-empty-"));
 		humanEnv.GNUPGHOME = emptyRing;
 		const { tool } = makeTool(BOT);
-		const ui = makeFakeUi({ selects: [APPROVE] });
+		const ui = makeFakeUi({ selects: [WITH_TRAILER] });
 		const ctx = ui.ctx({ cwd: repo }) as ExtensionContext;
 
 		await expect(tool.execute("call-1", { message: "feat: cannot sign" }, undefined, undefined, ctx)).rejects.toThrow(
@@ -263,7 +285,7 @@ describe("commit_as_me", () => {
 	test("message that already carries the bot trailer: not duplicated", async () => {
 		stage("a.txt", "hello\n");
 		const { tool } = makeTool(BOT);
-		const ui = makeFakeUi({ selects: [APPROVE] });
+		const ui = makeFakeUi({ selects: [WITH_TRAILER] });
 		const ctx = ui.ctx({ cwd: repo }) as ExtensionContext;
 
 		await tool.execute("call-1", { message: `fix: thing\n\n${TRAILER}` }, undefined, undefined, ctx);
@@ -273,10 +295,10 @@ describe("commit_as_me", () => {
 		expect(head.body.split(TRAILER).length - 1).toBe(1);
 	});
 
-	test("no bot config: commits with no trailer at all, and the bot row is omitted", async () => {
+	test("no bot config: offers only Cancel + human-without-trailer, commits with no trailer", async () => {
 		stage("a.txt", "hello\n");
 		const { tool } = makeTool(null);
-		const ui = makeFakeUi({ selects: [APPROVE] });
+		const ui = makeFakeUi({ selects: [WITHOUT_TRAILER] });
 		const ctx = ui.ctx({ cwd: repo }) as ExtensionContext;
 
 		const result = await tool.execute("call-1", { message: "chore: untrailered" }, undefined, undefined, ctx);
@@ -284,11 +306,14 @@ describe("commit_as_me", () => {
 		const head = headFields();
 		expect(head.body).not.toContain("Co-authored-by:");
 		expect(head.authorName).toBe(HUMAN_NAME);
-		expect((result.details as CommitAsMeDetails).identity).toBe("human");
-		// Without a configured bot the select offers only Cancel + the human row
-		// (an offered bot row could only refuse — the honest select omits it).
+		const details = result.details as CommitAsMeDetails;
+		expect(details.identity).toBe("human");
+		expect(details.withBotTrailer).toBe(false);
+		// Without a configured bot the select offers only Cancel + the
+		// without-trailer row: a bot row could only refuse, and a with-trailer
+		// row would have no bot to credit.
 		const labels = ui.selectCalls[0]!.options.map(o => (typeof o === "string" ? o : o.label));
-		expect(labels).toEqual(["Cancel — do not commit", APPROVE]);
+		expect(labels).toEqual([CANCEL, WITHOUT_TRAILER]);
 	});
 
 	test("bot choice: commits as the bot, no bot self-trailer, human trailer added by the bot hook", async () => {
@@ -301,7 +326,10 @@ describe("commit_as_me", () => {
 		// would append); the bot path must strip it rather than credit itself.
 		const result = await tool.execute("call-1", { message: `feat: via bot\n\n${TRAILER}` }, undefined, undefined, ctx);
 
-		expect((result.details as CommitAsMeDetails).identity).toBe("bot");
+		const botDetails = result.details as CommitAsMeDetails;
+		expect(botDetails.identity).toBe("bot");
+		expect(botDetails.withBotTrailer).toBe(false);
+		expect((result.content as { text: string }[])[0]!.text).toContain("(committed as the bot)");
 		const head = headFields();
 		expect(head.authorName).toBe(BOT.name);
 		expect(head.authorEmail).toBe(BOT.email);
@@ -310,9 +338,9 @@ describe("commit_as_me", () => {
 		expect(head.body).not.toContain(TRAILER);
 		expect(head.body).toContain(`Co-authored-by: ${HUMAN_NAME} <${HUMAN_EMAIL}>`);
 
-		// The gate offers Cancel, the human, and the bot — in that order.
+		// The gate offers Cancel, both human variants, and the bot, in that order.
 		const labels = ui.selectCalls[0]!.options.map(o => (typeof o === "string" ? o : o.label));
-		expect(labels).toEqual(["Cancel — do not commit", APPROVE, BOT_CHOICE]);
+		expect(labels).toEqual([CANCEL, WITH_TRAILER, WITHOUT_TRAILER, BOT_CHOICE]);
 		expect(ui.selectCalls[0]!.dialogOptions?.initialIndex).toBe(0);
 	});
 
@@ -341,7 +369,7 @@ describe("commit_as_me", () => {
 	test("cancel choice: errors with the git commit -F command and a temp file holding the message", async () => {
 		stage("a.txt", "hello\n");
 		const { tool } = makeTool(BOT);
-		const ui = makeFakeUi({ selects: ["Cancel — do not commit"] });
+		const ui = makeFakeUi({ selects: [CANCEL] });
 		const ctx = ui.ctx({ cwd: repo }) as ExtensionContext;
 
 		let error: Error | undefined;
@@ -382,7 +410,7 @@ describe("commit_as_me", () => {
 		stage("a.txt", "hello\n");
 		const { tool } = makeTool(BOT);
 		// Simulate a bare Enter: the selector returns its default (Cancel) row.
-		const ui = makeFakeUi({ selects: ["Cancel — do not commit"] });
+		const ui = makeFakeUi({ selects: [CANCEL] });
 		const ctx = ui.ctx({ cwd: repo }) as ExtensionContext;
 
 		await expect(tool.execute("call-1", { message: "feat: oops" }, undefined, undefined, ctx)).rejects.toThrow(
@@ -390,7 +418,7 @@ describe("commit_as_me", () => {
 		);
 		expect(ui.selectCalls[0]!.dialogOptions?.initialIndex).toBe(0);
 		const labels = ui.selectCalls[0]!.options.map(o => (typeof o === "string" ? o : o.label));
-		expect(labels.indexOf("Cancel — do not commit")).toBe(0);
+		expect(labels.indexOf(CANCEL)).toBe(0);
 		expect(commitCount()).toBe(0);
 	});
 
@@ -424,7 +452,7 @@ describe("commit_as_me", () => {
 
 		const before = tempMessageFiles();
 		const { tool } = makeTool(BOT);
-		const ui = makeFakeUi({ selects: [APPROVE] });
+		const ui = makeFakeUi({ selects: [WITH_TRAILER] });
 		const ctx = ui.ctx({ cwd: repo }) as ExtensionContext;
 
 		await expect(tool.execute("call-1", { message: "feat: will fail" }, undefined, undefined, ctx)).rejects.toThrow(
@@ -434,5 +462,135 @@ describe("commit_as_me", () => {
 
 		const leaked = [...tempMessageFiles()].filter(name => !before.has(name));
 		expect(leaked).toEqual([]);
+	});
+
+	test("form dialog is preferred: one form, escaped message, with-trailer choice commits exactly one trailer", async () => {
+		stage("a.txt", "hello\n");
+		const { tool } = makeTool(BOT);
+		const message = "feat: form\n\nbody with <tag> & stuff";
+		const ui = makeFakeUi({ forms: [{ data: { commit_as: "human-trailer" } }] });
+		const ctx = ui.ctx({ cwd: repo }) as ExtensionContext;
+
+		const result = await tool.execute("call-1", { message }, undefined, undefined, ctx);
+
+		// The form surface wins: one form, no select.
+		expect(ui.formCalls.length).toBe(1);
+		expect(ui.selectCalls.length).toBe(0);
+		const html = ui.formCalls[0]!.html;
+		expect(html).toContain("<form");
+		expect(html).toContain('name="commit_as" value="cancel" checked');
+		expect(html).toContain('value="human-trailer"');
+		expect(html).toContain('value="human"');
+		expect(html).toContain('value="bot"');
+		expect(html).toContain(`Commit as the bot — ${BOT.name} &lt;${BOT.email}&gt; signs, and you are Co-authored-by`);
+		expect(html).toContain(`${HUMAN_NAME} &lt;${HUMAN_EMAIL}&gt;`);
+		expect(html).toContain("YOUR GPG key");
+		// Every interpolation is HTML-escaped, and the message <pre> is exact.
+		const escaped = `${message}\n`.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+		expect(html).toContain(`<pre>${escaped}</pre>`);
+		expect(html).not.toContain("<tag>");
+		expect(html).toContain("a.txt");
+
+		const details = result.details as CommitAsMeDetails;
+		expect(details.identity).toBe("human");
+		expect(details.withBotTrailer).toBe(true);
+		expect((result.content as { text: string }[])[0]!.text).toContain("(committed as the human, with the bot trailer)");
+		const head = headFields();
+		expect(head.authorName).toBe(HUMAN_NAME);
+		expect(head.body).toContain(TRAILER);
+		expect(head.body.split(TRAILER).length - 1).toBe(1);
+	});
+
+	test("form without-trailer choice: no bot trailer even when the supplied message carried one", async () => {
+		stage("a.txt", "hello\n");
+		const { tool } = makeTool(BOT);
+		const ui = makeFakeUi({ forms: [{ data: { commit_as: "human" } }] });
+		const ctx = ui.ctx({ cwd: repo }) as ExtensionContext;
+
+		const result = await tool.execute(
+			"call-1",
+			{ message: `feat: no trailer\n\n${TRAILER}` },
+			undefined,
+			undefined,
+			ctx,
+		);
+
+		// The form previews the base (stripped) message.
+		expect(ui.formCalls[0]!.html).not.toContain(TRAILER);
+		const details = result.details as CommitAsMeDetails;
+		expect(details.identity).toBe("human");
+		expect(details.withBotTrailer).toBe(false);
+		expect((result.content as { text: string }[])[0]!.text).toContain("(committed as the human, without a trailer)");
+		const head = headFields();
+		expect(head.body).not.toContain("Co-authored-by:");
+		expect(head.body).toContain("feat: no trailer");
+	});
+
+	test("form cancel, dismissal, and unknown values all decline without committing", async () => {
+		stage("a.txt", "hello\n");
+		const { tool } = makeTool(BOT);
+		const answers: ({ data: Record<string, string | string[]> } | undefined)[] = [
+			{ data: { commit_as: "cancel" } },
+			{ data: { commit_as: "Commit as me, please" } },
+			{ data: { commit_as: ["human"] } },
+			undefined,
+		];
+
+		for (const form of answers) {
+			const ui = makeFakeUi({ forms: [form] });
+			const ctx = ui.ctx({ cwd: repo }) as ExtensionContext;
+
+			let error: Error | undefined;
+			try {
+				await tool.execute("call-1", { message: "feat: declined" }, undefined, undefined, ctx);
+			} catch (err) {
+				error = err as Error;
+			}
+			expect(error).toBeDefined();
+			expect(error!.message).toContain("User declined commit_as_me");
+			expect(error!.message).toContain("git commit -F ");
+			// Cancel still hands back the with-trailer message, as before.
+			const path = /git commit -F (\S+)/.exec(error!.message)?.[1];
+			expect(path).toBeDefined();
+			expect(readFileSync(path!, "utf8")).toContain(TRAILER);
+			rmSync(path!, { force: true });
+			expect(ui.selectCalls.length).toBe(0);
+		}
+
+		expect(commitCount()).toBe(0);
+	});
+
+	test("form without bot config: no bot or with-trailer rows, commits with no trailer", async () => {
+		stage("a.txt", "hello\n");
+		const { tool } = makeTool(null);
+		const ui = makeFakeUi({ forms: [{ data: { commit_as: "human" } }] });
+		const ctx = ui.ctx({ cwd: repo }) as ExtensionContext;
+
+		const result = await tool.execute("call-1", { message: "chore: form no bot" }, undefined, undefined, ctx);
+
+		const html = ui.formCalls[0]!.html;
+		expect(html).not.toContain('value="bot"');
+		expect(html).not.toContain('value="human-trailer"');
+		expect(html).not.toContain("Co-authored-by");
+		const head = headFields();
+		expect(head.body).not.toContain("Co-authored-by:");
+		expect((result.details as CommitAsMeDetails).withBotTrailer).toBe(false);
+	});
+
+	test("form bot choice: commits as the bot with the human trailer", async () => {
+		stage("a.txt", "hello\n");
+		const { tool } = makeTool(BOT, async () => ({ ok: true, env: makeBotWriteEnv() }));
+		const ui = makeFakeUi({ forms: [{ data: { commit_as: "bot" } }] });
+		const ctx = ui.ctx({ cwd: repo }) as ExtensionContext;
+
+		const result = await tool.execute("call-1", { message: `feat: bot form\n\n${TRAILER}` }, undefined, undefined, ctx);
+
+		const details = result.details as CommitAsMeDetails;
+		expect(details.identity).toBe("bot");
+		expect(details.withBotTrailer).toBe(false);
+		const head = headFields();
+		expect(head.authorName).toBe(BOT.name);
+		expect(head.body).not.toContain(TRAILER);
+		expect(head.body).toContain(`Co-authored-by: ${HUMAN_NAME} <${HUMAN_EMAIL}>`);
 	});
 });
