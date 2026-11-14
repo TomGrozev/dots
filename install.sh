@@ -339,6 +339,13 @@ if [ "$AGENT_POD" != "true" ]; then
     link_entry "$DOTFILES_DIR/.config/$dir" "$HOME/.config/$dir" ".config/$dir"
   done
 
+  # dots-update is a host command, not a desktop one, so headless hosts get it
+  # too. The devcontainer is skipped: its packages belong to the image, and it
+  # has no user session to schedule the check.
+  if [ "${DEVCONTAINER:-}" != "true" ]; then
+    link_entry "$DOTFILES_DIR/bin/dots-update" "$LOCAL_BIN/dots-update" "~/.local/bin/dots-update"
+  fi
+
   # Polar desktop scripts. The glob picks up new scripts without touching this
   # list; Hyprland's config puts ~/.local/bin on PATH so binds call them bare.
   if [ "$polar_desktop" = true ]; then
@@ -535,6 +542,83 @@ AWK
     link_entry "$captain_miao_src" "$captain_miao_dst" ".config/captain-miao"
   fi
 fi # AGENT_POD guard: dotfile, .config and captain-miao symlinks
+
+# --- Install Homebrew packages (macOS) ---
+# The Brewfile starts comment-only, so this does nothing until it is dumped on
+# the Mac (see README). A failure must not abort the install: the host keeps
+# its current packages.
+if [ "$UNAME_OS" = "darwin" ] && [ "$AGENT_POD" != "true" ] && [ "${DEVCONTAINER:-}" != "true" ]; then
+  if command -v brew >/dev/null 2>&1; then
+    echo ""
+    echo "Installing Homebrew packages..."
+    brew bundle --file="$DOTFILES_DIR/packages/Brewfile" ||
+      echo "  WARNING: brew bundle failed; check packages/Brewfile and the network"
+  else
+    echo "  Skipping Homebrew packages (brew not installed)"
+  fi
+fi
+
+# --- Schedule the background update check ---
+# dots-update --check writes the count that the prompt and ironbar read, so one
+# scheduled run keeps both current. A host without the schedule still works:
+# the readers show nothing while the cache is missing. Guarded like the
+# dots-update link above, because a devcontainer has nothing to schedule into.
+if [ "$AGENT_POD" != "true" ] && [ "${DEVCONTAINER:-}" != "true" ]; then
+  if [ -f /etc/arch-release ]; then
+    echo ""
+    echo "Scheduling the update check..."
+    link_entry "$DOTFILES_DIR/.config/systemd/user/dots-update-check.service" \
+      "$HOME/.config/systemd/user/dots-update-check.service" \
+      ".config/systemd/user/dots-update-check.service"
+    link_entry "$DOTFILES_DIR/.config/systemd/user/dots-update-check.timer" \
+      "$HOME/.config/systemd/user/dots-update-check.timer" \
+      ".config/systemd/user/dots-update-check.timer"
+    # The timer owns the schedule. Enabling the service as well would add a
+    # second, independent run at every login.
+    if systemctl --user daemon-reload; then
+      systemctl --user enable --now dots-update-check.timer ||
+        echo "  WARNING: could not start the update check timer; run: systemctl --user enable --now dots-update-check.timer"
+    else
+      echo "  WARNING: systemctl --user is unavailable; enable the update check timer from a desktop session:"
+      echo "    systemctl --user enable --now dots-update-check.timer"
+    fi
+  elif [ "$UNAME_OS" = "darwin" ]; then
+    echo ""
+    echo "Installing the update check LaunchAgent..."
+    mkdir -p "$HOME/Library/LaunchAgents" "$HOME/Library/Logs"
+    plist="$HOME/Library/LaunchAgents/dev.dots.update-check.plist"
+    # launchd does not expand $HOME, so the paths are written out. RunAtLoad
+    # gives the first count of a session; StartInterval is the six-hour gap.
+    cat >"$plist" <<PLIST
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>dev.dots.update-check</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>$HOME/.local/bin/dots-update</string>
+    <string>--check</string>
+  </array>
+  <key>StartInterval</key>
+  <integer>21600</integer>
+  <key>RunAtLoad</key>
+  <true/>
+  <key>StandardOutPath</key>
+  <string>$HOME/Library/Logs/dots-update-check.log</string>
+  <key>StandardErrorPath</key>
+  <string>$HOME/Library/Logs/dots-update-check.log</string>
+</dict>
+</plist>
+PLIST
+    # bootout fails while the job is not loaded; bootstrap then loads the file
+    # just written, so a re-run picks up changes instead of keeping the old job.
+    launchctl bootout "gui/$(id -u)/dev.dots.update-check" 2>/dev/null || true
+    launchctl bootstrap "gui/$(id -u)" "$plist" ||
+      echo "  WARNING: could not load dev.dots.update-check"
+  fi
+fi
 
 # --- Erlang + Elixir via asdf (Arch only) ---
 # Versions come from ~/.tool-versions (linked above). asdf-vm is in aur.txt;

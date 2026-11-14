@@ -49,6 +49,7 @@
     status                  # exit code of the last command
     command_execution_time  # duration of the last command
     background_jobs         # presence of background jobs
+    dots_updates            # pending package updates (bin/dots-update --check)
     direnv                  # direnv status (https://direnv.net/)
     asdf                    # asdf version manager (https://github.com/asdf-vm/asdf)
     virtualenv              # python virtual environment (https://docs.python.org/3/library/venv.html)
@@ -1679,6 +1680,27 @@
   # User-defined prompt segments can be customized the same way as built-in segments.
   # typeset -g POWERLEVEL9K_EXAMPLE_FOREGROUND=208
   # typeset -g POWERLEVEL9K_EXAMPLE_VISUAL_IDENTIFIER_EXPANSION='⭐'
+
+  # Pending package updates, as counted by `dots-update --check` (a systemd
+  # user timer on Arch, a LaunchAgent on macOS). The prompt only reads the
+  # cache, so it never runs pacman, paru or brew and never forks: `$(<file)` is
+  # a zsh builtin read. A missing, unreadable or non-numeric cache means
+  # unknown, and zero means nothing to do, so both show no segment. 178 is the
+  # yellow this file already uses for git modified and other warnings.
+  function prompt_dots_updates() {
+    local -r cache=${XDG_CACHE_HOME:-$HOME/.cache}/dots/updates
+    local count=
+    [[ -r $cache ]] && count=$(<$cache)
+    [[ $count == <-> ]] || return
+    (( count )) || return
+    p10k segment -f 178 -i $'\uf019' -t "$count"
+  }
+
+  # Same p10k segment calls as prompt_dots_updates, so instant prompt and the
+  # real prompt agree on the segment.
+  function instant_prompt_dots_updates() {
+    prompt_dots_updates
+  }
 
   # Transient prompt works similarly to the builtin transient_rprompt option. It trims down prompt
   # when accepting a command line. Supported values:

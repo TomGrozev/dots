@@ -1,0 +1,13 @@
+[Unit]
+Description=Periodic check for pending package updates
+
+[Timer]
+# Wall-clock slots. Persistent runs a slot missed while the machine was off at
+# the next start instead of six hours later.
+OnCalendar=*-*-* 00/6:00:00
+Persistent=true
+# Covers a session shorter than the six-hour gap, once the boot burst is over.
+OnBootSec=5min
+
+[Install]
+WantedBy=timers.target

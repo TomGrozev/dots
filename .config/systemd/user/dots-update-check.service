@@ -1,0 +1,16 @@
+[Unit]
+Description=Check for pending package updates
+
+# A user manager has no network-online.target to order against, and the boot
+# run can start before a laptop's network is up. The service retries a failed
+# check instead; the cap stops an offline machine from retrying all day.
+StartLimitIntervalSec=15min
+StartLimitBurst=4
+
+[Service]
+Type=oneshot
+ExecStart=%h/.local/bin/dots-update --check
+# The only restart policy systemd allows for a oneshot. A failed check leaves
+# the cached count alone, so a retry cannot record a wrong number.
+Restart=on-failure
+RestartSec=2min

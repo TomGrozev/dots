@@ -318,6 +318,23 @@
   border-right: 4px solid @nord13;
 }
 
+/* --- Pending updates --- */
+
+/* The module hides itself at zero, so there is no dim state to draw. Nord13
+ * is the file's warning tier, and bold holds the count at the same weight as
+ * the clock and the volume reading. Hover brightens the text only: the pill
+ * has no box, so nothing moves when the pointer passes. */
+.updates {
+  padding: 0;
+  background: none;
+  color: @nord13;
+  font-weight: bold;
+}
+
+.updates:hover {
+  color: @nord6;
+}
+
 /* --- Graphs, volume, keep-awake --- */
 
 /* The canvases are 16px tall; the margin centres them in the 26px interior

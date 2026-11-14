@@ -21,10 +21,11 @@ My personal dotfiles, mainly used to set up dev pods and AI-assisted coding.
 
 ### Terminal & System
 - **Ghostty**: Modern terminal configuration (`.config/ghostty/`).
-- **Zellij**: Multiplexer setup (`.config/zellij/`).
+- **Zellij**: Multiplexer setup (`.config/zellij/`), including the 0.46 attention inbox for agent panes ([docs](docs/zellij.md)).
 - **btop**: Nord-themed system monitor (`.config/btop/`).
 - **Yazi**: Terminal file manager (`.config/yazi/`).
 - **GitHub CLI**: gh configuration (`.config/gh/`).
+- **Updates**: `dots-update` upgrades the host and refreshes the dotfiles (`bin/dots-update`).
 - **Safety Net**: CC-safety-net policy management (`.cc-safety-net/`).
 
 ## Setup
@@ -44,8 +45,42 @@ The install script performs the following:
 4. **Configuration**: Sets up `.config/` subdirectories for `gh`, `nvim`, `ghostty`, `yazi`, `zellij`, `btop`, and `captain-miao`.
 5. **Agents**: Installs essential agent skills (Matt Pocock engineering skills, conventional-commit, frontend-design, avoid-ai-writing) via npm.
 6. **Integration**: Configures `r3` public URLs for Coder workspaces.
-7. **Arch Linux packages**: On Arch hosts only, installs `packages/arch.txt` with pacman and `packages/aur.txt` with yay (bootstrapped if missing). On any Linux host, installs omp into `~/.local/bin` when no omp exists, and runs `omp update` when that copy is present; an omp that lives elsewhere on `PATH` (devcontainer image, system install) is left alone. The omp plugins are reinstalled on each run so they follow their npm range and git branch. Find packages installed outside the lists with `pacman -Qqen` (repo) and `pacman -Qqem` (AUR).
+7. **Arch Linux packages**: On Arch hosts only, installs `packages/arch.txt` with pacman and `packages/aur.txt` with yay (bootstrapped if missing). The list includes `pacman-contrib`, whose `checkupdates` provides the pending-update count (see [Updating](#updating)). On any Linux host, installs omp into `~/.local/bin` when no omp exists, and runs `omp update` when that copy is present; an omp that lives elsewhere on `PATH` (devcontainer image, system install) is left alone. The omp plugins are reinstalled on each run so they follow their npm range and git branch. Find packages installed outside the lists with `pacman -Qqen` (repo) and `pacman -Qqem` (AUR).
 8. **Dictation (Arch Linux desktop)**: On Arch desktops only (not macOS, devcontainers, agent pods or headless hosts), installs OpenWhispr from the AUR and a systemd user service running the vendored `openwhispr-soniox-proxy` in `.config/openwhispr-soniox-proxy/` (MIT; see its `LICENSE`). In OpenWhispr, set **Settings → Speech to Text → Custom** to endpoint `http://127.0.0.1:8788/v1`, model `stt-async-v5`, and your Soniox API key. The unit sets `SONIOX_REGION=jp`; the API key must come from a project in that region (supported values: `us`, `eu`, `jp`, `in`).
+
+### Updating
+`dots-update` upgrades the machine and then refreshes the dotfiles:
+
+```bash
+dots-update          # pull, upgrade packages, run install.sh
+dots-update --check  # write the pending count only; no sudo
+```
+
+The bare run pulls the repo when the worktree is clean and an upstream exists,
+upgrades packages (`yay -Syu` on Arch, `brew update && brew upgrade` on macOS)
+and runs `install.sh`, which refreshes omp, the plugins, Zellij plugins, flate,
+captain-miao, r3 and the skills. A failed package upgrade stops the run before
+`install.sh`.
+
+`dots-update --check` writes the pending count, one integer on one line, to
+`${XDG_CACHE_HOME:-$HOME/.cache}/dots/updates`. The zsh prompt and the ironbar
+module read that file and show nothing when it is missing or `0`. Arch counts
+repository updates from `checkupdates` and AUR updates from `yay -Qua`;
+macOS counts outdated Homebrew formulae and casks. A failed check leaves the
+file unchanged.
+
+The count refreshes every six hours from `dots-update-check.timer` on Arch
+(enabled by `install.sh`) and from the `dev.dots.update-check` LaunchAgent on
+macOS, which also posts a notification when a non-zero count changes.
+
+macOS packages live in `packages/Brewfile`. On the Mac, dump the installed set
+once and commit the result:
+
+```bash
+brew bundle dump --force --file=packages/Brewfile
+```
+
+The dump overwrites the file, comments included, so notes stay here in README.
 
 ### Agent Pod Mode
 An agent pod clones this repo at startup and runs the installer in its lean

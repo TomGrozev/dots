@@ -1,0 +1,247 @@
+#!/usr/bin/env bash
+
+# dots-update: upgrade this host and refresh its dotfiles, or record how many
+# package updates are pending.
+#
+# The count lives in ${XDG_CACHE_HOME:-$HOME/.cache}/dots/updates as one line:
+# an integer, or no file at all while the count is unknown. The zsh prompt and
+# the ironbar module read that file and never run a package tool, so this
+# script is its only writer.
+#
+# Runs on macOS's bash 3.2: no mapfile, no associative arrays, no ${x,,}.
+
+set -u
+
+UNAME_OS=$(uname -s)
+CACHE_FILE="${XDG_CACHE_HOME:-$HOME/.cache}/dots/updates"
+
+info() { printf '%s\n' "$*"; }
+warn() { printf 'dots-update: %s\n' "$*" >&2; }
+
+# The installed entry is a symlink in ~/.local/bin, so the repo is found by
+# walking the links to the real bin directory. `readlink -f` is not available
+# in macOS's stock userland.
+script_dir() {
+  local target=$1 target_dir
+  while [ -L "$target" ]; do
+    target_dir=$(cd -P "$(dirname "$target")" && pwd) || return 1
+    target=$(readlink "$target") || return 1
+    case $target in
+    /*) ;;
+    *) target=$target_dir/$target ;;
+    esac
+  done
+  cd -P "$(dirname "$target")" && pwd
+}
+
+BIN_DIR=$(script_dir "$0") || {
+  warn "cannot locate this script's directory"
+  exit 1
+}
+REPO_DIR=$(cd "$BIN_DIR/.." && pwd -P)
+
+# A systemd unit and launchd start with a minimal PATH, so the two Homebrew
+# prefixes are checked before PATH.
+find_brew() {
+  local candidate
+  for candidate in /opt/homebrew/bin/brew /usr/local/bin/brew; do
+    if [ -x "$candidate" ]; then
+      printf '%s\n' "$candidate"
+      return 0
+    fi
+  done
+  command -v brew 2>/dev/null
+}
+
+# The previous count, or nothing when the cache is absent or not an integer.
+read_cached_count() {
+  local value
+  [ -r "$CACHE_FILE" ] || return 0
+  value=$(tr -d '[:space:]' <"$CACHE_FILE") || return 0
+  case $value in
+  '' | *[!0-9]*) ;;
+  *) printf '%s\n' "$value" ;;
+  esac
+}
+
+# Write beside the target and rename, so a reader never sees half a number.
+write_cache() {
+  local cache_dir tmp
+  cache_dir=$(dirname "$CACHE_FILE")
+  if ! mkdir -p "$cache_dir"; then
+    warn "cannot create $cache_dir"
+    return 1
+  fi
+  tmp=$CACHE_FILE.$$
+  if printf '%s\n' "$UPDATE_COUNT" >"$tmp" && mv -f "$tmp" "$CACHE_FILE"; then
+    return 0
+  fi
+  rm -f "$tmp"
+  warn "cannot write $CACHE_FILE"
+  return 1
+}
+
+notify_macos() {
+  local previous=$1 count=$2
+  [ "$count" -gt 0 ] || return 0
+  [ "$count" != "$previous" ] || return 0
+  command -v osascript >/dev/null 2>&1 || return 0
+  osascript -e "display notification \"$count package updates pending. Run dots-update to install them.\" with title \"dots-update\"" >/dev/null 2>&1 ||
+    warn "could not post the update notification"
+}
+
+# Set UPDATE_COUNT. Return non-zero when a check tool fails, so the caller
+# keeps the previous count instead of recording a wrong one.
+check_updates() {
+  local updates status repo_count aur_count aur_updates
+  local brew formulas casks formula_count cask_count
+
+  case $UNAME_OS in
+  Linux)
+    if [ ! -f /etc/arch-release ]; then
+      warn "no update check for this Linux (only Arch is supported)"
+      return 1
+    fi
+    if ! command -v checkupdates >/dev/null 2>&1; then
+      warn "checkupdates not found (install pacman-contrib)"
+      return 1
+    fi
+    updates=$(checkupdates 2>/dev/null)
+    status=$?
+    case $status in
+    0) repo_count=$(printf '%s\n' "$updates" | grep -c .) ;;
+    2) repo_count=0 ;;
+    *)
+      warn "checkupdates failed (exit $status)"
+      return 1
+      ;;
+    esac
+    aur_count=0
+    if command -v yay >/dev/null 2>&1; then
+      # yay exits non-zero when no AUR package is pending; that is not an error.
+      aur_updates=$(yay -Qua 2>/dev/null) || true
+      aur_count=$(printf '%s\n' "$aur_updates" | grep -c .)
+    fi
+    UPDATE_COUNT=$((repo_count + aur_count))
+    ;;
+  Darwin)
+    brew=$(find_brew)
+    if [ -z "$brew" ]; then
+      warn "brew not found"
+      return 1
+    fi
+    if ! "$brew" update --quiet >/dev/null 2>&1; then
+      warn "brew update failed"
+      return 1
+    fi
+    formulas=$("$brew" outdated --quiet --formula 2>/dev/null) || {
+      warn "brew outdated failed"
+      return 1
+    }
+    casks=$("$brew" outdated --quiet --cask 2>/dev/null) || {
+      warn "brew outdated --cask failed"
+      return 1
+    }
+    formula_count=$(printf '%s\n' "$formulas" | grep -c .)
+    cask_count=$(printf '%s\n' "$casks" | grep -c .)
+    UPDATE_COUNT=$((formula_count + cask_count))
+    ;;
+  *)
+    warn "no update check for $UNAME_OS"
+    return 1
+    ;;
+  esac
+}
+
+run_check() {
+  local previous
+  previous=$(read_cached_count)
+  check_updates || return 1
+  if [ "$UNAME_OS" = Darwin ]; then
+    notify_macos "${previous:-}" "$UPDATE_COUNT"
+  fi
+  write_cache || return 1
+  info "$UPDATE_COUNT package updates pending"
+}
+
+# Pull only a checkout that can fast-forward: local edits and a detached head
+# stay untouched, and a failed pull still leaves a usable tree for install.sh.
+pull_dotfiles() {
+  if ! git -C "$REPO_DIR" rev-parse --git-dir >/dev/null 2>&1; then
+    warn "$REPO_DIR is not a git checkout, skipping the pull"
+    return 0
+  fi
+  if [ -n "$(git -C "$REPO_DIR" status --porcelain 2>/dev/null)" ]; then
+    warn "local changes in $REPO_DIR, skipping the pull"
+    return 0
+  fi
+  if ! git -C "$REPO_DIR" rev-parse --abbrev-ref --symbolic-full-name '@{u}' >/dev/null 2>&1; then
+    warn "no upstream branch in $REPO_DIR, skipping the pull"
+    return 0
+  fi
+  info ""
+  info "==> Pulling dotfiles"
+  git -C "$REPO_DIR" pull --ff-only ||
+    warn "pull failed, continuing with the current checkout"
+}
+
+# The package upgrade keeps its prompts: the user reviews the transaction.
+upgrade_packages() {
+  local brew
+  case $UNAME_OS in
+  Linux)
+    if [ ! -f /etc/arch-release ]; then
+      info "==> No package upgrade for this Linux, skipping"
+      return 0
+    fi
+    if ! command -v yay >/dev/null 2>&1; then
+      warn "yay not found, skipping the package upgrade; install.sh bootstraps it"
+      return 0
+    fi
+    info ""
+    info "==> Upgrading Arch packages (yay -Syu)"
+    yay -Syu || return 1
+    ;;
+  Darwin)
+    brew=$(find_brew)
+    if [ -z "$brew" ]; then
+      warn "brew not found, skipping the package upgrade"
+      return 0
+    fi
+    info ""
+    info "==> Upgrading Homebrew packages"
+    "$brew" update || return 1
+    "$brew" upgrade || return 1
+    ;;
+  *)
+    info "==> No package upgrade for this system, skipping"
+    ;;
+  esac
+  return 0
+}
+
+run_update() {
+  pull_dotfiles
+  if ! upgrade_packages; then
+    warn "package upgrade failed; install.sh not run"
+    exit 1
+  fi
+  info ""
+  info "==> Running install.sh"
+  if ! bash "$REPO_DIR/install.sh"; then
+    warn "install.sh failed"
+    exit 1
+  fi
+  info ""
+  info "==> Recording the pending update count"
+  run_check || true
+}
+
+case ${1:-} in
+"") run_update ;;
+--check) run_check ;;
+*)
+  printf 'usage: dots-update [--check]\n' >&2
+  exit 2
+  ;;
+esac

@@ -222,6 +222,24 @@ bar = [
   ] },
 ]
 
+# Pending package updates. `dots-update --check` runs on a systemd user timer
+# and writes the count to the cache; the bar only reads that file, so neither
+# the pill nor the timer fights over the pacman and AUR locks. show_if polls at
+# 60s and hides the module at zero or when the cache is missing, so no empty
+# pill holds a slot on the island. Click opens a terminal where `dots-update`
+# runs the upgrade interactively; the trailing read holds the window open so
+# the result stays readable after the command exits.
+[[end]]
+type = "custom"
+name = "updates"
+class = "updates"
+show_if = '60000:test "$(cat "${XDG_CACHE_HOME:-$HOME/.cache}/dots/updates" 2>/dev/null)" -gt 0'
+transition_type = "slide_end"
+transition_duration = 180
+bar = [
+  { type = "button", label = "\uf019 {{60000:cat \"${XDG_CACHE_HOME:-$HOME/.cache}/dots/updates\" 2>/dev/null}}", on_click = "!ghostty -e bash -c 'dots-update; read -rp \"Press Enter to close. \" _'" },
+]
+
 # Live graphs: CPU history as a sparkline, memory as a ring. The Lua reads
 # /proc directly and samples once per draw, so `frequency` is the sample rate.
 # Each script writes its exact reading to $XDG_RUNTIME_DIR for the tooltip:
