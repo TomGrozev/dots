@@ -15,15 +15,25 @@ scroll_buffer_size 3000
 focus_follows_mouse false
 mouse_click_through false
 
-// Inline images. Zellij 0.45 normally turns kitty graphics on only if its startup
+// Attention (Zellij 0.46) runs on its defaults: the inbox lists panes that
+// need you, and the session card appears at startup when something does.
+// Its usual surfaces are off here: `pane_frames false` drops the frame
+// markers, and zjstatus replaces the built-in tab and status bars that draw
+// tab markers and the session indicator. Use `Ctrl o` `i` (inbox),
+// `Ctrl o` `n` (next pane needing attention) and `Ctrl p` `v` (watch) instead.
+// Zellij's own bars are never rendered, so `ToggleBars` would do nothing;
+// the bar you see is a zjstatus pane in layouts/nord.kdl.
+
+// Inline images. Zellij 0.46 normally turns kitty graphics on only if its startup
 // capability probe of the host terminal succeeds; pinning it on decouples image
 // rendering from that probe. Needs a Zellij restart (kitty protocol only — Zellij
 // has no OSC-1337/iTerm2 image support).
 support_kitty_graphics_protocol true
 
-// omp uses kitty Unicode placeholders (U=1) on Ghostty; Zellij 0.45.1 rejects them
-// silently (zellij#5530). Force omp's direct placements instead.
-// ponytail: drop once Zellij ships U=1 support (PR #5531) or omp#12930 lands.
+// omp uses kitty Unicode placeholders (U=1) on Ghostty; Zellij 0.46 still
+// rejects them silently (zellij#5530), and the upstream fix (PR #5531, ported
+// as #5878) has not landed.
+// ponytail: drop once Zellij ships U=1 support or omp#12930 lands.
 env {
     PI_NO_KITTY_PLACEHOLDERS "1"
 }
@@ -172,6 +182,15 @@ keybinds clear-defaults=true {
         bind "i" { TogglePanePinned; SwitchToMode "normal"; }
         bind "c" { SwitchToMode "renamepane"; PaneNameInput 0; }
         bind "m" { SwitchToMode "move"; }
+        // Zellij 0.46 attention: watch a pane (every finished command and its
+        // output going quiet count as needing you), hide only the "new output"
+        // note, or mute everything it reports.
+        bind "v" { WatchPane; SwitchToMode "normal"; }
+        bind "g" { IgnorePaneOutput; SwitchToMode "normal"; }
+        bind "u" { MutePane; SwitchToMode "normal"; }
+        // Stack titles in a row instead of a column. `s` above still creates a
+        // stack; this only changes how the focused stack lists its panes.
+        bind "Shift s" { ToggleStackListOrientation; SwitchToMode "normal"; }
         bind "tab" "p" { SwitchFocus; }
         bind ";" { FocusLastPane; }
     }
@@ -190,6 +209,7 @@ keybinds clear-defaults=true {
         bind "x" { CloseTab; SwitchToMode "normal"; }
         bind "r" { SwitchToMode "renametab"; TabNameInput 0; }
         bind "s" { ToggleActiveSyncTab; SwitchToMode "normal"; }
+        bind "u" { MuteTab; SwitchToMode "normal"; }
         bind "b" { BreakPane; SwitchToMode "normal"; }
         bind "[" { BreakPaneLeft; SwitchToMode "normal"; }
         bind "]" { BreakPaneRight; SwitchToMode "normal"; }
@@ -291,6 +311,15 @@ keybinds clear-defaults=true {
     session {
         bind "Ctrl o" { SwitchToMode "normal"; }
         bind "d" { Detach; }
+        // Zellij 0.46 inbox: every pane that needs you, across sessions.
+        // `Tab` there switches to the session list, `Enter` jumps to the pane
+        // and the live view types straight into it. `n` jumps to the next pane
+        // that needs attention anywhere. omp reports its own state over OSC
+        // 7501, so agent panes show working / needs you / done.
+        bind "i" { ToggleSessionCard; SwitchToMode "normal"; }
+        bind "n" { GoToNextAttention; SwitchToMode "normal"; }
+        // Mute the whole session (e.g. while recording).
+        bind "u" { MuteSession; SwitchToMode "normal"; }
         // Nested sessions (zellij inside zellij, e.g. over ssh).
         bind "[" { FocusGuestSession; SwitchToMode "normal"; }
         bind "]" { FocusHostSession; SwitchToMode "normal"; }
@@ -347,11 +376,11 @@ plugins {
 
 // zjframes is not loaded. With `pane_frames false` and no hide option set, it
 // changed nothing. Next to zjstatus, it made the Zellij 0.45.1 server leak
-// about 0.3 MB per tab switch.
+// about 0.3 MB per tab switch. Retest on 0.46 before adding it back.
 //
 // zjstatus-hints (v0.1.4) is not used. While it runs, the Zellij 0.45.1 server
 // keeps about 11 kB per pane render and never frees it: busy agent panes grew
-// the server to 18 GB in 9 hours. Test again after a Zellij upgrade.
+// the server to 18 GB in 9 hours. Retest on 0.46 before adding it back.
 load_plugins {
     autolock
 }

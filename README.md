@@ -125,4 +125,5 @@ ln -s ~/dotfiles/.gitconfig ~/.gitconfig
 For detailed information on specific components, see the documentation:
 - [AI Agent Tooling](docs/ai-agents.md) - Detail on OMP and supporting tools.
 - [Polar Desktop](docs/polar.md) - The Hyprland desktop: leader menu, keymap and scripts.
+- [Zellij](docs/zellij.md) - The multiplexer setup, agent attention inbox and upgrade notes.
 

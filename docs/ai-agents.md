@@ -24,7 +24,7 @@ The orchestrator manages agent sessions, roles, and tool integrations.
   - **Delegation**: Route, Roster and Brief in `.omp/AGENTS.md` are one `# Delegation` section; `# Talking to the user` is its last section.
   - **Extensions**: Custom functionality plugins in `.omp/extensions/`.
 - **Settings**: `mnemopi.recallLimit: 3` (fewer memories injected on the first turn) and `mnemopi.autoRetain: false`: Mnemopi no longer stores every turn as a raw transcript; the agent saves chosen facts with `retain` by the rule in `AGENTS.md` § Memory, and recall and the memory tools still work. The advisor is off by default and, when on, reviews only at the end of a turn (`advisor.reviewMode: agent-end`) and only a blocker note restarts the agent (`advisor.continueSeverity: blocker`); deepwiki's injected server instructions are off in `mcp.json`; the invalid `providers.autoThinkingMaxEffort: high` line is gone.
-- **Monitoring**: `WATCHDOG.md` describes the automated oversight process.
+- **Monitoring**: `WATCHDOG.md` describes the automated oversight process. Agent panes also report their own state (`working`, `blocked`, `done`, `failed`) to Zellij over OSC 7501, so the Zellij 0.46 inbox (`Ctrl o` `i`) lists the panes that need you and `Ctrl o` `n` jumps to the next one; see [Zellij](zellij.md). `WATCHDOG.md` and the captain-miao dashboard remain the wider view.
 - **Workflow**: See the [agent workflow](agent-workflow.html) for the collaboration map.
 
 ## Companion Tools
