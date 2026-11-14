@@ -347,6 +347,13 @@ if [ "$AGENT_POD" != "true" ]; then
       link_entry "$script" "$LOCAL_BIN/$(basename "$script")" "~/.local/bin/$(basename "$script")"
     done
 
+    # Without this drop-in, a zellij session open in Ghostty stalls every
+    # shutdown for 90 s; sighup.conf explains why.
+    link_entry "$DOTFILES_DIR/.config/systemd/user/app-ghostty-surface-transient-.scope.d" \
+      "$HOME/.config/systemd/user/app-ghostty-surface-transient-.scope.d" \
+      ".config/systemd/user/app-ghostty-surface-transient-.scope.d"
+    systemctl --user daemon-reload
+
     # Hyprland plugins. A plugin is C++ linked against the exact running
     # compositor, so this step builds rather than installs: hyprpm reads the
     # version from the live session, and `update` refreshes the headers and
