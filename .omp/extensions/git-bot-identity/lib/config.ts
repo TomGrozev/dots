@@ -222,7 +222,7 @@ export async function resolveHumanIdentity(
  * when the file is present but unusable, so the caller refuses with that reason
  * instead of serving a grant from an older config.
  */
-interface BotConfigSnapshot {
+export interface BotConfigSnapshot {
 	stamp: ConfigStamp | null;
 	config: BotConfig | null;
 	identity: { name: string; email: string } | null;

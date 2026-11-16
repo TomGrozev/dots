@@ -56,8 +56,12 @@ export function botConfigDir(): string {
  * Compose the env overlay applied to a write-class call. Every entry is additive;
  * the caller merges over the tool call's existing env.
  */
+export function coAuthorTrailer(config: BotEnvConfig): string {
+	return `Co-authored-by: ${config.humanName} <${config.humanNoreply}>`;
+}
+
 export function buildBotEnv(config: BotEnvConfig): Record<string, string> {
-	const coAuthor = `Co-authored-by: ${config.humanName} <${config.humanNoreply}>`;
+	const coAuthor = coAuthorTrailer(config);
 	const tokenInsteadOf = `url.https://x-access-token:${config.token}@github.com/.insteadOf`;
 	// All bot-scoped git config rides the command-line scope (GIT_CONFIG_*),
 	// which git applies at `-c` precedence — above global and repo config. This
@@ -101,28 +105,79 @@ export function buildBotEnv(config: BotEnvConfig): Record<string, string> {
 }
 
 /**
- * Install the prepare-commit-msg hook that appends the co-author trailer
- * commit-wide. Idempotent: rewrites the hook file on every bot call (cheap,
- * and keeps the trailer in sync with config).
+ * Env for omp's in-process native commit path (`/commit` and eval `commit`).
+ * That path does not run a `git` child, so the shim and `buildBotEnv` cannot
+ * reach it; it reads identity and signing from the process environment and git
+ * config directly. This overlay carries identity, signing, and the co-author
+ * trailer marker, but deliberately no PAT.
+ */
+export function buildBotCommitEnv(config: BotEnvConfig): Record<string, string> {
+	const pairs: Array<[string, string]> = [
+		["user.name", config.name],
+		["user.email", config.email],
+	];
+	if (config.signingKey) {
+		pairs.push(["user.signingkey", config.signingKey], ["commit.gpgsign", "true"]);
+	} else {
+		// The native path also reads the human's global config. Force signing
+		// off so a human signing key is never pulled into a bot commit.
+		pairs.push(["commit.gpgsign", "false"]);
+	}
+	pairs.push(["core.hooksPath", join(botConfigDir(), "hooks")]);
+
+	const env: Record<string, string> = {
+		GIT_CONFIG_COUNT: String(pairs.length),
+		GNUPGHOME: join(botConfigDir(), "gnupg"),
+		GIT_AUTHOR_NAME: config.name,
+		GIT_AUTHOR_EMAIL: config.email,
+		GIT_COMMITTER_NAME: config.name,
+		GIT_COMMITTER_EMAIL: config.email,
+		GIT_BOT_COAUTHOR: coAuthorTrailer(config),
+		GIT_BOT_NATIVE: "1",
+	};
+	pairs.forEach(([key, value], i) => {
+		env[`GIT_CONFIG_KEY_${i}`] = key;
+		env[`GIT_CONFIG_VALUE_${i}`] = value;
+	});
+	return env;
+}
+
+/**
+ * Install the co-author hooks. `prepare-commit-msg` covers git CLI commits;
+ * `commit-msg` covers omp's native commit path, which runs that hook but not
+ * `prepare-commit-msg`. Both are idempotent: a message that already carries a
+ * Co-authored-by line is left alone.
  */
 export function installCoauthorHook(config: BotEnvConfig): void {
 	const hooksDir = join(botConfigDir(), "hooks");
-	const hookPath = join(hooksDir, "prepare-commit-msg");
-	const coAuthor = `Co-authored-by: ${config.humanName} <${config.humanNoreply}>`;
-	const script = `#!/bin/sh
-# Installed by omp git-bot-identity — appends the human co-author trailer.
+	const coAuthor = coAuthorTrailer(config);
+	const trailer = `if [ -s "$COMMIT_MSG_FILE" ] && [ "$(tail -c 1 "$COMMIT_MSG_FILE" | wc -l)" -eq 0 ]; then
+  printf '\\n' >> "$COMMIT_MSG_FILE"
+fi
+printf '\\n%s\\n' "${coAuthor}" >> "$COMMIT_MSG_FILE"
+exit 0
+`;
+	const prepare = `#!/bin/sh
+# Installed by omp git-bot-identity: appends the human co-author trailer.
 COMMIT_MSG_FILE="$1"
 COMMIT_SOURCE="$2"
-# Skip squash merges and amend/reword (source=commit) where a trailer would
-# clutter rebased history: only fresh commits (message == HEADS_UP or standard
-# -m/-F/template paths) get the trailer.
+# Skip merge/squash and commit-source cases where a trailer would clutter
+# rebased history: only fresh commits (standard -m/-F/template paths) get the
+# trailer.
 case "$COMMIT_SOURCE" in
   merge|squash|commit) exit 0 ;;
 esac
 if grep -qi "^Co-authored-by:" "$COMMIT_MSG_FILE"; then exit 0; fi
-printf '%s\\n' "${coAuthor}" >> "$COMMIT_MSG_FILE"
-exit 0
-`;
+${trailer}`;
+	const commitMsg = `#!/bin/sh
+# Installed by omp git-bot-identity: appends the human co-author trailer.
+COMMIT_MSG_FILE="$1"
+# Only the native path runs this hook without prepare-commit-msg. CLI commits
+# are handled by prepare-commit-msg and its source rules.
+if [ "\${GIT_BOT_NATIVE:-}" != "1" ]; then exit 0; fi
+if grep -qi "^Co-authored-by:" "$COMMIT_MSG_FILE"; then exit 0; fi
+${trailer}`;
 	mkdirSync(hooksDir, { recursive: true, mode: 0o700 });
-	writeFileSync(hookPath, script, { mode: 0o755 });
+	writeFileSync(join(hooksDir, "prepare-commit-msg"), prepare, { mode: 0o755 });
+	writeFileSync(join(hooksDir, "commit-msg"), commitMsg, { mode: 0o755 });
 }

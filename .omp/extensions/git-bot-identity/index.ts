@@ -65,15 +65,24 @@
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import type { ExtensionAPI } from "@oh-my-pi/pi-coding-agent";
-import { createBotConfigCache, sameConfigStamp, spawnCollect, CONFIG_DIR, type ConfigStamp, type SpawnFn } from "./lib/config";
+import {
+	createBotConfigCache,
+	sameConfigStamp,
+	spawnCollect,
+	CONFIG_DIR,
+	type BotConfigSnapshot,
+	type ConfigStamp,
+	type SpawnFn,
+} from "./lib/config";
 import { ensureBotKey, importBotKey } from "./lib/gpg";
-import { buildBotEnv, installCoauthorHook, type BotEnvConfig } from "./lib/env";
+import { buildBotCommitEnv, buildBotEnv, installCoauthorHook, type BotEnvConfig } from "./lib/env";
 import { neutralBaseEnv, writeDenyConfig } from "./lib/neutralize";
 import { installShim, installShimCleanup, isShimPathEntry, shimDirFor, sweepStaleShimState } from "./lib/shim";
 import { getGrantServer, type GrantDecision, type GrantResolver } from "./lib/grant-server";
 import { blockGuidance } from "./lib/guidance";
 import { installSetup } from "./lib/setup";
 import { installCommitAsMe } from "./lib/commit-as-me";
+import { installNativeCommitEnv, type NativeCommitGrant } from "./lib/native-commit";
 
 interface CreateOptions {
 	/** Credentials directory override (tests); defaults to ~/.config/git-bot-identity. */
@@ -118,6 +127,8 @@ interface BotIdentityBind {
 	/** In-process bot write-class env resolver — the grant server's own resolver,
 	 * reused by `commit_as_me` when the human picks the bot at the dialog. */
 	resolveBotWriteEnv: () => Promise<GrantDecision>;
+	/** Env for omp's in-process commit path, which never runs `git`. */
+	resolveBotCommitEnv: () => Promise<NativeCommitGrant>;
 }
 
 /**
@@ -209,7 +220,10 @@ export async function createDefault(options: CreateOptions = {}): Promise<BotIde
 	 * list-secret-keys.
 	 */
 	let signingCache: { stamp: ConfigStamp; keyId: string } | null = null;
-	const resolver: GrantResolver = async mode => {
+
+	type WriteConfigResult = { ok: true; envConfig: BotEnvConfig } | { ok: false; reason: string };
+
+	const resolveCommon = async () => {
 		const snapshot = await configCache.refresh();
 		const config = snapshot.config;
 		const identity = snapshot.identity;
@@ -223,7 +237,7 @@ export async function createDefault(options: CreateOptions = {}): Promise<BotIde
 					: snapshot.identityWarning !== null
 						? `human co-author identity unresolved: ${snapshot.identityWarning}`
 						: "bot credentials absent";
-			return { ok: false, reason: blockGuidance(cause) };
+			return { ok: false as const, reason: blockGuidance(cause) };
 		}
 		const base: BotEnvConfig = {
 			name: config.name,
@@ -232,11 +246,17 @@ export async function createDefault(options: CreateOptions = {}): Promise<BotIde
 			humanName: identity.name,
 			humanNoreply: identity.email,
 		};
-		if (mode === "read") {
-			return { ok: true, env: { ...buildBotEnv(base), PATH: realPath } };
-		}
-		// Write class: full bot credentials + signing for this call. The human
-		// keyring is never consulted.
+		return { ok: true as const, snapshot, base };
+	};
+
+	// Write class: full bot credentials + signing for this call. The human
+	// keyring is never consulted.
+	const resolveWriteConfig = async (
+		snapshot: BotConfigSnapshot,
+		base: BotEnvConfig,
+	): Promise<WriteConfigResult> => {
+		const config = snapshot.config;
+		if (config === null) return { ok: false, reason: blockGuidance("bot credentials absent") };
 		const stamp = snapshot.stamp;
 		let signingKey =
 			stamp !== null && signingCache !== null && sameConfigStamp(signingCache.stamp, stamp)
@@ -261,9 +281,37 @@ export async function createDefault(options: CreateOptions = {}): Promise<BotIde
 			}
 			if (stamp !== null) signingCache = { stamp, keyId: signingKey };
 		}
-		const envConfig: BotEnvConfig = { ...base, signingKey };
-		installCoauthorHook(envConfig);
-		return { ok: true, env: { ...buildBotEnv(envConfig), PATH: realPath } };
+		return { ok: true, envConfig: { ...base, signingKey } };
+	};
+
+	const resolver: GrantResolver = async mode => {
+		const common = await resolveCommon();
+		if (!common.ok) return common;
+		if (mode === "read") {
+			return { ok: true, env: { ...buildBotEnv(common.base), PATH: realPath } };
+		}
+		const write = await resolveWriteConfig(common.snapshot, common.base);
+		if (!write.ok) return write;
+		installCoauthorHook(write.envConfig);
+		return { ok: true, env: { ...buildBotEnv(write.envConfig), PATH: realPath } };
+	};
+
+	// The native `/commit` path never runs `git`, so it needs the identity and
+	// signing key directly in the process environment.
+	const resolveBotCommitEnv = async (): Promise<NativeCommitGrant> => {
+		const common = await resolveCommon();
+		if (!common.ok) return common;
+		const write = await resolveWriteConfig(common.snapshot, common.base);
+		if (!write.ok) return write;
+		try {
+			installCoauthorHook(write.envConfig);
+		} catch (err) {
+			// Identity and signing still work without the trailer hook.
+			console.warn(
+				`[git-bot-identity] co-author hook not installed: ${err instanceof Error ? err.message : String(err)}`,
+			);
+		}
+		return { ok: true, env: buildBotCommitEnv(write.envConfig) };
 	};
 
 	// One server per process per creds dir, shared across binds. This bind's
@@ -294,11 +342,13 @@ export async function createDefault(options: CreateOptions = {}): Promise<BotIde
 			return snapshot.config === null ? null : { name: snapshot.config.name, email: snapshot.config.email };
 		},
 		resolveBotWriteEnv: async () => resolver("write"),
+		resolveBotCommitEnv,
 	};
 }
 
 export default async function (pi: ExtensionAPI) {
-	const { neutralEnv, pristineSpawn, pristineEnv, getBot, resolveBotWriteEnv } = await createDefault();
+	const { neutralEnv, pristineSpawn, pristineEnv, getBot, resolveBotWriteEnv, resolveBotCommitEnv } =
+		await createDefault();
 	// Register the interactive setup wizard + on-launch prompt BEFORE the env is
 	// neutralized: the wizard must run through the pristine (`pristineSpawn`)
 	// spawn captured above so its gh/gpg subprocesses are never self-blocked.
@@ -307,6 +357,9 @@ export default async function (pi: ExtensionAPI) {
 	// (real PATH, human config/signing), so it is unaffected by the neutral
 	// overlay installed below.
 	installCommitAsMe(pi, { getBot, humanEnv: pristineEnv, resolveBotWriteEnv });
+	// The native `/commit` path creates commits in-process and never sees the
+	// shim; this writes the bot env where gitoxide reads it.
+	await installNativeCommitEnv(pi, resolveBotCommitEnv);
 	// Strip by default: neutralize the omp process env so every child born after
 	// this — the bash subprocess, the persistent eval kernel, subagent shells —
 	// inherits stripped credentials. The shim re-requests creds from the grant

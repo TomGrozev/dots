@@ -122,6 +122,7 @@ The extension employs a block-by-default credential model. Security is derived f
   - Prefixing `PATH` with a directory containing guidance shims for `git` and `gh`.
   - **Inheritance Filtering**: An `omp` process started from an agent shell does not inherit the neutral overlay as its pristine environment. To prevent loops (where a shim's `REALBIN` points to itself), all shim directories—including the per-process `shim-<pid>` and the legacy shared `shim`—are filtered out of the pristine `PATH` snapshot. Overlay keys are also dropped if they match the neutralization values.
 - **Dynamic Re-grant**: Credentials from `config.json` are re-granted via a per-process unix socket server (`<credsDir>/grant-<pid>.sock`, 0600) whose path is exposed via `GBI_GRANT_SOCK`. To avoid path collisions, each process installs its wrappers in a private directory: `<credsDir>/shim-<pid>/`. On process exit, `SIGINT`, or `SIGTERM`, the process removes this directory and its associated socket. At startup, the extension sweeps the credentials directory to remove state left by dead PIDs; the legacy shared `shim/` directory is removed only after no other live process holds an active grant socket.
+- **Native commit path**: `/commit` and the eval `commit` namespace build commits in-process with gitoxide, so they never run `git` and the shim cannot see them. At load, and again before each turn, the extension writes the bot identity, signing config, bot hooks path, and no-PAT git config into the real process environment where gitoxide reads it. If the bot is unconfigured, an invalid author name makes that path fail closed instead of falling back to the human identity. Native commits run `commit-msg` but not `prepare-commit-msg`, so the bot installs both hooks.
 
 
 ### Command classification
@@ -156,7 +157,7 @@ Bot commits are signed with a bot-owned GPG key located in `~/.config/git-bot-id
 
 The extension provides two ways to land a commit, chosen by ticket mode:
 - **`hitl` / `ready-for-human` tickets and ad-hoc work** — the human is the author and committer, signing with their own GPG key (e.g. a YubiKey requiring PIN + touch), and the bot becomes the `Co-authored-by` trailer. The agent stages files and writes the conventional-commit message, then calls the **`commit_as_me`** tool — where the human can instead pick **Commit as the bot** to land it through the normal bot path. Staging with `git add` is a local operation and does not require bot credentials.
-- **`afk` / `ready-for-agent` tickets** — the agent commits normally. Its `git` invocation goes through the guidance shim, which grants the bot credentials: the bot is the author and committer, signs with the bot's passphrase-less GPG key, and the human is recorded as a `Co-authored-by` trailer (injected by the bot-scoped `prepare-commit-msg` hook).
+- **`afk` / `ready-for-agent` tickets** — the agent commits normally. Its `git` invocation goes through the guidance shim, which grants the bot credentials: the bot is the author and committer, signs with the bot's passphrase-less GPG key, and the human is recorded as a `Co-authored-by` trailer (injected by the bot-scoped `prepare-commit-msg` hook, or `commit-msg` on the native `/commit` path).
 
 ### `commit_as_me`
 
@@ -173,7 +174,7 @@ The flow:
 
 1. Verifies something is staged (`git diff --cached`); errors if not.
 2. On a **human** choice, builds the final message (the with-trailer choice appends the bot trailer unless already present; the without-trailer choice strips it) and runs the **real** `git` (never the shim) with the human's pristine pre-neutralization environment: real `PATH`, the human's own git config and signing. It forces a signature with `-S`, so `commit.gpgsign=false` in **any** config scope (including a repo-local false) can never leave a commit-as-me commit unsigned; only an explicit command-line `--no-gpg-sign` would countermand it, and none is passed. The signing key and pinentry come from the human's own config/keyring, and it inherits stdin so a smart-card PIN/touch prompt keeps its terminal. With no usable signing key the commit fails closed (no unsigned fallback).
-3. On **Commit as the bot**, commits the same staged changes through the extension's normal bot write path: bot author and committer, the bot's own GPG key, and the human as `Co-authored-by` (added by the bot `prepare-commit-msg` hook). The bot self-trailer is stripped from the message first. The write-class env is resolved **in process** by the grant server's own resolver, never via the shim; if resolution fails (no/invalid config) the commit fails closed with the reason. The bot identity shown in the dialog is read from the live config on demand, so a config edited after the session started is reflected without a rebind.
+3. On **Commit as the bot**, commits the same staged changes through the extension's normal bot write path: bot author and committer, the bot's own GPG key, and the human as `Co-authored-by` (added by the bot commit hook). The bot self-trailer is stripped from the message first. The write-class env is resolved **in process** by the grant server's own resolver, never via the shim; if resolution fails (no/invalid config) the commit fails closed with the reason. The bot identity shown in the dialog is read from the live config on demand, so a config edited after the session started is reflected without a rebind.
 4. Returns the new commit's short hash and subject, the identity that committed, and whether the bot trailer is present.
 
 Failures are returned as tool errors with **no commit**: nothing staged, no UI available (headless/subagent), the human declined, or the bot path could not resolve credentials. On decline the error carries the exact command to run manually, e.g. `git commit -F <file>`, where `<file>` holds the final message with the bot trailer (the same message the with-trailer choice would commit).
@@ -195,5 +196,6 @@ Failures are returned as tool errors with **no commit**: nothing staged, no UI a
 - `lib/shim.ts`: The `git`/`gh` shim scripts.
 - `lib/config.ts`: Credential and configuration discovery.
 - `lib/commit-as-me.ts`: The human-identity `commit_as_me` tool.
+- `lib/native-commit.ts`: Bot env for omp's in-process commit path.
 - `lib/gpg.ts`: GPG key management and signing.
 - `lib/setup.ts`: Interactive setup wizard and launch prompt.
