@@ -121,6 +121,7 @@ tools:
     web_search: allow
     browser: allow
     security_scan: allow
+    commit: allow
     commit_as_me: allow
     mcp__codebase_memory_mcp_delete_project: deny
     mcp__codebase_memory_mcp_index_repository: prompt
