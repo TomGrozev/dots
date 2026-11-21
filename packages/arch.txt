@@ -46,7 +46,6 @@ tesseract-data-eng
 zbar
 imagemagick
 qrencode
-bitwarden-cli
 hyprpolkitagent
 hyprpicker
 hyprpm

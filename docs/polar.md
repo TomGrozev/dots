@@ -350,7 +350,10 @@ The desktop packages this depends on are in `packages/arch.txt`. Recent
 additions: `noctalia` (the shell, which pulls in `adwaita-fonts` used by the
 splash theme), `plymouth`, `bluetui` and `dua-cli`, plus, for the screen
 toolkit and its helpers, `socat`, `python-pillow`, `tesseract` with
-`tesseract-data-eng`, `zbar`, `imagemagick`, `qrencode` and `bitwarden-cli`.
+`tesseract-data-eng`, `zbar`, `imagemagick` and `qrencode`. The Bitwarden
+plugin's `bw` comes from the AUR's `bitwarden-cli-bin` (`packages/aur.txt`),
+a standalone binary, because the repo `bitwarden-cli` conflicts with the
+system Node.
 The Hyprland plugins
 (hyprexpo, dynamic-cursors, Hypr-DarkWindow, hyprfocus, hyprglass) are not
 packages: install.sh builds them from source with `hyprpm` against the running

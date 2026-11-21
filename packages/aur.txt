@@ -8,3 +8,4 @@ sidra-bin
 coder-bin
 lens-bin
 claude-code
+bitwarden-cli-bin
