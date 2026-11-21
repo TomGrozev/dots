@@ -43,8 +43,10 @@ running_pid() {
 }
 
 set_recording() { # true|false
+  local badge_dir="${XDG_RUNTIME_DIR:-/tmp}/polar/state"
   hyprctl eval "Polar.set_state('recording', $1)" >/dev/null 2>&1 || true
-  ironbar var set polar_recording "$1" >/dev/null 2>&1 || true
+  mkdir -p "$badge_dir"
+  printf '%s\n' "$1" >"$badge_dir/recording"
 }
 
 require() {

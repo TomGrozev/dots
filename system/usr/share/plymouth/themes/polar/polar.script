@@ -1,0 +1,201 @@
+# Polar boot splash, drawn with Plymouth's script module.
+# Nord only: the background is nord0, the ring is frost, and the wordmark is
+# snow storm. The ring turns a fixed step per refresh instead of tracking boot
+# progress: progress on a desktop boot is noise, and the movement alone tells
+# the user the machine is alive.
+
+# nord0 and a slightly darker nord0 for the vertical wash.
+Window.SetBackgroundTopColor(0.180, 0.204, 0.251);
+Window.SetBackgroundBottomColor(0.153, 0.173, 0.212);
+
+screen_w = Window.GetWidth();
+screen_h = Window.GetHeight();
+# One scale for every element keeps the composition identical at 1080p and 4K.
+scale = Math.Max(0.7, Math.Min(screen_w / 1920.0, screen_h / 1080.0));
+if (scale > 2)
+  scale = 2;
+
+cx = screen_w / 2;
+cy = screen_h * 0.43;
+ring_radius = Math.Min(screen_w, screen_h) * 0.072;
+dot_size = Math.Int(10 * scale);
+
+dots_count = 24;
+angle = 0;
+dialog_mode = "normal";
+status_text = "";
+
+# --- ring ---------------------------------------------------------------
+
+dot_base = Image("dot.png");
+dot_image = dot_base.Scale(dot_size, dot_size);
+ring = [];
+for (i = 0; i < dots_count; i++)
+  {
+    ring[i].sprite = Sprite(dot_image);
+    ring[i].sprite.SetZ(20 - i);
+  }
+
+# --- wordmark -----------------------------------------------------------
+# The PNG keeps FiraCode's tracking and its frost full stop, so the asset is the
+# typography and the script only places it.
+
+wordmark_base = Image("wordmark.png");
+wordmark_w = Math.Int(168 * scale);
+wordmark_h = Math.Int(wordmark_base.GetHeight() * (wordmark_w * 1.0 / wordmark_base.GetWidth()));
+wordmark_image = wordmark_base.Scale(wordmark_w, wordmark_h);
+wordmark_sprite = Sprite(wordmark_image);
+wordmark_x = cx - wordmark_w / 2;
+wordmark_y = cy + ring_radius + 44 * scale;
+wordmark_sprite.SetPosition(wordmark_x, wordmark_y, 15);
+
+# --- password prompt ----------------------------------------------------
+# Shown only when plymouth asks for the LUKS passphrase. The prompt from
+# systemd names the device and is too long to fit at this size, so the fixed
+# line below says the same thing in fewer words; the bullets are the count
+# plymouth reports, which is all a masked entry needs to show.
+
+prompt_y = cy + ring_radius + 52 * scale;
+prompt_image = Image.Text("Disk passphrase", 0.847, 0.871, 0.914, 1, "Adwaita Sans 20");
+prompt_sprite = Sprite(prompt_image);
+prompt_sprite.SetPosition(cx - prompt_image.GetWidth() / 2, prompt_y, 30);
+prompt_sprite.SetOpacity(0);
+
+bullet_size = Math.Int(6 * scale);
+bullet_gap = Math.Int(14 * scale);
+bullet_y = prompt_y + 46 * scale;
+bullet_base = dot_base.Scale(bullet_size, bullet_size);
+max_bullets = 48;
+bullets = [];
+# Allocated once so the callbacks never touch a missing hash entry; plymouth
+# reports a bullet count on every keystroke and the extras just stay invisible.
+for (i = 0; i < max_bullets; i++)
+  {
+    bullets[i].sprite = Sprite(bullet_base);
+    bullets[i].sprite.SetZ(31);
+    bullets[i].sprite.SetOpacity(0);
+  }
+
+rule_base = Image("rule.png");
+rule_w = Math.Int(360 * scale);
+rule_h = Math.Int(2 * scale);
+rule_image = rule_base.Scale(rule_w, rule_h);
+rule_sprite = Sprite(rule_image);
+rule_sprite.SetPosition(cx - rule_w / 2, bullet_y + 34 * scale, 30);
+rule_sprite.SetOpacity(0);
+
+# --- status line --------------------------------------------------------
+
+status_sprite = Sprite();
+status_sprite.SetOpacity(0);
+
+# --- callbacks ----------------------------------------------------------
+
+fun show_wordmark (show)
+  {
+    if (show == 1)
+      wordmark_sprite.SetOpacity(1);
+    else
+      wordmark_sprite.SetOpacity(0);
+  }
+
+fun hide_bullets ()
+  {
+    for (i = 0; i < max_bullets; i++)
+      bullets[i].sprite.SetOpacity(0);
+  }
+
+fun display_normal_callback ()
+  {
+    global.dialog_mode = "normal";
+    prompt_sprite.SetOpacity(0);
+    rule_sprite.SetOpacity(0);
+    hide_bullets();
+    show_wordmark(1);
+    if (status_text != "")
+      status_sprite.SetOpacity(1);
+  }
+
+fun display_password_callback (prompt, count)
+  {
+    global.dialog_mode = "password";
+    show_wordmark(0);
+    status_sprite.SetOpacity(0);
+    prompt_sprite.SetOpacity(1);
+    rule_sprite.SetOpacity(1);
+
+    if (count > max_bullets)
+      count = max_bullets;
+
+    # Row centred on the screen: the first bullet sits half a gap left of centre
+    # minus half a bullet, and the last one mirrors it.
+    row_w = count * bullet_gap;
+    x0 = cx - row_w / 2 + bullet_gap / 2 - bullet_size / 2;
+
+    for (i = 0; i < max_bullets; i++)
+      {
+        if (i < count)
+          {
+            bullets[i].sprite.SetPosition(x0 + i * bullet_gap, bullet_y, 31);
+            bullets[i].sprite.SetOpacity(0.9);
+          }
+        else
+          bullets[i].sprite.SetOpacity(0);
+      }
+  }
+
+fun update_status_callback (text)
+  {
+    global.status_text = text;
+    if (text == "" || dialog_mode == "password")
+      status_sprite.SetOpacity(0);
+    else
+      {
+        status_image = Image.Text(text, 0.30, 0.34, 0.42, 1, "Adwaita Sans 14");
+        status_sprite.SetImage(status_image);
+        status_sprite.SetPosition(cx - status_image.GetWidth() / 2, screen_h * 0.90, 40);
+        status_sprite.SetOpacity(1);
+      }
+  }
+
+message_sprite = Sprite();
+message_sprite.SetOpacity(0);
+
+fun display_message_callback (text)
+  {
+    message_image = Image.Text(text, 0.557, 0.631, 0.749, 1, "Adwaita Sans 14");
+    message_sprite.SetImage(message_image);
+    message_sprite.SetPosition(cx - message_image.GetWidth() / 2, screen_h * 0.94, 40);
+    message_sprite.SetOpacity(1);
+  }
+
+fun hide_message_callback ()
+  {
+    message_sprite.SetOpacity(0);
+  }
+
+fun refresh_callback ()
+  {
+    global.angle += 0.0105;
+    if (angle > 6.2831853)
+      angle -= 6.2831853;
+
+    for (i = 0; i < dots_count; i++)
+      {
+        # The trail trails behind the head: each dot is 0.16 rad older than the
+        # one before it, so the gap in the ring stays at the head.
+        a = angle - i * 0.16;
+        x = cx + Math.Cos(a) * ring_radius - dot_size / 2;
+        y = cy + Math.Sin(a) * ring_radius - dot_size / 2;
+        ring[i].sprite.SetPosition(x, y, 20 - i);
+        fade = 1 - (i + 0.0) / dots_count;
+        ring[i].sprite.SetOpacity(0.10 + 0.90 * fade * fade);
+      }
+  }
+
+Plymouth.SetRefreshFunction(refresh_callback);
+Plymouth.SetDisplayNormalFunction(display_normal_callback);
+Plymouth.SetDisplayPasswordFunction(display_password_callback);
+Plymouth.SetUpdateStatusFunction(update_status_callback);
+Plymouth.SetDisplayMessageFunction(display_message_callback);
+Plymouth.SetHideMessageFunction(hide_message_callback);

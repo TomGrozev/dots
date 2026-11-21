@@ -1,0 +1,243 @@
+# Polar's Noctalia shell: one top bar, Nord palette, Polar badges.
+# This file is the repo base. The settings window writes runtime overrides to
+# ~/.local/state/noctalia/settings.toml, which loads last and wins.
+
+[shell]
+time_format = "{:%H:%M}"
+date_format = "%a %d %b"
+clipboard_enabled = true
+clipboard_history_max_entries = 100
+# Noctalia claims the selection when the copying app exits, which is what
+# wl-clip-persist used to do. Password managers are excluded by the shell.
+clipboard_keep_from_closed_apps = true
+clipboard_auto_paste = "auto"
+
+[theme]
+mode = "dark"
+source = "builtin"
+builtin = "Nord"
+
+# The Qt template writes ~/.config/qt6ct/colors/noctalia.conf. install.sh points
+# qt6ct at that colour scheme when the user has not chosen one already.
+[theme.templates]
+enable_builtin_templates = true
+builtin_ids = ["qt"]
+
+[wallpaper]
+enabled = true
+fill_mode = "crop"
+directory = "~/.local/share/polar/wallpapers"
+transition = ["fade", "wipe", "disc", "stripes", "zoom", "honeycomb", "vortex", "pixel", "diamond", "golden", "melt", "crt"]
+transition_duration = 900
+edge_smoothness = 0.3
+transition_on_startup = true
+sync_transitions = true
+
+[wallpaper.default]
+path = "~/.local/share/polar/wallpapers/signal-terrain.png"
+
+[wallpaper.automation]
+enabled = false
+interval_seconds = 1800
+order = "random"
+
+[notification]
+enable_daemon = true
+show_app_name = true
+show_actions = true
+keep_dismissed_in_history = true
+group_by_app = true
+layer = "overlay"
+background_opacity = 0.96
+border = true
+border_color = "primary"
+border_width = 1
+offset_x = 12
+offset_y = 8
+
+[osd]
+position = "top_center"
+hide_delay_ms = 1400
+background_opacity = 0.96
+border = true
+border_color = "primary"
+border_width = 1
+offset_y = 8
+
+[osd.kinds]
+volume = true
+volume_output = true
+volume_input = true
+wifi = true
+bluetooth = true
+power_profile = true
+caffeine = true
+nightlight = true
+dnd = true
+keyboard_layout = true
+privacy = true
+
+[audio]
+enable_sounds = true
+enable_volume_sounds = true
+enable_notification_sounds = true
+enable_screenshot_sounds = true
+sound_volume = 0.5
+sound_theme = "freedesktop"
+
+[lockscreen]
+enabled = true
+blurred_desktop = true
+transition = ["fade"]
+transition_duration = 700
+blur_intensity = 0.5
+tint_intensity = 0.3
+tint_color = "surface"
+
+# Blank at 5 min, lock at 10, and switch the panel off at 11 so the lock screen
+# has drawn before the output goes dark.
+[idle]
+behavior_order = ["screen-off", "lock", "screen-off-after-lock"]
+pre_action_fade_seconds = 0
+
+[idle.behavior.screen-off]
+timeout = 300
+action = "screen_off"
+enabled = true
+
+[idle.behavior.lock]
+timeout = 600
+action = "lock"
+enabled = true
+
+[idle.behavior.screen-off-after-lock]
+timeout = 660
+action = "screen_off"
+enabled = true
+
+[system.monitor]
+enabled = true
+cpu_poll_seconds = 2.0
+memory_poll_seconds = 2.0
+network_poll_seconds = 3.0
+
+[hooks]
+# Lock and unlock feedback through PipeWire, independent of the shell's own
+# UI sounds. Hyphenated paths are passed to pw-play as one argument.
+session_locked = ["pw-play /usr/share/sounds/freedesktop/stereo/service-logout.oga"]
+session_unlocked = ["pw-play /usr/share/sounds/freedesktop/stereo/service-login.oga"]
+
+# Bar plugins: the two catalog sources ship with Noctalia, and the Polar badges
+# plugin is read from this repo through a local path source.
+[plugins]
+enabled = [
+  "noctalia/bitwarden",
+  "noctalia/notes",
+  "noctalia/world_clock",
+  "salemsayed/codexbar-meter",
+  "polar/badges",
+]
+auto_update = "official"
+
+[[plugins.source]]
+name = "polar"
+kind = "path"
+location = "~/.config/noctalia/plugins"
+enabled = true
+
+[plugin_settings."salemsayed/codexbar-meter"]
+refreshIntervalSec = 60
+barProviderLimit = 2
+
+[bar.main]
+position = "top"
+layer = "top"
+thickness = 34
+background_opacity = 0.9
+compositor_blur = true
+border = "outline_variant"
+border_width = 1
+shadow = true
+radius = 17
+margin_ends = 140
+margin_edge = 8
+padding = 14
+widget_spacing = 8
+reserve_space = true
+auto_hide = false
+# margin_ends shrinks the bar to one floating pill centred under the top edge.
+capsule = false
+start = ["launcher", "workspaces"]
+center = ["clock", "media"]
+end = [
+  "badges",
+  "ai-usage",
+  "updates",
+  "cpu",
+  "ram",
+  "tray",
+  "network",
+  "bluetooth",
+  "volume",
+  "notifications",
+  "session",
+]
+
+[widget.workspaces]
+style = "regular"
+show_labels = true
+label_source = "id"
+hide_when_empty = false
+focused_color = "primary"
+occupied_color = "secondary"
+empty_color = "surface_container"
+urgent_color = "error"
+active_pill_size = 2.2
+inactive_pill_size = 1.0
+
+[widget.clock]
+format = "{:%H:%M}"
+tooltip_format = "%A, %B %d, %Y"
+
+[widget.media]
+hide_when_no_media = true
+max_length = 220
+
+[widget."ai-usage"]
+type = "salemsayed/codexbar-meter:bar"
+
+[widget.updates]
+type = "polar/badges:updates"
+
+[widget.badges]
+type = "polar/badges:badges"
+
+[widget.cpu]
+type = "sysmon"
+stat = "cpu_usage"
+visualization = "graph"
+show_value = false
+glyph = "cpu"
+
+[widget.ram]
+type = "sysmon"
+stat = "ram_used"
+visualization = "gauge"
+show_value = true
+glyph = "memory"
+
+[widget.tray]
+drawer = false
+
+[widget.network]
+show_label = false
+
+[widget.bluetooth]
+show_label = false
+
+[widget.volume]
+show_label = true
+hide_label_when_muted = false
+
+[widget.notifications]
+hide_when_no_unread = false

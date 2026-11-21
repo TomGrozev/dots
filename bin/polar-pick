@@ -64,7 +64,7 @@ fi
 printf '%s' "$colour" | wl-copy
 
 # The swatch lives in the runtime directory: it is scratch space, cleared at
-# logout, and mako reads the image when the notification is shown.
+# logout, and the notification daemon reads the image when the notification is shown.
 swatch=${XDG_RUNTIME_DIR:-/tmp}/polar-pick.svg
 png=${swatch%.svg}.png
 cat >"$swatch" <<SVG

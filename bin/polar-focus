@@ -1,11 +1,12 @@
 #!/usr/bin/env bash
 # Focus mode: one window, no bar, no notifications, no dimming.
-# HyprCore applies the visual side (Polar.set_state); the bar and mako are
-# toggled here because they are separate processes.
+# Hyprland applies the visual side (Polar.set_state); the bar and DND are
+# Noctalia surfaces, so they are driven through IPC.
 set -euo pipefail
 
 state_dir=${XDG_STATE_HOME:-$HOME/.local/state}/polar
-bar=polar
+badge_dir="${XDG_RUNTIME_DIR:-/tmp}/polar/state"
+dnd_before=$state_dir/dnd-before-focus
 
 usage() {
   cat <<'EOF'
@@ -14,27 +15,27 @@ Usage: polar-focus [--help]
 Toggle focus mode: gaps and border shrink to nothing, dimming stops, the bar
 hides and notifications are muted. Run it again to restore everything.
 
-State lives in the Hyprland config (Polar.set_state) and in
-$XDG_STATE_HOME/polar/; the ironbar variable polar_focus mirrors it.
+State lives in the Hyprland config (Polar.set_state), in
+$XDG_STATE_HOME/polar/ and in ${XDG_RUNTIME_DIR}/polar/state/focus, which the
+Noctalia badges plugin reads. The DND state saved on entry is restored on exit.
 EOF
 }
 
-state_get() { # ironvar name, state file name
-  local value
-  mkdir -p "$state_dir"
-  if value=$(ironbar var get "$1" 2>/dev/null) && { [ "$value" = true ] || [ "$value" = false ]; }; then
-    printf '%s\n' "$value"
-  elif [ -r "$state_dir/$2" ]; then
-    cat "$state_dir/$2"
-  else
-    printf 'false\n'
-  fi
+state_get() {
+  local value=false
+  [ -r "$state_dir/focus" ] && value=$(cat "$state_dir/focus")
+  printf '%s\n' "$value"
 }
 
-state_set() { # ironvar name, state file name, value
-  mkdir -p "$state_dir"
-  ironbar var set "$1" "$3" >/dev/null 2>&1 || true
-  printf '%s\n' "$3" >"$state_dir/$2"
+state_set() { # true|false
+  mkdir -p "$state_dir" "$badge_dir"
+  printf '%s\n' "$1" >"$state_dir/focus"
+  printf '%s\n' "$1" >"$badge_dir/focus"
+}
+
+noctalia_msg() {
+  command -v noctalia >/dev/null 2>&1 || return 0
+  noctalia msg "$@" >/dev/null 2>&1 || true
 }
 
 case "${1:-}" in
@@ -50,7 +51,7 @@ case "${1:-}" in
   ;;
 esac
 
-if [ "$(state_get polar_focus focus)" = true ]; then
+if [ "$(state_get)" = true ]; then
   next=false
 else
   next=true
@@ -59,16 +60,23 @@ fi
 hyprctl eval "Polar.set_state('focus', $next)" >/dev/null 2>&1 || true
 
 if [ "$next" = true ]; then
-  ironbar bar "$bar" set-visible false >/dev/null 2>&1 || true
-  if command -v makoctl >/dev/null 2>&1; then
-    makoctl mode -s do-not-disturb >/dev/null 2>&1 || true
+  mkdir -p "$state_dir"
+  # Remember the user's own DND choice, so leaving focus mode does not clear
+  # a setting they made before entering it.
+  if command -v noctalia >/dev/null 2>&1; then
+    noctalia msg notification-dnd-status >"$dnd_before" 2>/dev/null || true
   fi
+  noctalia_msg bar-hide
+  noctalia_msg notification-dnd-set on
 else
-  ironbar bar "$bar" set-visible true >/dev/null 2>&1 || true
-  # Do not clear DND if the user asked for it on its own (polar-dnd).
-  if [ "$(state_get polar_dnd dnd)" != true ] && command -v makoctl >/dev/null 2>&1; then
-    makoctl mode -r do-not-disturb >/dev/null 2>&1 || true
+  noctalia_msg bar-show
+  if [ -r "$dnd_before" ]; then
+    case $(cat "$dnd_before") in
+    on) noctalia_msg notification-dnd-set on ;;
+    off) noctalia_msg notification-dnd-set off ;;
+    esac
+    rm -f "$dnd_before"
   fi
 fi
 
-state_set polar_focus focus "$next"
+state_set "$next"

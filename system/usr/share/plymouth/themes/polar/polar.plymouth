@@ -1,0 +1,12 @@
+[Plymouth Theme]
+Name=Polar
+Description=Nord boot splash. A slow ring of frost dots and a quiet wordmark.
+ModuleName=script
+
+[script]
+ImageDir=/usr/share/plymouth/themes/polar
+ScriptFile=/usr/share/plymouth/themes/polar/polar.script
+Font=Adwaita Sans 16
+MonospaceFont=Adwaita Mono 12
+ConsoleLogBackgroundColor=0xff2e3440
+ConsoleLogTextColor=0xffd8dee9

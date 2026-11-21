@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# polar-wall — Nord wallpapers for the awww daemon.
+# polar-wall: Nord wallpapers through Noctalia's wallpaper engine.
 # Wallpapers ship as SVGs and are rendered into the library at the monitor's
 # pixel size, so every screen gets a native-resolution Nord image.
 set -euo pipefail
@@ -16,7 +16,7 @@ die() {
 
 usage() {
   cat <<'EOF'
-polar-wall — Nord wallpapers for awww
+polar-wall: Nord wallpapers through Noctalia
 
 Usage:
   polar-wall next
@@ -26,17 +26,17 @@ Usage:
 
 Commands:
   next             Render any new bundled wallpaper, then cycle to the next
-                   one (fade, 0.8s).
-  set <image>      Show an image (grow, 0.8s) and remember it.
+                   one with Noctalia's transition pool.
+  set <image>      Show an image and remember it.
   nordify <image>  Recolour an image with the Nord palette, keep it in
                    ~/.local/share/polar/wallpapers, and show it.
   restore          Render any new bundled wallpaper, then re-apply the last
-                   wallpaper; cycles if none is known.
+                   one; cycles if none is known.
 
 Bundled wallpapers are the SVGs in ${XDG_CONFIG_HOME:-~/.config}/polar/wallpapers;
 they are rendered with resvg at the focused monitor's resolution into
-${XDG_DATA_HOME:-~/.local/share}/polar/wallpapers.
-The last applied image is remembered in ${XDG_STATE_HOME:-~/.local/state}/polar/wallpaper.
+${XDG_DATA_HOME:-~/.local/share}/polar/wallpapers, which is the wallpaper
+directory Noctalia reads.
 EOF
 }
 
@@ -44,15 +44,18 @@ notify() {
   command -v notify-send >/dev/null 2>&1 && notify-send -a Polar -i image-x-generic "$1" "${2:-}" || true
 }
 
-# awww's transitions: grow for an explicit pick, fade for cycling/restore.
+noctalia_msg() {
+  noctalia msg "$@"
+}
+
+# Noctalia owns the persisted wallpaper, so the state file only lets restore
+# pick the image the user saw last.
 show() {
-  local img="$1" type="$2" attempt=0
+  local img="$1"
   [[ -f $img ]] || die "no such image: $img"
-  # Autostart starts awww-daemon and `polar-wall restore` at the same time, so the
-  # first frames can arrive before the daemon's socket exists. Retry for ~10s.
-  until awww img --transition-type "$type" --transition-duration 0.8 --transition-fps 60 \
-    --resize crop "$img" 2>/dev/null; do
-    ((++attempt < 40)) || die "awww failed (is awww-daemon running?)"
+  local attempt=0
+  until noctalia_msg wallpaper-set "$img" >/dev/null 2>&1; do
+    ((++attempt < 40)) || die "noctalia is not answering (is the shell running?)"
     sleep 0.25
   done
   mkdir -p "$STATE_DIR"
@@ -73,7 +76,7 @@ nordify() {
     lutgen apply --palette nord --preserve -o "$out" "$src" ||
       die "lutgen failed on $src"
   fi
-  show "$out" grow
+  show "$out"
   notify "Wallpaper nordified" "$(basename "$out")"
 }
 
@@ -136,14 +139,16 @@ next() {
     \( -iname '*.png' -o -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.webp' \) | sort)
   ((${#walls[@]})) || die "no wallpapers in $WALL_DIR"
 
+  # Noctalia persists its own order. Track the file chosen here so a custom
+  # image in the library participates in the cycle.
   current="$(cat "$STATE_FILE" 2>/dev/null || true)"
   for i in "${!walls[@]}"; do
     if [[ ${walls[$i]} == "$current" ]]; then
-      show "${walls[$(((i + 1) % ${#walls[@]}))]}" fade
+      show "${walls[$(((i + 1) % ${#walls[@]}))]}"
       return
     fi
   done
-  show "${walls[0]}" fade
+  show "${walls[0]}"
 }
 
 restore() {
@@ -151,7 +156,7 @@ restore() {
   sync_walls
   last="$(cat "$STATE_FILE" 2>/dev/null || true)"
   if [[ -n $last && -f $last ]]; then
-    show "$last" fade
+    show "$last"
   else
     next
   fi
@@ -166,7 +171,7 @@ next)
   ;;
 set)
   [[ $# -eq 2 ]] || die "usage: polar-wall set <image>"
-  show "$(realpath -- "$2")" grow
+  show "$(realpath -- "$2")"
   ;;
 nordify)
   [[ $# -eq 2 ]] || die "usage: polar-wall nordify <image>"

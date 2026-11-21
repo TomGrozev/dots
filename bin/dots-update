@@ -5,7 +5,7 @@
 #
 # The count lives in ${XDG_CACHE_HOME:-$HOME/.cache}/dots/updates as one line:
 # an integer, or no file at all while the count is unknown. The zsh prompt and
-# the ironbar module read that file and never run a package tool, so this
+# the Noctalia bar's update badge read that file and never run a package tool, so this
 # script is its only writer.
 #
 # Runs on macOS's bash 3.2: no mapfile, no associative arrays, no ${x,,}.

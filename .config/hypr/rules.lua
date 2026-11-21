@@ -47,6 +47,16 @@ hl.window_rule({
     size  = "(monitor_w*0.3) (monitor_h*0.65)",
 })
 
+-- Hypr-DarkWindow inverts the focused window on demand with SUPER+Space i.
+-- An app that should always start inverted gets a rule here; the list stays
+-- empty because no class has been checked yet. Read the real class from
+-- `hyprctl clients` before adding one.
+-- hl.window_rule({
+--     name  = "polar-darkwindow",
+--     match = { class = "^SomeApp$" },
+--     ["darkwindow:shade"] = "invert",
+-- })
+
 -- Blur is off for normal windows (layers get it from the layer rules below);
 -- the global switch in look.lua must stay on for layer blur to work.
 hl.window_rule({
@@ -63,12 +73,12 @@ hl.window_rule({
     no_shadow = true,
 })
 
--- Ghostty is the glass: the terminal and its five drop-down TUIs are translucent
+-- Ghostty is the glass: the terminal and its seven drop-down TUIs are translucent
 -- (background-opacity 0.94 in ghostty-glass.conf) and rely on the compositor to
 -- blur behind them. This rule must stay after no-blur-windows, which it overrides.
 hl.window_rule({
     name    = "ghostty-glass",
-    match   = { class = "^(com\\.mitchellh\\.ghostty|polar\\.tui\\.(term|files|top|audio|git))$" },
+    match   = { class = "^(com\\.mitchellh\\.ghostty|polar\\.tui\\.(term|files|top|audio|git|bluetooth|dua))$" },
     no_blur = false,
 })
 
@@ -77,7 +87,7 @@ hl.window_rule({
 -- The size must be hwlang expressions: Hyprland 0.56 silently ignores `%` sizes
 -- and the window then falls back to the app's requested 800x600 default. It stays
 -- at 80% so btop gets well over its 80x24 cell minimum.
-for _, name in ipairs({ "term", "files", "top", "audio", "git" }) do
+for _, name in ipairs({ "term", "files", "top", "audio", "git", "bluetooth", "dua" }) do
     hl.window_rule({
         name      = "polar-tui-" .. name,
         match     = { class = "^polar\\.tui\\." .. name .. "$" },
@@ -88,6 +98,41 @@ for _, name in ipairs({ "term", "files", "top", "audio", "git" }) do
         animation = "popin 90%",
     })
 end
+
+-- Workspace 9 runs the scrolling layout as a trial next to the tiling
+-- workspaces. Polar's window rules still apply and SUPER+hjkl moves focus
+-- along the tape through the normal movefocus dispatcher. Two limits: with a
+-- fullscreen window, directional focus looks for another monitor instead of
+-- scrolling the tape (the layout's `focus` message is the way round it), and
+-- SUPER+CTRL+hjkl still resizes in pixels rather than column widths.
+hl.workspace_rule({
+    workspace   = "9",
+    layout      = "scrolling",
+    layout_opts = { direction = "right" },
+})
+
+-- Keep 1..10 alive so Noctalia's workspace widget always shows a stable row of
+-- ten targets.
+for i = 1, 10 do
+    hl.workspace_rule({ workspace = tostring(i), persistent = true })
+end
+
+-- hyprglass trial: only the drop-down TUIs and floating windows get glass.
+-- The plugin block in plugins.lua keeps hyprglass globally off and lets these
+-- tags opt in, so tiled windows keep Hyprland's cheap blur-free path. That
+-- block's manage_window_blur sets no_blur on tagged windows, so glass replaces
+-- Hyprland's blur on them instead of stacking a second blur on top.
+hl.window_rule({
+    name  = "polar-glass-tui",
+    match = { class = "^(com\\.mitchellh\\.ghostty|polar\\.tui\\.(term|files|top|audio|git|bluetooth|dua))$" },
+    tag   = "+hyprglass_enabled",
+})
+
+hl.window_rule({
+    name  = "polar-glass-float",
+    match = { float = true },
+    tag   = "+hyprglass_enabled",
+})
 
 -- Settings and dialogs should not be tiled.
 hl.window_rule({
@@ -127,49 +172,44 @@ hl.window_rule({
     center = true,
 })
 
--- Layer surfaces: the bar, launcher, notifications and the which-key popup are
--- translucent Nord surfaces, so they get the blur the windows opt out of.
+-- Layer surfaces: the bar, launcher, notifications, OSD and the which-key
+-- popup are translucent Nord surfaces, so they get the blur the windows opt
+-- out of.
 -- wlr-which-key 1.3.0 has no namespace option; it creates `wlr_which_key`.
 -- blur.xray is on globally, but these layers sit over real windows, so xray is
 -- turned back off per layer: they must blur what is actually behind them.
--- Motion is per layer, reusing the polar curves: the launcher pops from its
--- centre, notifications slide in from the right edge (mako is anchored there),
--- and the bar drops in from the top. The bar used to hold still as permanent
--- furniture; it now earns the same entrance as the other surfaces, and the
--- slide doubles as the return from focus mode, which hides the bar and shows
--- it again. A layer rule can only name the style: the curve and speed come
--- from layersIn/layersOut in motion.lua, which is the polarFade curve.
+-- Noctalia animates its own surfaces, so Hyprland's layer animations are off
+-- for every shell namespace. Without this, a panel reopened while closing tears
+-- as both animations run. Blur is per layer because windows opt out.
 hl.layer_rule({
-    name         = "polar-bar",
-    match        = { namespace = "^ironbar$" },
-    blur         = true,
-    ignore_alpha = 0.5,
-    xray         = false,
-    animation    = "slide top",
+    name  = "noctalia-no-anim",
+    match = { namespace = "^noctalia-(bar-.+|notification|dock|panel|attached-panel|osd|window-switcher)$" },
+    no_anim = true,
 })
 
 hl.layer_rule({
-    name         = "polar-launcher",
-    match        = { namespace = "^launcher$" },
-    blur         = true,
+    name         = "noctalia-blur",
+    match        = { namespace = "^noctalia-(bar-.+|notification|dock|panel|attached-panel|osd|window-switcher)$" },
     ignore_alpha = 0.5,
+    blur         = true,
+    blur_popups  = true,
     xray         = false,
-    animation    = "popin 90%",
 })
 
-hl.layer_rule({
-    name         = "polar-notifications",
-    match        = { namespace = "^notifications$" },
-    blur         = true,
-    ignore_alpha = 0.5,
-    xray         = false,
-    animation    = "slide right",
-})
-
+-- wlr-which-key 1.3.0 has no namespace option; it creates `wlr_which_key`.
 hl.layer_rule({
     name         = "polar-which-key",
     match        = { namespace = "^wlr_which_key$" },
     blur         = true,
     ignore_alpha = 0.5,
     xray         = false,
+})
+
+-- Noctalia's settings window is a utility panel, not a tile.
+hl.window_rule({
+    name  = "polar-noctalia-settings",
+    match = { class = "^dev\\.noctalia\\.Noctalia$" },
+    float = true,
+    center = true,
+    size  = "(monitor_w*0.5625) (monitor_h*0.85)",
 })

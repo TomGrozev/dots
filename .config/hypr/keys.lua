@@ -13,7 +13,7 @@ end
 
 local leader = {
     { key = "Return", group = "Apps", desc = "terminal", cmd = "ghostty" },
-    { key = "space", group = "Apps", desc = "launcher (fuzzel)", cmd = "fuzzel" },
+    { key = "space", group = "Apps", desc = "launcher", cmd = "noctalia msg panel-toggle launcher" },
     { key = "t", group = "Apps", desc = "drop-down terminal", cmd = lua_cmd('Polar.tui("term")') },
     { key = "f", group = "Apps", desc = "files (yazi)", cmd = lua_cmd('Polar.tui("files")') },
     { key = "F", group = "Apps", desc = "Files (Thunar)", cmd = "thunar" },
@@ -22,9 +22,12 @@ local leader = {
     { key = "a", group = "Apps", desc = "audio (wiremix)", cmd = lua_cmd('Polar.tui("audio")') },
     { key = "A", group = "Apps", desc = "Pavucontrol", cmd = "pavucontrol" },
     { key = "g", group = "Apps", desc = "lazygit", cmd = lua_cmd('Polar.tui("git")') },
+    { key = "u", group = "Apps", desc = "bluetooth (bluetui)", cmd = lua_cmd('Polar.tui("bluetooth")') },
+    { key = "d", group = "Apps", desc = "disk usage (dua)", cmd = lua_cmd('Polar.tui("dua")') },
     { key = "w", group = "Apps", desc = "Firefox", cmd = "firefox" },
     { key = "W", group = "Apps", desc = "Chromium", cmd = "chromium" },
-    { key = "c", group = "Apps", desc = "clipboard", cmd = "polar-clip" },
+    { key = "c", group = "Apps", desc = "clipboard", cmd = "noctalia msg panel-toggle clipboard" },
+    { key = "i", group = "Windows", desc = "invert window colours", cmd = lua_cmd("Polar.invert_window()") },
 
     { key = "s", group = "Screenshot", desc = "screenshot", submenu = {
         { key = "r", desc = "region", cmd = "polar-shot region" },
@@ -40,8 +43,8 @@ local leader = {
 
     { key = "n", group = "Notifications", desc = "notifications", submenu = {
         { key = "d", desc = "do-not-disturb", cmd = "polar-dnd" },
-        { key = "x", desc = "dismiss all", cmd = "makoctl dismiss --all" },
-        { key = "h", desc = "restore last", cmd = "makoctl restore" },
+        { key = "x", desc = "dismiss all", cmd = "noctalia msg notification-clear-active" },
+        { key = "h", desc = "restore last", cmd = "noctalia msg notification-invoke-latest" },
     } },
 
     { key = "z", group = "Modes", desc = "focus mode", cmd = "polar-focus" },
@@ -54,7 +57,7 @@ local leader = {
         { key = "r", desc = "resize windows", cmd = lua_cmd('hl.dispatch(hl.dsp.submap("resize"))') },
     } },
 
-    { key = "p", group = "System", desc = "power", cmd = "polar-power" },
+    { key = "p", group = "System", desc = "power", cmd = "noctalia msg panel-toggle session" },
     { key = "?", group = "Help", desc = "cheat sheet", cmd = "polar-cheatsheet" },
 
     { key = "h", group = "Help", desc = "help", submenu = {
@@ -145,7 +148,7 @@ end
 
 -- Apps
 add({ chord = "SUPER + Return", group = "Apps", desc = "Open terminal", action = hl.dsp.exec_cmd("ghostty"), cmd = "ghostty" })
-add({ chord = "SUPER + D", group = "Apps", desc = "Open launcher", action = hl.dsp.exec_cmd("fuzzel"), cmd = "fuzzel" })
+add({ chord = "SUPER + D", group = "Apps", desc = "Open launcher", action = hl.dsp.exec_cmd("noctalia msg panel-toggle launcher"), cmd = "noctalia msg panel-toggle launcher" })
 add({
     chord  = "SUPER + Space",
     group  = "Apps",
@@ -225,7 +228,7 @@ end
 -- System and help
 add({ chord = "SUPER + slash", group = "Help", desc = "Search cheat sheet", action = hl.dsp.exec_cmd("polar-cheatsheet"), cmd = "polar-cheatsheet" })
 add({ chord = "SUPER + Z", group = "Modes", desc = "Toggle focus mode", action = hl.dsp.exec_cmd("polar-focus"), cmd = "polar-focus" })
-add({ chord = "SUPER + Escape", group = "System", desc = "Lock screen", action = hl.dsp.exec_cmd("hyprlock"), cmd = "hyprlock" })
+add({ chord = "SUPER + Escape", group = "System", desc = "Lock screen", action = hl.dsp.exec_cmd("noctalia msg session lock"), cmd = "noctalia msg session lock" })
 add({ chord = "Print", group = "Screenshot", desc = "Screenshot region", action = hl.dsp.exec_cmd("polar-shot region"), cmd = "polar-shot region" })
 add({ chord = "SUPER + C", group = "System", desc = "Pick colour from screen", action = hl.dsp.exec_cmd("polar-pick"), cmd = "polar-pick" })
 
@@ -235,12 +238,12 @@ add({ chord = "SUPER + mouse_down", group = "Zoom", desc = "Zoom in", action = f
 add({ chord = "SUPER + mouse_up", group = "Zoom", desc = "Zoom out", action = function() Polar.zoom(-ZOOM_STEP) end, cmd = lua_cmd("Polar.zoom(-" .. ZOOM_STEP .. ")") })
 add({ chord = "SUPER + SHIFT + Z", group = "Zoom", desc = "Reset zoom", action = Polar.zoom_reset, cmd = lua_cmd("Polar.zoom_reset()") })
 
--- Media keys. polar-volume drives wpctl, which follows the default sink/source,
--- so it also works when PipeWire moves the default device.
-add({ chord = "XF86AudioRaiseVolume", group = "Media", desc = "Volume up", action = hl.dsp.exec_cmd("polar-volume up"), cmd = "polar-volume up", opts = { locked = true, repeating = true } })
-add({ chord = "XF86AudioLowerVolume", group = "Media", desc = "Volume down", action = hl.dsp.exec_cmd("polar-volume down"), cmd = "polar-volume down", opts = { locked = true, repeating = true } })
-add({ chord = "XF86AudioMute", group = "Media", desc = "Mute output", action = hl.dsp.exec_cmd("polar-volume mute"), cmd = "polar-volume mute", opts = { locked = true, repeating = true } })
-add({ chord = "XF86AudioMicMute", group = "Media", desc = "Mute microphone", action = hl.dsp.exec_cmd("polar-volume mic-mute"), cmd = "polar-volume mic-mute", opts = { locked = true, repeating = true } })
+-- Media keys. Noctalia changes the default sink/source and shows its own OSD,
+-- which stays out of the way on the lock screen while the action still runs.
+add({ chord = "XF86AudioRaiseVolume", group = "Media", desc = "Volume up", action = hl.dsp.exec_cmd("noctalia msg volume-up"), cmd = "noctalia msg volume-up", opts = { locked = true, repeating = true } })
+add({ chord = "XF86AudioLowerVolume", group = "Media", desc = "Volume down", action = hl.dsp.exec_cmd("noctalia msg volume-down"), cmd = "noctalia msg volume-down", opts = { locked = true, repeating = true } })
+add({ chord = "XF86AudioMute", group = "Media", desc = "Mute output", action = hl.dsp.exec_cmd("noctalia msg volume-mute"), cmd = "noctalia msg volume-mute", opts = { locked = true, repeating = true } })
+add({ chord = "XF86AudioMicMute", group = "Media", desc = "Mute microphone", action = hl.dsp.exec_cmd("noctalia msg mic-mute"), cmd = "noctalia msg mic-mute", opts = { locked = true, repeating = true } })
 
 -- Transport keys. polar-media picks Sidra first, then any playing MPRIS player,
 -- so one set of keys keeps working when another player takes over. locked lets

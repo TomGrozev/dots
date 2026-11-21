@@ -1,0 +1,19 @@
+# Polar state badges and the pending-update count. The writers are the polar-*
+# scripts and state.lua's submap hook, so the bar never polls Hyprland itself.
+id = "polar/badges"
+name = "Polar badges"
+version = "1.0.0"
+plugin_api = 3
+author = "polar"
+license = "MIT"
+icon = "flag"
+description = "REC, FOCUS and keyboard-mode badges plus the pending package update count."
+tags = ["bar", "desktop"]
+
+[[widget]]
+id = "badges"
+entry = "badges.luau"
+
+[[widget]]
+id = "updates"
+entry = "updates.luau"

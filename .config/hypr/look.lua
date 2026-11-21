@@ -1,5 +1,5 @@
 -- Visual identity: Nord, 8px corners, tight gaps, 2px borders.
--- Colours are the Nord palette used consistently by the bar, mako and fuzzel.
+-- Colours are the Nord palette used consistently by the shell and fuzzel.
 hl.config({
     general = {
         gaps_in     = 4,

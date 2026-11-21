@@ -330,7 +330,7 @@ if [ "$AGENT_POD" != "true" ]; then
     [ "$AGENT_POD" != "true" ] &&
     [ -n "${DISPLAY:-}${WAYLAND_DISPLAY:-}" ]; then
     polar_desktop=true
-    config_dirs+=(hypr ironbar mako fuzzel polar)
+    config_dirs+=(hypr noctalia fuzzel polar)
   else
     polar_desktop=false
   fi
@@ -353,6 +353,32 @@ if [ "$AGENT_POD" != "true" ]; then
       [ -e "$script" ] || continue
       link_entry "$script" "$LOCAL_BIN/$(basename "$script")" "~/.local/bin/$(basename "$script")"
     done
+
+    # Noctalia generates its Qt palette from the Nord theme in config.toml.
+    # qt6ct is what actually applies it to Qt apps, so point qt6ct at the
+    # generated colours unless the user already picked a scheme.
+    if command -v noctalia >/dev/null 2>&1; then
+      qt6ct_conf="$HOME/.config/qt6ct/qt6ct.conf"
+      if [ ! -f "$qt6ct_conf" ]; then
+        mkdir -p "$HOME/.config/qt6ct"
+        cat >"$qt6ct_conf" <<QT6CT
+[Appearance]
+color_scheme_path=$HOME/.config/qt6ct/colors/noctalia.conf
+custom_palette=true
+QT6CT
+      fi
+
+      # Catalog plugins are installed from Noctalia's own sources. The local
+      # Polar plugin is enabled by the repo config and needs no download.
+      echo ""
+      echo "Enabling Noctalia plugins..."
+      for plugin in noctalia/bitwarden noctalia/notes noctalia/world_clock salemsayed/codexbar-meter; do
+        noctalia msg plugins enable "$plugin" >/dev/null 2>&1 ||
+          echo "  WARNING: could not enable ${plugin}; run inside the session: noctalia msg plugins enable ${plugin}"
+      done
+    else
+      echo "  Skipping Noctalia setup (package not installed yet)"
+    fi
 
     # Without this drop-in, a zellij session open in Ghostty stalls every
     # shutdown for 90 s; sighup.conf explains why.
@@ -406,10 +432,17 @@ WRAPPER
           # added repository and loads the enabled plugins.
           hyprpm update ||
             echo "  WARNING: a plugin failed to rebuild for this Hyprland version"
-          # repo url : hyprpm plugin name
+          # repo url | hyprpm plugin name | hyprpm repository name
+          # hyprpm names a repository once and lists every plugin inside it, so
+          # the third field is what `remove` needs for a retry. A repository
+          # with one plugin repeats its name. The URL keeps its own colons, so
+          # the fields are separated by a pipe.
           plugin_repos=(
-            "https://github.com/sandwichfarm/hyprexpo:hyprexpo"
-            "https://github.com/VirtCode/hypr-dynamic-cursors:dynamic-cursors"
+            "https://github.com/sandwichfarm/hyprexpo|hyprexpo|hyprexpo"
+            "https://github.com/VirtCode/hypr-dynamic-cursors|dynamic-cursors|dynamic-cursors"
+            "https://github.com/micha4w/Hypr-DarkWindow|Hypr-DarkWindow|Hypr-DarkWindow"
+            "https://github.com/hyprwm/hyprland-plugins|hyprfocus|hyprland-plugins"
+            "https://github.com/hyprnux/hyprglass|hyprglass|HyprGlass"
           )
           # hyprpm has no query for one plugin's state, so the helpers read its
           # `hyprpm list` entry. The line after the plugin name reads
@@ -425,17 +458,24 @@ WRAPPER
           hyprland_version="${hyprland_version:-this Hyprland version}"
 
           for entry in "${plugin_repos[@]}"; do
-            repo="${entry%:*}"
-            plugin="${entry##*:}"
+            repo="${entry%%|*}"
+            rest="${entry#*|}"
+            plugin="${rest%%|*}"
+            repo_name="${rest#*|}"
+            # An entry without the third field keeps the old single-plugin
+            # behaviour, where the repository and plugin share a name.
+            if [[ $repo_name == "$rest" ]]; then
+              repo_name="$plugin"
+            fi
             # `add` stores the repository hash even when the build fails, and
             # `update` skips a repository whose hash still matches. A plugin
             # that failed once would therefore never be rebuilt, even after
             # upstream supports this Hyprland. Removing it makes the `add`
-            # below a real retry. `remove` takes the repository name, which
-            # matches the plugin name in both entries above.
+            # below a real retry. `remove` takes the repository name, not the
+            # plugin name: hyprland-plugins holds several plugins.
             if plugin_failed "$plugin"; then
               echo "  Retrying ${plugin}: its last build failed"
-              hyprpm remove "$plugin" <<<y >/dev/null 2>&1 || true
+              hyprpm remove "$repo_name" <<<y >/dev/null 2>&1 || true
             fi
             if ! plugin_listed "$plugin"; then
               # `add` asks "Are you sure? [Y/n]" before it clones a repository.
@@ -498,6 +538,68 @@ WRAPPER
       sudo systemctl enable --now polar-console-palette.service
       echo "  Applied the Nord console palette"
     fi
+
+    # --- Nord Plymouth boot splash ---
+    # The splash is baked into the signed UKI: the theme, the plymouth hook and
+    # the cmdline drop-ins are read at mkinitcpio time, and a fresh UKI carries
+    # no sbctl signature. Rebuild and re-sign run together, and a failed
+    # verification aborts the install before the next boot instead of leaving a
+    # UKI that Secure Boot refuses.
+    if ! command -v plymouth-set-default-theme >/dev/null 2>&1; then
+      echo "  Skipping the Polar boot splash (plymouth not installed)"
+    elif ! command -v sbctl >/dev/null 2>&1; then
+      echo "  Skipping the Polar boot splash (sbctl not installed, the UKI could not be re-signed)"
+    else
+      echo ""
+      echo "Installing the Polar boot splash..."
+      splash_src="$DOTFILES_DIR/system/usr/share/plymouth/themes/polar"
+      sudo install -d /usr/share/plymouth/themes/polar
+      sudo install -m644 \
+        "$splash_src/polar.plymouth" \
+        "$splash_src/polar.script" \
+        "$splash_src/dot.png" \
+        "$splash_src/wordmark.png" \
+        "$splash_src/rule.png" \
+        /usr/share/plymouth/themes/polar/
+      sudo install -Dm644 "$DOTFILES_DIR/system/etc/mkinitcpio.conf.d/plymouth.conf" \
+        /etc/mkinitcpio.conf.d/plymouth.conf
+      sudo install -Dm644 "$DOTFILES_DIR/system/etc/cmdline.d/10-polar-splash.conf" \
+        /etc/cmdline.d/10-polar-splash.conf
+      sudo plymouth-set-default-theme polar
+
+      # Keep the pre-splash UKIs once, so a theme that breaks early boot can be
+      # rolled back from a rescue shell with a signed image that is known good.
+      # `-n` means a re-run never replaces the first backup.
+      sudo install -d /var/lib/polar/uki-backup
+      for uki in /boot/EFI/Linux/*.efi; do
+        [ -f "$uki" ] || continue
+        sudo cp -an "$uki" /var/lib/polar/uki-backup/
+      done
+      sudo mkinitcpio -P
+
+      # mkinitcpio rewrites the UKI, which drops the appended sbctl signature.
+      # Sign every preset it produced, then read the signatures back. jq's
+      # all() rejects both an unsigned file and a missing one (is_signed -1).
+      uki_files=()
+      for uki in /boot/EFI/Linux/arch-linux.efi /boot/EFI/Linux/arch-linux-fallback.efi; do
+        [ -f "$uki" ] || continue
+        uki_files+=("$uki")
+      done
+      if [ "${#uki_files[@]}" -eq 0 ]; then
+        echo "ERROR: mkinitcpio produced no UKI under /boot/EFI/Linux."
+        exit 1
+      fi
+      for uki in "${uki_files[@]}"; do
+        sudo sbctl sign -s "$uki"
+      done
+      if ! sudo sbctl verify "${uki_files[@]}" --json 2>/dev/null |
+        jq -e 'all(.[]; .is_signed == 1)' >/dev/null; then
+        echo "ERROR: the rebuilt UKI is not signed, so Secure Boot will refuse it."
+        echo "Sign it in a terminal, then reboot: sudo sbctl sign -s ${uki_files[0]}"
+        exit 1
+      fi
+      echo "  Installed the Polar boot splash and signed the UKI"
+    fi
   fi
 
   # --- Link captain-miao config ---
@@ -559,10 +661,11 @@ if [ "$UNAME_OS" = "darwin" ] && [ "$AGENT_POD" != "true" ] && [ "${DEVCONTAINER
 fi
 
 # --- Schedule the background update check ---
-# dots-update --check writes the count that the prompt and ironbar read, so one
-# scheduled run keeps both current. A host without the schedule still works:
-# the readers show nothing while the cache is missing. Guarded like the
-# dots-update link above, because a devcontainer has nothing to schedule into.
+# dots-update --check writes the count that the prompt and Noctalia's updates
+# widget read, so one scheduled run keeps both current. A host without the
+# schedule still works: the readers show nothing while the cache is missing.
+# Guarded like the dots-update link above, because a devcontainer has nothing to
+# schedule into.
 if [ "$AGENT_POD" != "true" ] && [ "${DEVCONTAINER:-}" != "true" ]; then
   if [ -f /etc/arch-release ]; then
     echo ""

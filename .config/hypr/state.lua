@@ -5,6 +5,27 @@
 local flags = { focus = false, recording = false, dnd = false }
 local urgent = false
 
+-- The Noctalia badges plugin reads one file per state. A missing file means
+-- false, so a stale badge cannot outlive a crashed writer.
+local badge_dir = (os.getenv("XDG_RUNTIME_DIR") or "/tmp") .. "/polar/state"
+os.execute("mkdir -p '" .. badge_dir .. "'")
+
+local function write_badge(name, value)
+    local file = io.open(badge_dir .. "/" .. name, "w")
+    if file then
+        file:write(tostring(value), "\n")
+        file:close()
+    end
+end
+
+local function submap_name()
+    local submap = hl.get_current_submap()
+    if submap == "" then return "" end
+    return submap
+end
+
+write_badge("mode", submap_name())
+
 -- Defaults restored when focus mode ends; kept in sync with look.lua.
 local FOCUS_ON  = { gaps_in = 0, gaps_out = 0, border_size = 1 }
 local FOCUS_OFF = { gaps_in = 4, gaps_out = 8, border_size = 2 }
@@ -12,11 +33,13 @@ local FOCUS_OFF = { gaps_in = 4, gaps_out = 8, border_size = 2 }
 local TUIS = {
     -- ~/.zshrc auto-attaches the `main` zellij session, which is wrong inside the
     -- drop-down; the env opt-out skips it (the .zshrc guard reads ZELLIJ_AUTOATTACH).
-    term  = "ghostty --class=polar.tui.term -e env ZELLIJ_AUTOATTACH=0 zsh",
-    files = "ghostty --class=polar.tui.files -e yazi",
-    top   = "ghostty --class=polar.tui.top -e btop",
-    audio = "ghostty --class=polar.tui.audio -e wiremix",
-    git   = "ghostty --class=polar.tui.git -e lazygit",
+    term      = "ghostty --class=polar.tui.term -e env ZELLIJ_AUTOATTACH=0 zsh",
+    files     = "ghostty --class=polar.tui.files -e yazi",
+    top       = "ghostty --class=polar.tui.top -e btop",
+    audio     = "ghostty --class=polar.tui.audio -e wiremix",
+    git       = "ghostty --class=polar.tui.git -e lazygit",
+    bluetooth = "ghostty --class=polar.tui.bluetooth -e bluetui",
+    dua       = "ghostty --class=polar.tui.dua -e dua i ~",
 }
 local launched = {}
 
@@ -97,11 +120,17 @@ function Polar.set_state(name, on)
             decoration  = { dim_inactive = not on },
         })
     end
+    if name == "focus" or name == "recording" then
+        write_badge(name, on)
+    end
 
     refresh()
 end
 
-hl.on("keybinds.submap", refresh)
+hl.on("keybinds.submap", function()
+    write_badge("mode", submap_name())
+    refresh()
+end)
 hl.on("workspace.special_active", refresh)
 hl.on("workspace.active", refresh)
 
