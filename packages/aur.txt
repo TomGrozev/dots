@@ -7,5 +7,4 @@ papirus-folders
 sidra-bin
 coder-bin
 lens-bin
-codexbar-cli
 claude-code

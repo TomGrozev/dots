@@ -63,8 +63,8 @@ captain-miao, r3 and the skills. A failed package upgrade stops the run before
 `install.sh`.
 
 `dots-update --check` writes the pending count, one integer on one line, to
-`${XDG_CACHE_HOME:-$HOME/.cache}/dots/updates`. The zsh prompt and the Noctalia
-bar's update badge read that file and show nothing when it is missing or `0`. Arch counts
+`${XDG_CACHE_HOME:-$HOME/.cache}/dots/updates`. The zsh prompt reads that file
+and shows nothing when it is missing or `0`. Arch counts
 repository updates from `checkupdates` and AUR updates from `yay -Qua`;
 macOS counts outdated Homebrew formulae and casks. A failed check leaves the
 file unchanged.

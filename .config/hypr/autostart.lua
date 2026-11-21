@@ -7,10 +7,6 @@ hl.on("hyprland.start", function()
     -- systemd brings the shell back if it crashes.
     hl.exec_cmd("uwsm app -t service -p Restart=on-failure -- noctalia")
     for _, cmd in ipairs({
-        -- hyprsunset exits if hyprland-ctm-control-v1 is not up yet, and its user
-        -- unit only waits for WAYLAND_DISPLAY/graphical-session.target. Starting
-        -- it from hyprland.start guarantees the protocol global exists first.
-        "hyprsunset",
         "polar-wall restore",
         "polar-tip --login",
     }) do

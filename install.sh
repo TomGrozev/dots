@@ -368,11 +368,20 @@ custom_palette=true
 QT6CT
       fi
 
-      # Catalog plugins are installed from Noctalia's own sources. The local
-      # Polar plugin is enabled by the repo config and needs no download.
+      # Catalog plugins are fetched from Noctalia's built-in official and
+      # community sources; config.toml lists the same set as enabled.
       echo ""
       echo "Enabling Noctalia plugins..."
-      for plugin in noctalia/bitwarden noctalia/notes noctalia/world_clock salemsayed/codexbar-meter; do
+      for plugin in \
+        noctalia/bitwarden noctalia/notes noctalia/world_clock \
+        noctalia/screen_recorder noctalia/wallpaper_depth \
+        k4n4t4/hypr-submap 83raiders/scroll-indicator gcap0n1/f1 \
+        jrohland/claudecode omertahaoztop/neuralwatt emiliovenegas/omp-launcher \
+        yuuto/arch-updater davemhammer/k8s-status \
+        mahmoudomiesh/network-monitor 3ri4ng0ld/ip-monitor \
+        yahya637/process-monitor alexander/screen-toolkit \
+        soulmanyes/workspace-restore nirusaki/clearclock \
+        darulqutni-q/github-contributions-desktop; do
         noctalia msg plugins enable "$plugin" >/dev/null 2>&1 ||
           echo "  WARNING: could not enable ${plugin}; run inside the session: noctalia msg plugins enable ${plugin}"
       done

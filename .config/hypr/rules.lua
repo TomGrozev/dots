@@ -142,13 +142,6 @@ hl.window_rule({
     center = true,
 })
 
-hl.window_rule({
-    name  = "polar-mission-center",
-    match = { class = "^(missioncenter|io\\.missioncenter\\.MissionCenter)$" },
-    float = true,
-    center = true,
-})
-
 -- Thunar spawns its copy/rename/properties dialogs as separate toplevels.
 hl.window_rule({
     name  = "polar-thunar-dialogs",

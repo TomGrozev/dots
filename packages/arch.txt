@@ -39,8 +39,15 @@ wtype
 hyprland
 hyprtoolkit
 noctalia
+socat
+python-pillow
+tesseract
+tesseract-data-eng
+zbar
+imagemagick
+qrencode
+bitwarden-cli
 hyprpolkitagent
-hyprsunset
 hyprpicker
 hyprpm
 hyprwayland-scanner
@@ -61,7 +68,6 @@ pavucontrol
 papirus-icon-theme
 nwg-look
 qt6ct
-mission-center
 libnotify
 inotify-tools
 talosctl

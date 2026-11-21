@@ -18,7 +18,7 @@ local leader = {
     { key = "f", group = "Apps", desc = "files (yazi)", cmd = lua_cmd('Polar.tui("files")') },
     { key = "F", group = "Apps", desc = "Files (Thunar)", cmd = "thunar" },
     { key = "b", group = "Apps", desc = "btop", cmd = lua_cmd('Polar.tui("top")') },
-    { key = "B", group = "Apps", desc = "Mission Center", cmd = "missioncenter" },
+    { key = "B", group = "Apps", desc = "processes by app", cmd = "noctalia msg panel-toggle yahya637/process-monitor:panel" },
     { key = "a", group = "Apps", desc = "audio (wiremix)", cmd = lua_cmd('Polar.tui("audio")') },
     { key = "A", group = "Apps", desc = "Pavucontrol", cmd = "pavucontrol" },
     { key = "g", group = "Apps", desc = "lazygit", cmd = lua_cmd('Polar.tui("git")') },
@@ -33,12 +33,16 @@ local leader = {
         { key = "r", desc = "region", cmd = "polar-shot region" },
         { key = "w", desc = "window", cmd = "polar-shot window" },
         { key = "s", desc = "screen", cmd = "polar-shot screen" },
+        { key = "o", desc = "text (OCR)", cmd = "noctalia msg plugin alexander/screen-toolkit:service all ocr" },
+        { key = "q", desc = "QR code", cmd = "noctalia msg plugin alexander/screen-toolkit:service all qr" },
+        { key = "m", desc = "measure", cmd = "noctalia msg plugin alexander/screen-toolkit:service all measure" },
+        { key = "p", desc = "palette", cmd = "noctalia msg plugin alexander/screen-toolkit:service all palette" },
     } },
 
     { key = "r", group = "Recording", desc = "record", submenu = {
-        { key = "r", desc = "region", cmd = "polar-record region" },
-        { key = "s", desc = "screen", cmd = "polar-record screen" },
-        { key = "x", desc = "stop", cmd = "polar-record stop" },
+        { key = "r", desc = "region", cmd = "noctalia msg plugin noctalia/screen_recorder:service all start region" },
+        { key = "s", desc = "screen", cmd = "noctalia msg plugin noctalia/screen_recorder:service all start focused" },
+        { key = "x", desc = "stop", cmd = "noctalia msg plugin noctalia/screen_recorder:service all stop" },
     } },
 
     { key = "n", group = "Notifications", desc = "notifications", submenu = {
@@ -230,7 +234,7 @@ add({ chord = "SUPER + slash", group = "Help", desc = "Search cheat sheet", acti
 add({ chord = "SUPER + Z", group = "Modes", desc = "Toggle focus mode", action = hl.dsp.exec_cmd("polar-focus"), cmd = "polar-focus" })
 add({ chord = "SUPER + Escape", group = "System", desc = "Lock screen", action = hl.dsp.exec_cmd("noctalia msg session lock"), cmd = "noctalia msg session lock" })
 add({ chord = "Print", group = "Screenshot", desc = "Screenshot region", action = hl.dsp.exec_cmd("polar-shot region"), cmd = "polar-shot region" })
-add({ chord = "SUPER + C", group = "System", desc = "Pick colour from screen", action = hl.dsp.exec_cmd("polar-pick"), cmd = "polar-pick" })
+add({ chord = "SUPER + C", group = "System", desc = "Pick colour from screen", action = hl.dsp.exec_cmd("noctalia msg plugin alexander/screen-toolkit:service all colorPicker"), cmd = "noctalia msg plugin alexander/screen-toolkit:service all colorPicker" })
 
 -- Magnifier. Two wheel directions on the same modifier as window drag, which
 -- the wheel does not use, so nothing competes for these chords.

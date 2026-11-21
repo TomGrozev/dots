@@ -5,7 +5,6 @@
 set -euo pipefail
 
 state_dir=${XDG_STATE_HOME:-$HOME/.local/state}/polar
-badge_dir="${XDG_RUNTIME_DIR:-/tmp}/polar/state"
 dnd_before=$state_dir/dnd-before-focus
 
 usage() {
@@ -15,9 +14,8 @@ Usage: polar-focus [--help]
 Toggle focus mode: gaps and border shrink to nothing, dimming stops, the bar
 hides and notifications are muted. Run it again to restore everything.
 
-State lives in the Hyprland config (Polar.set_state), in
-$XDG_STATE_HOME/polar/ and in ${XDG_RUNTIME_DIR}/polar/state/focus, which the
-Noctalia badges plugin reads. The DND state saved on entry is restored on exit.
+State lives in the Hyprland config (Polar.set_state) and in
+$XDG_STATE_HOME/polar/. The DND state saved on entry is restored on exit.
 EOF
 }
 
@@ -28,9 +26,8 @@ state_get() {
 }
 
 state_set() { # true|false
-  mkdir -p "$state_dir" "$badge_dir"
+  mkdir -p "$state_dir"
   printf '%s\n' "$1" >"$state_dir/focus"
-  printf '%s\n' "$1" >"$badge_dir/focus"
 }
 
 noctalia_msg() {

@@ -1,4 +1,4 @@
-# Polar's Noctalia shell: one top bar, Nord palette, Polar badges.
+# Polar's Noctalia shell: one top bar, desktop widgets, Nord palette.
 # This file is the repo base. The settings window writes runtime overrides to
 # ~/.local/state/noctalia/settings.toml, which loads last and wins.
 
@@ -127,27 +127,61 @@ network_poll_seconds = 3.0
 session_locked = ["pw-play /usr/share/sounds/freedesktop/stereo/service-logout.oga"]
 session_unlocked = ["pw-play /usr/share/sounds/freedesktop/stereo/service-login.oga"]
 
-# Bar plugins: the two catalog sources ship with Noctalia, and the Polar badges
-# plugin is read from this repo through a local path source.
+# Catalog plugins come from the official and community sources that ship with
+# Noctalia. Do not add a [[plugins.source]] here: declaring one replaces the
+# built-in list, and every catalog plugin then fails to load.
 [plugins]
 enabled = [
+  # Official
   "noctalia/bitwarden",
   "noctalia/notes",
   "noctalia/world_clock",
-  "salemsayed/codexbar-meter",
-  "polar/badges",
+  "noctalia/screen_recorder",
+  "noctalia/wallpaper_depth",
+  # Bar
+  "k4n4t4/hypr-submap",
+  "83raiders/scroll-indicator",
+  "gcap0n1/f1",
+  "jrohland/claudecode",
+  "omertahaoztop/neuralwatt",
+  "emiliovenegas/omp-launcher",
+  "yuuto/arch-updater",
+  "davemhammer/k8s-status",
+  "mahmoudomiesh/network-monitor",
+  "3ri4ng0ld/ip-monitor",
+  # Panels and desktop
+  "yahya637/process-monitor",
+  "alexander/screen-toolkit",
+  "soulmanyes/workspace-restore",
+  "nirusaki/clearclock",
+  "darulqutni-q/github-contributions-desktop",
 ]
 auto_update = "official"
 
-[[plugins.source]]
-name = "polar"
-kind = "path"
-location = "~/.config/noctalia/plugins"
-enabled = true
+# One row per app rather than per process.
+[plugin_settings."yahya637/process-monitor"]
+group_by_app = true
 
-[plugin_settings."salemsayed/codexbar-meter"]
-refreshIntervalSec = 60
-barProviderLimit = 2
+# The recorder's bar widget appears only while a recording runs.
+[plugin_settings."noctalia/screen_recorder"]
+hide_inactive = true
+
+# Built-in sysmon widgets show the speed; this plugin adds only the
+# listening-ports list and its stop/open actions.
+[plugin_settings."mahmoudomiesh/network-monitor"]
+show_speed = false
+
+# Night light: warm from 20:30 to 07:00. The custom
+# schedule ignores coordinates, so no location has to be stored here.
+[nightlight]
+enabled = true
+temperature_day = 6500
+temperature_night = 4500
+
+[location]
+custom_schedule = true
+sunset = "20:30"
+sunrise = "07:00"
 
 [bar.main]
 position = "top"
@@ -159,7 +193,7 @@ border = "outline_variant"
 border_width = 1
 shadow = true
 radius = 17
-margin_ends = 140
+margin_ends = 48
 margin_edge = 8
 padding = 14
 widget_spacing = 8
@@ -167,19 +201,30 @@ reserve_space = true
 auto_hide = false
 # margin_ends shrinks the bar to one floating pill centred under the top edge.
 capsule = false
-start = ["launcher", "workspaces"]
-center = ["clock", "media"]
+# No centre section: Noctalia does not push a centred section aside, so with
+# this many plugin widgets on the right the two overlapped. `center` must stay
+# an explicit empty list; leaving it out brings back the default clock.
+start = ["launcher", "workspaces", "submap", "scroll", "media", "visualizer"]
+center = []
 end = [
-  "badges",
-  "ai-usage",
+  "f1",
+  "recorder",
+  "claude",
+  "neuralwatt",
+  "omp",
   "updates",
+  "k8s",
   "cpu",
   "ram",
+  "net-down",
+  "net-up",
+  "ports",
+  "lan-ip",
   "tray",
-  "network",
   "bluetooth",
   "volume",
   "notifications",
+  "clock",
   "session",
 ]
 
@@ -203,21 +248,63 @@ tooltip_format = "%A, %B %d, %Y"
 hide_when_no_media = true
 max_length = 220
 
-[widget."ai-usage"]
-type = "salemsayed/codexbar-meter:bar"
+# Built-in spectrum beside the track; hidden while nothing plays.
+[widget.visualizer]
+type = "audio_visualizer"
+width = 56
+bands = 14
+show_wave = true
+color_1 = "primary"
+color_2 = "secondary"
+
+# Hyprland submap (resize mode) name; hidden outside a mode.
+[widget.submap]
+type = "k4n4t4/hypr-submap:hypr-submap"
+hide_when_default = true
+
+# Column dots for workspace 9, the scrolling-layout workspace.
+[widget.scroll]
+type = "83raiders/scroll-indicator:dots"
+
+[widget.f1]
+type = "gcap0n1/f1:bar"
+
+[widget.recorder]
+type = "noctalia/screen_recorder:recorder"
+
+[widget.claude]
+type = "jrohland/claudecode:pill"
+
+[widget.neuralwatt]
+type = "omertahaoztop/neuralwatt:bar"
+
+[widget.omp]
+type = "emiliovenegas/omp-launcher:omp-launcher"
 
 [widget.updates]
-type = "polar/badges:updates"
+type = "yuuto/arch-updater:widget"
 
-[widget.badges]
-type = "polar/badges:badges"
+[widget.k8s]
+type = "davemhammer/k8s-status:status"
 
+[widget.ports]
+type = "mahmoudomiesh/network-monitor:indicator"
+
+# LAN address of the wired interface; click copies it.
+[widget.lan-ip]
+type = "3ri4ng0ld/ip-monitor:widget"
+iface = "en*"
+
+# CPU and RAM open the per-app process panel.
 [widget.cpu]
 type = "sysmon"
 stat = "cpu_usage"
 visualization = "graph"
 show_value = false
 glyph = "cpu"
+
+[widget.cpu.actions]
+left = "panel-toggle yahya637/process-monitor:panel"
 
 [widget.ram]
 type = "sysmon"
@@ -226,11 +313,23 @@ visualization = "gauge"
 show_value = true
 glyph = "memory"
 
+[widget.ram.actions]
+left = "panel-toggle yahya637/process-monitor:panel"
+
+[widget.net-down]
+type = "sysmon"
+stat = "net_rx"
+show_value = true
+network_speed_compact = true
+
+[widget.net-up]
+type = "sysmon"
+stat = "net_tx"
+show_value = true
+network_speed_compact = true
+
 [widget.tray]
 drawer = false
-
-[widget.network]
-show_label = false
 
 [widget.bluetooth]
 show_label = false
@@ -241,3 +340,33 @@ hide_label_when_muted = false
 
 [widget.notifications]
 hide_when_no_unread = false
+
+# The desktop shows only on an empty workspace: ClearClock with its digits
+# filled from the wallpaper beneath them, and the GitHub contribution year
+# under it. wallpaper_depth masks the wallpaper's foreground over both once
+# its model is installed from its panel. Positions are logical pixels on the
+# 1920x1080 monitor; the editor (noctalia msg desktop-widgets-toggle-edit)
+# writes moves to settings.toml.
+[desktop_widgets]
+enabled = true
+schema_version = 2
+widget_order = ["clock", "github"]
+
+[desktop_widgets.widget.clock]
+type = "nirusaki/clearclock:desktop"
+output = "HDMI-A-1"
+cx = 960.0
+cy = 420.0
+
+[desktop_widgets.widget.clock.settings]
+frostedFont = true
+
+[desktop_widgets.widget.github]
+type = "darulqutni-q/github-contributions-desktop:calendar"
+output = "HDMI-A-1"
+cx = 960.0
+cy = 860.0
+
+[desktop_widgets.widget.github.settings]
+cell_size = 12
+corner_radius = 3

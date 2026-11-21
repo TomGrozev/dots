@@ -1,8 +1,8 @@
 # Polar
 
 A Nord-keyed Hyprland desktop: one leader key, every action reachable in two
-presses, and the desktop itself tells you what state it is in (border colour,
-bar badges, tips).
+presses, and the desktop itself tells you what state it is in (border
+colour, bar widgets, tips).
 
 Polar runs on Arch desktops only: `install.sh` links `.config/hypr`,
 `.config/noctalia`, `.config/fuzzel`, `.config/polar` and every `bin/polar-*`
@@ -23,14 +23,13 @@ flowchart TD
     WK --> CS_NOTE["tips draw from the same TSV"]
     SCR["polar-* scripts"] --> API["Polar Lua API\nPolar.tui · Polar.set_state"]
     API --> BORD["border colour\n(state.lua)"]
-    API --> BADGE["badge files\n$XDG_RUNTIME_DIR/polar/state"]
-    BADGE --> BAR["Noctalia polar-badges plugin\nREC · FOCUS · mode"]
+    SUB["Hyprland submap events\n(state.lua)"] --> SMW["hypr-submap bar widget\nmode name while a mode is active"]
 ```
 
 `keys.lua` regenerates the which-key popup and the cheat sheet on every reload,
-so the keymap and its documentation cannot drift. Scripts like `polar-record`
-and `polar-focus` call back into the config through `Polar.set_state` to change
-the border colour, and write badge files that the Noctalia bar reads.
+so the keymap and its documentation cannot drift. Scripts like `polar-focus`
+call back into the config through `Polar.set_state` to change the border
+colour.
 
 ## First 10 minutes
 
@@ -40,8 +39,8 @@ per day.
 
 1. **Open the leader menu:** press `SUPER+Space`. A popup lists every action
    with its key. Lowercase letter = terminal app (TUI), Shift+letter = its GUI
-   counterpart (`a` wiremix vs `A` Pavucontrol, `b` btop vs `B` Mission Center,
-   `f` yazi vs `F` Thunar).
+   counterpart (`a` wiremix vs `A` Pavucontrol, `b` btop vs `B` the
+   process panel, `f` yazi vs `F` Thunar).
 2. **Open the cheat sheet:** press `SUPER+/`. Every binding, grouped and
    searchable. Type `shot`, press Enter: the action runs. This is the fastest
    way to learn a key: you never have to memorise anything.
@@ -68,13 +67,15 @@ per day.
    | Nord blue gradient | normal |
    | Yellow (`#EBCB8B`) | a keyboard mode is waiting (e.g. resize) |
    | Purple (`#B48EAD`) | a special workspace (drop-down) is focused |
-   | Red (`#BF616A`) | recording |
    | Orange (`#D08770`) | an urgent window wants attention |
 
-7. **Watch the bar:** the Polar badges widget appears top-right while active:
-   `FOCUS · Super+Z` (click to leave), `● REC · Super+Space r x`, and the
-   keyboard mode name with a ` · Esc` hint. A download glyph with a number
-   counts pending package updates; click it to run `dots-update`.
+7. **Watch the bar:** the left end shows the workspaces, the submap name while
+   a keyboard mode is active, and the media track with a spectrum beside it.
+   The right end carries the plugin widgets: a recorder chip while a recording
+   runs, the Claude Code usage pill, pending package updates (click for the
+   updater panel), network speed, listening ports, the LAN address (click to
+   copy), and the clock. There is no centre section: Noctalia does not push a
+   centred section aside, so it overlapped the long right end.
 
 ## Keymap
 
@@ -88,7 +89,7 @@ per day.
 | f | files (yazi) |
 | F | Files (Thunar) |
 | b | btop |
-| B | Mission Center |
+| B | process panel (per-app CPU/RAM/GPU) |
 | a | audio (wiremix) |
 | A | Pavucontrol |
 | g | lazygit |
@@ -99,7 +100,8 @@ per day.
 | W | Chromium |
 | c | clipboard (Noctalia panel) |
 | s r / s w / s s | screenshot region / window / screen |
-| r r / r s / r x | record region / screen / stop |
+| s o / s q / s m / s p | OCR text / QR code / measure / palette |
+| r r / r s / r x | record region / focused screen / stop |
 | n d / n x / n h | do-not-disturb / dismiss all / restore last notification |
 | z | focus mode |
 | v n | next wallpaper |
@@ -128,7 +130,7 @@ per day.
 | `SUPER+/` | search the cheat sheet |
 | `SUPER+Z` | focus mode |
 | `SUPER+Escape` | lock screen (Noctalia) |
-| `SUPER+C` | pick colour from screen |
+| `SUPER+C` | pick colour from screen (screen-toolkit) |
 | `Print` | screenshot region |
 | `XF86` volume keys | `noctalia msg volume-up/down/mute` and `mic-mute` (work on the lock screen) |
 
@@ -145,18 +147,52 @@ still work on the lock screen while the OSD itself stays out of the way there.
 Noctalia follows PipeWire's default sink and source, so device switches behave
 the same way `polar-volume` used to.
 
-## The badge contract
+## Plugins
 
-The bar never polls Hyprland. `state.lua` and the `polar-*` scripts write one
-file per state into `${XDG_RUNTIME_DIR}/polar/state/`: `recording` and `focus`
-hold `true` or `false` (written by `polar-record` and `polar-focus`), and
-`mode` holds the current submap name (written by `state.lua` on submap changes
-and at load). The `polar-badges` Noctalia plugin in
-`.config/noctalia/plugins/polar-badges/` reads these files once a second and
-renders chips: a red `● REC`, a yellow `FOCUS · Super+Z`, and the mode name
-with a ` · Esc` hint. A missing file means false, so a stale badge cannot
-outlive a crashed writer. The same plugin's `updates` widget reads
-`$XDG_CACHE_HOME/dots/updates`, written by `dots-update --check`.
+The shell's extra widgets and panels are Noctalia catalog plugins. The
+enabled list lives in `[plugins]` in `.config/noctalia/config.toml`, and
+`install.sh` enables the same set with `noctalia msg plugins enable`. The
+list must not declare a `[[plugins.source]]`: doing so replaces Noctalia's
+built-in official and community sources, and no catalog plugin loads at all.
+
+What the plugins add:
+
+- **Bar widgets**: the Hyprland submap name while a keyboard mode is active
+  (`hypr-submap`), column dots for workspace 9's scrolling layout
+  (`scroll-indicator`), a Formula 1 marker, the Claude Code usage pill, the
+  neuralwatt marker, pending package updates (`arch-updater`, whose panel
+  upgrades in a terminal), Kubernetes status, listening ports with a stop
+  control (`network-monitor`, speed display off because the built-in `sysmon`
+  `net_rx`/`net_tx` widgets show it), the LAN address of the `en*` interface
+  (`ip-monitor`, click copies it), and CPU and RAM meters whose left click
+  opens the process panel.
+- **Process panel**: `process-monitor` shows one row per app with its CPU, RAM
+  and GPU use. It replaces Mission Center, and opens with leader `B` or by
+  left-clicking the CPU or RAM bar widget.
+- **Screen toolkit**: the colour picker behind `SUPER+C`, and leader
+  `s o / q / m / p` for OCR, QR reading, measuring and palette extraction.
+- **Recorder**: Noctalia's `screen_recorder`, driven by leader
+  `r r / s / x` (start on a region, start on the focused screen, stop). Files
+  land in `~/Videos/Recordings`, and its bar chip shows only while a
+  recording runs.
+- **Desktop widgets**: on an empty workspace, `clearclock` shows a large clock
+  whose digits take their fill from the wallpaper beneath them, and
+  `github-contributions-desktop` draws the GitHub contribution year under it.
+  Both need `gh auth login` for the calendar data; `wallpaper_depth` masks the
+  wallpaper's foreground over the widgets once its model is installed from
+  its panel.
+- **Others**: the Bitwarden vault, notes, a world clock, `omp-launcher`, the
+  `f1` widget, `k8s-status`, and `workspace-restore`, which reopens the apps
+  you assign per workspace at login. The assignments and its "Restore at
+  login" switch are configured in the plugin's panel.
+
+Some plugins need a one-time setup in their settings (the gear in the panel):
+an API key for `neuralwatt`, "Install model" for `wallpaper_depth`, and the
+app list plus "Restore at login" for `workspace-restore`.
+
+A plugin that misbehaves can be turned off by removing it from the
+`[plugins].enabled` list and running `noctalia msg plugins disable
+<plugin-id>`.
 
 ## Look
 
@@ -230,13 +266,10 @@ same library, so custom wallpapers cycle alongside the bundled ones.
 
 ## Night light
 
-`hyprsunset` runs from `.config/hypr/autostart.lua` (started on
-`hyprland.start` so the CTM protocol global exists before it connects) and
-reads `.config/hypr/hyprsunset.conf`: full colour from 07:00, 4500 K from
-20:30, and the 20:30 profile holds through midnight. Caveat on NVIDIA: the
-temperature is applied as a colour transform, which depends on CTM support in
-the driver: if the screen never warms up, check
-`hyprctl monitors -j | jq '.[].ctm'`.
+Night light is Noctalia's `[nightlight]` in `.config/noctalia/config.toml`:
+6500 K by day, 4500 K from 20:30 to 07:00 through `[location]` with
+`custom_schedule = true`, so no coordinates are stored and the schedule holds
+through midnight. The shell draws its own OSD when the temperature changes.
 
 ## Session and system
 
@@ -315,7 +348,10 @@ re-sign both UKIs.
 
 The desktop packages this depends on are in `packages/arch.txt`. Recent
 additions: `noctalia` (the shell, which pulls in `adwaita-fonts` used by the
-splash theme), `plymouth`, `bluetui` and `dua-cli`. The Hyprland plugins
+splash theme), `plymouth`, `bluetui` and `dua-cli`, plus, for the screen
+toolkit and its helpers, `socat`, `python-pillow`, `tesseract` with
+`tesseract-data-eng`, `zbar`, `imagemagick`, `qrencode` and `bitwarden-cli`.
+The Hyprland plugins
 (hyprexpo, dynamic-cursors, Hypr-DarkWindow, hyprfocus, hyprglass) are not
 packages: install.sh builds them from source with `hyprpm` against the running
 compositor, and `hyprland-plugins` is a multi-plugin repository, so a retry
@@ -335,11 +371,11 @@ Run through this after install or after editing the config.
 | 6 | Repeat for `f`, `b`, `a`, `g`, `u`, `d` | each opens a centred drop-down and keeps state when hidden |
 | 7 | `SUPER+Space F` / `B` / `A` / `W` | GUI counterparts open as tiled windows |
 | 8 | In a zellij nvim pane: `SUPER+h` at the left split edge | focus leaves nvim, then the zellij pane, then reaches the Hyprland window to the left |
-| 9 | `SUPER+Space m r` | border turns yellow, bar shows `resize · Esc`; `hjkl` resizes, `Esc` exits and the border returns |
-| 10 | `SUPER+Z` twice | gaps/bar/notifications off then back on; `FOCUS` badge appears |
+| 9 | `SUPER+Space m r` | border turns yellow, bar shows the `resize` submap name; `hjkl` resizes, `Esc` exits and the border returns |
+| 10 | `SUPER+Z` twice | gaps/bar/notifications off then back on |
 | 11 | `SUPER+Space n d` | notifications muted, Noctalia's DND OSD appears; toggle back |
 | 12 | `Print` and `SUPER+Space s w` / `s s` | satty opens; Enter copies + saves to `~/Pictures/Screenshots`, Esc discards |
-| 13 | `SUPER+Space r r`, record 5 s, `SUPER+Space r x` | border red + `● REC` badge while running; mp4 appears in `~/Videos/Recordings` |
+| 13 | `SUPER+Space r r`, record 5 s, `SUPER+Space r x` | recorder chip in the bar while running; mp4 appears in `~/Videos/Recordings` |
 | 14 | Copy text, then `SUPER+Space c` | Noctalia's clipboard panel lists the entry; Enter pastes it back |
 | 15 | `SUPER+Space p` → session panel | power actions offered; Lock locks the session (only the lock path is tested here) |
 | 16 | `polar-wall nordify <image>` then `SUPER+Space v n` | image recoloured to Nord and shown; cycling uses a Noctalia transition |
@@ -348,7 +384,7 @@ Run through this after install or after editing the config.
 | 19 | `SUPER+Space h o` then `h O` | daily tips stop / resume (`h t` still shows one now) |
 | 20 | Press volume up/down, then mute / mic-mute | Noctalia's OSD shows the change top-centre; the keys work on the lock screen |
 | 21 | Delete a PNG in `~/.local/share/polar/wallpapers`, run `polar-wall next` | the PNG is re-rendered from its SVG at the monitor's size, then shown |
-| 22 | After 20:30 (or temporarily set an earlier time in `hyprsunset.conf`) | screen warms to 4500 K; check `hyprctl monitors -j \| jq '.[].ctm'` if not |
+| 22 | After 20:30 (or temporarily set an earlier sunset in `config.toml`) | screen warms to 4500 K; Noctalia shows its night-light OSD |
 | 23 | `SUPER+Space u` / `d` | bluetui and dua open as drop-downs with their own special workspace |
 | 24 | `SUPER+Space i` twice on a window | colours invert, then restore |
 | 25 | Open two windows on workspace 9, `SUPER+hjkl` | focus moves along the scrolling tape |
@@ -379,7 +415,7 @@ at `~/.config/hypr.bak`.
 
 **Change colours or motion**: `.config/hypr/look.lua` owns gaps, borders,
 blur and dimming; `state.lua`'s `active_border()` owns the state colours and
-their precedence (recording → mode → urgent → special → normal); `motion.lua`
+their precedence (mode → urgent → special → normal); `motion.lua`
 owns tile movement behaviour. The shell's colours are Noctalia's builtin Nord
 theme in `.config/noctalia/config.toml`; changes made in the settings window
 land in `~/.local/state/noctalia/settings.toml` and override the repo file.
@@ -390,15 +426,14 @@ generated cheat sheet, so a new bind is teachable on day one.
 
 **Add a bar widget**: the bar layout is `[bar.main]` in
 `.config/noctalia/config.toml` (`start`, `center`, `end` widget lists); a
-plugin widget is referenced as `type = "plugin-id:widget-id"`, and plugin
-sources are declared under `[plugins]`. The Polar badges plugin is read from
-the repo through a local path source.
+plugin widget is referenced as `type = "plugin-id:widget-id"`, and catalog
+plugins are enabled under `[plugins]`. A widget's left-click action lives in
+a `[widget.<name>.actions]` table, like the CPU and RAM meters that toggle
+the process panel.
 
 ## Known limits
 
-- **Recording uses CPU encoding.** The distro FFmpeg needs NVENC API 13.1 while the NVIDIA driver exposes 13.0, so `gpu-screen-recorder` falls back to CPU encoding until the versions align (`bin/polar-record`).
 - **Urgent border is a global flag.** `state.lua` keeps one `urgent` bool, cleared by any `window.active` event (not per-window), so the orange border cannot point at a specific window.
-- **The mode badge is lowercase.** The badges widget shows the submap name (`resize`) verbatim; there is no format option to restyle it.
 - **Noctalia must be running for its IPC binds.** The launcher, clipboard, power, lock, DND, volume and wallpaper binds all go through `noctalia msg`; until the shell is up they do nothing (the scripts that need it guard with `command -v` and stay quiet).
 - **The shell theme is fixed Nord.** `.config/noctalia/config.toml` pins `builtin = "Nord"`; only `~/.local/state/noctalia/settings.toml` overrides it.
 - **hyprfocus and hyprglass are version sensitive.** `hyprland-plugins` pins stop short of the running Hyprland, so hyprpm builds main HEAD like it already does for dynamic-cursors; a plugin that fails to build stays off and install.sh warns.
