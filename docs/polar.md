@@ -72,13 +72,14 @@ per day.
 7. **Watch the bar:** the left end shows the workspaces, the submap name while
    a keyboard mode is active, and the media track with a spectrum beside it.
    The right end carries a recorder chip while a recording runs, the Claude
-   Code usage, pending package updates (click for the updater panel), CPU and
-   RAM percentages (click for the process panel), download speed, the tray
-   behind one chevron, and the clock. Two groups fold to their first widget
-   and unfold on hover: hover the Claude usage for neuralwatt and Kubernetes,
-   and the download speed for upload, listening ports and the LAN address
-   (click to copy). There is no centre section: Noctalia does not push a
-   centred section aside, so it overlapped the long right end.
+   Code and Neuralwatt usage percentages side by side, the Kubernetes context,
+   pending package updates (click for the updater panel), CPU and RAM
+   percentages (click for the process panel), download speed, the tray behind
+   one chevron, and the clock. The two usage percentages share one colour
+   scheme: plain text normally, tertiary when running hot, red when nearly
+   spent. Hover the download speed to unfold upload, listening ports and the
+   LAN address (click to copy). There is no centre section: Noctalia does not
+   push a centred section aside, so it overlapped the long right end.
 
 ## Keymap
 

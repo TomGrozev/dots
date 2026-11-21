@@ -170,6 +170,12 @@ hide_inactive = true
 [plugin_settings."mahmoudomiesh/network-monitor"]
 show_speed = false
 
+# Same colour language as the Claude pill beside it: neutral text normally,
+# tertiary when high, error when nearly spent.
+[plugin_settings."omertahaoztop/neuralwatt"]
+ok_color = "on_surface"
+warn_color = "tertiary"
+
 # Night light: warm from 20:30 to 07:00. The custom
 # schedule ignores coordinates, so no location has to be stored here.
 [nightlight]
@@ -208,7 +214,8 @@ center = []
 end = [
   "f1",
   "recorder",
-  "group:dev",
+  "group:ai",
+  "k8s",
   "updates",
   "cpu",
   "ram",
@@ -223,12 +230,15 @@ end = [
 
 # Accordion groups fold to their first widget and unfold on hover, which keeps
 # the right end short. Opacity 0 keeps them flat like the rest of the bar.
+# The ai group is not an accordion: the Claude 5-hour and Neuralwatt plan
+# percentages sit side by side, each behind its own icon (the Neuralwatt
+# plugin hard-codes its logo).
 [[bar.main.capsule_group]]
-id = "dev"
-members = ["claude", "neuralwatt", "k8s"]
+id = "ai"
+members = ["claude", "neuralwatt"]
 opacity = 0.0
 padding = 0.0
-accordion = true
+widget_spacing = 4
 
 [[bar.main.capsule_group]]
 id = "net"
@@ -286,6 +296,7 @@ type = "jrohland/claudecode:pill"
 
 [widget.neuralwatt]
 type = "omertahaoztop/neuralwatt:bar"
+bar_mode = "percent"
 
 [widget.updates]
 type = "yuuto/arch-updater:widget"
