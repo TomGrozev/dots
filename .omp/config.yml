@@ -58,6 +58,7 @@ tui:
   vimModeDisplay: icon
   maxInlineImageRows: 40
   maxInlineImageColumns: 160
+  completeScrollback: true
 display:
   shimmer: kitt
   showTokenUsage: true
