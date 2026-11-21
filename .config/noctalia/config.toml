@@ -363,10 +363,12 @@ hide_when_no_unread = false
 
 # The desktop shows only on an empty workspace: ClearClock with its digits
 # filled from the wallpaper beneath them, and the GitHub contribution year
-# under it. wallpaper_depth masks the wallpaper's foreground over both once
-# its model is installed from its panel. Positions are logical pixels on the
-# 1920x1080 monitor; the editor (noctalia msg desktop-widgets-toggle-edit)
-# writes moves to settings.toml.
+# beside it. wallpaper_depth masks the wallpaper's foreground over both once
+# its model is installed from its panel, so anything below the horizon at
+# y≈630 is hidden behind the terrain: the calendar sits right of the clock in
+# open sky instead. Positions are logical pixels on the 1920x1080 monitor; the
+# editor (noctalia msg desktop-widgets-toggle-edit) writes moves to
+# settings.toml.
 [desktop_widgets]
 enabled = true
 schema_version = 2
@@ -384,9 +386,9 @@ frostedFont = true
 [desktop_widgets.widget.github]
 type = "darulqutni-q/github-contributions-desktop:calendar"
 output = "HDMI-A-1"
-cx = 960.0
-cy = 860.0
+cx = 1490.0
+cy = 410.0
 
 [desktop_widgets.widget.github.settings]
-cell_size = 12
+cell_size = 10
 corner_radius = 3
