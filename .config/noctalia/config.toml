@@ -264,7 +264,10 @@ tooltip_format = "%A, %B %d, %Y"
 
 [widget.media]
 hide_when_no_media = true
-max_length = 220
+# The label is capped in pixels. `on_hover` is set, but Noctalia 5.6.0 only
+# animates the "always" mode, so the width is what actually prevents clipping.
+max_length = 480
+title_scroll = "on_hover"
 
 # Built-in spectrum beside the track; hidden while nothing plays.
 [widget.visualizer]
