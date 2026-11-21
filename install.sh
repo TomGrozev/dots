@@ -377,8 +377,7 @@ QT6CT
         noctalia/screen_recorder noctalia/wallpaper_depth \
         k4n4t4/hypr-submap 83raiders/scroll-indicator gcap0n1/f1 \
         jrohland/claudecode omertahaoztop/neuralwatt \
-        yuuto/arch-updater davemhammer/k8s-status \
-        mahmoudomiesh/network-monitor 3ri4ng0ld/ip-monitor \
+        yuuto/arch-updater mahmoudomiesh/network-monitor 3ri4ng0ld/ip-monitor \
         yahya637/process-monitor alexander/screen-toolkit \
         soulmanyes/workspace-restore nirusaki/clearclock \
         darulqutni-q/github-contributions-desktop; do

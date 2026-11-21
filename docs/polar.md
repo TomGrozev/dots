@@ -72,14 +72,14 @@ per day.
 7. **Watch the bar:** the left end shows the workspaces, the submap name while
    a keyboard mode is active, and the media track with a spectrum beside it.
    The right end carries a recorder chip while a recording runs, the Claude
-   Code and Neuralwatt usage percentages side by side, the Kubernetes context,
-   pending package updates (click for the updater panel), CPU and RAM
-   percentages (click for the process panel), download speed, the tray behind
-   one chevron, and the clock. The two usage percentages share one colour
-   scheme: plain text normally, tertiary when running hot, red when nearly
-   spent. Hover the download speed to unfold upload, listening ports and the
-   LAN address (click to copy). There is no centre section: Noctalia does not
-   push a centred section aside, so it overlapped the long right end.
+   Code and Neuralwatt usage percentages side by side, pending package updates
+   (click for the updater panel), CPU and RAM percentages (click for the
+   process panel), download speed, the tray behind one chevron, and the clock.
+   The two usage percentages share one colour scheme: plain text normally,
+   tertiary when running hot, red when nearly spent. Hover the download speed
+   to unfold upload, listening ports and the LAN address (click to copy).
+   There is no centre section: Noctalia does not push a centred section
+   aside, so it overlapped the long right end.
 
 ## Keymap
 
@@ -165,7 +165,7 @@ What the plugins add:
   (`hypr-submap`), column dots for workspace 9's scrolling layout
   (`scroll-indicator`), a Formula 1 marker, the Claude Code usage pill, the
   neuralwatt marker, pending package updates (`arch-updater`, whose panel
-  upgrades in a terminal), Kubernetes status, listening ports with a stop
+  upgrades in a terminal), listening ports with a stop
   control (`network-monitor`, speed display off because the built-in `sysmon`
   `net_rx`/`net_tx` widgets show it), the LAN address of the `en*` interface
   (`ip-monitor`, click copies it), and CPU and RAM meters whose left click
@@ -185,9 +185,9 @@ What the plugins add:
   Both need `gh auth login` for the calendar data; `wallpaper_depth` masks the
   wallpaper's foreground over the widgets once its model is installed from
   its panel.
-- **Others**: the Bitwarden vault, notes, a world clock, the
-  `f1` widget, `k8s-status`, and `workspace-restore`, which reopens the apps
-  you assign per workspace at login. The assignments and its "Restore at
+- **Others**: the Bitwarden vault, notes, a world clock, the `f1` widget, and
+  `workspace-restore`, which reopens the apps you assign per workspace at
+  login. The assignments and its "Restore at
   login" switch are configured in the plugin's panel.
 
 Some plugins need a one-time setup in their settings (the gear in the panel):

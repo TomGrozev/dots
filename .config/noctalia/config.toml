@@ -145,7 +145,6 @@ enabled = [
   "jrohland/claudecode",
   "omertahaoztop/neuralwatt",
   "yuuto/arch-updater",
-  "davemhammer/k8s-status",
   "mahmoudomiesh/network-monitor",
   "3ri4ng0ld/ip-monitor",
   # Panels and desktop
@@ -204,7 +203,8 @@ padding = 14
 widget_spacing = 8
 reserve_space = true
 auto_hide = false
-# margin_ends shrinks the bar to one floating pill centred under the top edge.
+# margin_ends insets the strip from the screen edges; capsule = false keeps
+# every widget flat, without a pill background of its own.
 capsule = false
 # No centre section: Noctalia does not push a centred section aside, so with
 # this many plugin widgets on the right the two overlapped. `center` must stay
@@ -215,7 +215,6 @@ end = [
   "f1",
   "recorder",
   "group:ai",
-  "k8s",
   "updates",
   "cpu",
   "ram",
@@ -300,9 +299,6 @@ bar_mode = "percent"
 
 [widget.updates]
 type = "yuuto/arch-updater:widget"
-
-[widget.k8s]
-type = "davemhammer/k8s-status:status"
 
 [widget.ports]
 type = "mahmoudomiesh/network-monitor:indicator"
