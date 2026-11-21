@@ -71,10 +71,13 @@ per day.
 
 7. **Watch the bar:** the left end shows the workspaces, the submap name while
    a keyboard mode is active, and the media track with a spectrum beside it.
-   The right end carries the plugin widgets: a recorder chip while a recording
-   runs, the Claude Code usage pill, pending package updates (click for the
-   updater panel), network speed, listening ports, the LAN address (click to
-   copy), and the clock. There is no centre section: Noctalia does not push a
+   The right end carries a recorder chip while a recording runs, the Claude
+   Code usage, pending package updates (click for the updater panel), CPU and
+   RAM percentages (click for the process panel), download speed, the tray
+   behind one chevron, and the clock. Two groups fold to their first widget
+   and unfold on hover: hover the Claude usage for neuralwatt and Kubernetes,
+   and the download speed for upload, listening ports and the LAN address
+   (click to copy). There is no centre section: Noctalia does not push a
    centred section aside, so it overlapped the long right end.
 
 ## Keymap
@@ -181,7 +184,7 @@ What the plugins add:
   Both need `gh auth login` for the calendar data; `wallpaper_depth` masks the
   wallpaper's foreground over the widgets once its model is installed from
   its panel.
-- **Others**: the Bitwarden vault, notes, a world clock, `omp-launcher`, the
+- **Others**: the Bitwarden vault, notes, a world clock, the
   `f1` widget, `k8s-status`, and `workspace-restore`, which reopens the apps
   you assign per workspace at login. The assignments and its "Restore at
   login" switch are configured in the plugin's panel.

@@ -144,7 +144,6 @@ enabled = [
   "gcap0n1/f1",
   "jrohland/claudecode",
   "omertahaoztop/neuralwatt",
-  "emiliovenegas/omp-launcher",
   "yuuto/arch-updater",
   "davemhammer/k8s-status",
   "mahmoudomiesh/network-monitor",
@@ -209,17 +208,11 @@ center = []
 end = [
   "f1",
   "recorder",
-  "claude",
-  "neuralwatt",
-  "omp",
+  "group:dev",
   "updates",
-  "k8s",
   "cpu",
   "ram",
-  "net-down",
-  "net-up",
-  "ports",
-  "lan-ip",
+  "group:net",
   "tray",
   "bluetooth",
   "volume",
@@ -227,6 +220,22 @@ end = [
   "clock",
   "session",
 ]
+
+# Accordion groups fold to their first widget and unfold on hover, which keeps
+# the right end short. Opacity 0 keeps them flat like the rest of the bar.
+[[bar.main.capsule_group]]
+id = "dev"
+members = ["claude", "neuralwatt", "k8s"]
+opacity = 0.0
+padding = 0.0
+accordion = true
+
+[[bar.main.capsule_group]]
+id = "net"
+members = ["net-down", "net-up", "ports", "lan-ip"]
+opacity = 0.0
+padding = 0.0
+accordion = true
 
 [widget.workspaces]
 style = "regular"
@@ -278,9 +287,6 @@ type = "jrohland/claudecode:pill"
 [widget.neuralwatt]
 type = "omertahaoztop/neuralwatt:bar"
 
-[widget.omp]
-type = "emiliovenegas/omp-launcher:omp-launcher"
-
 [widget.updates]
 type = "yuuto/arch-updater:widget"
 
@@ -295,23 +301,24 @@ type = "mahmoudomiesh/network-monitor:indicator"
 type = "3ri4ng0ld/ip-monitor:widget"
 iface = "en*"
 
-# CPU and RAM open the per-app process panel.
+# CPU and RAM open the per-app process panel. Text only: a graph or gauge
+# doubles their width.
 [widget.cpu]
 type = "sysmon"
 stat = "cpu_usage"
-visualization = "graph"
-show_value = false
+visualization = "none"
 glyph = "cpu"
+label_min_width = 30
 
 [widget.cpu.actions]
 left = "panel-toggle yahya637/process-monitor:panel"
 
 [widget.ram]
 type = "sysmon"
-stat = "ram_used"
-visualization = "gauge"
-show_value = true
-glyph = "memory"
+stat = "ram_pct"
+visualization = "none"
+glyph = "stack-2"
+label_min_width = 30
 
 [widget.ram.actions]
 left = "panel-toggle yahya637/process-monitor:panel"
@@ -319,17 +326,20 @@ left = "panel-toggle yahya637/process-monitor:panel"
 [widget.net-down]
 type = "sysmon"
 stat = "net_rx"
-show_value = true
+visualization = "none"
 network_speed_compact = true
+network_speed_decimal_places = 0
 
 [widget.net-up]
 type = "sysmon"
 stat = "net_tx"
-show_value = true
+visualization = "none"
 network_speed_compact = true
+network_speed_decimal_places = 0
 
+# One tray glyph that opens the icons, instead of every icon inline.
 [widget.tray]
-drawer = false
+drawer = true
 
 [widget.bluetooth]
 show_label = false
