@@ -11,9 +11,7 @@ config is Hyprland 0.56 Lua (`.config/hypr/*.lua`). The shell is
 [Noctalia](https://github.com/noctalia-dev/noctalia): it owns the bar,
 notifications (with history), the OSD, the launcher, the clipboard, the
 session and power panel, the wallpaper, the lock screen, idle handling and the
-UI sounds. Ironbar, mako, hyprlock, hypridle and the old `polar-clip`,
-`polar-power`, `polar-volume` and `polar-ai-usage` scripts are gone; awwww
-never existed here and Noctalia's wallpaper engine replaced it.
+UI sounds.
 
 ```mermaid
 flowchart TD
@@ -142,14 +140,13 @@ per day.
 
 The volume keys go straight to Noctalia (`noctalia msg volume-up`,
 `volume-down`, `volume-mute`, `mic-mute`), which changes the default sink or
-source and draws its own OSD, so there is no separate `polar-volume` script
-and no mako popup to style. The OSD sits top-centre with a 1.4 s hide delay,
+source and draws its own OSD. The OSD sits top-centre with a 1.4 s hide delay,
 and the same surface reports other shell state: Wi-Fi, Bluetooth, power
 profile, night light and do-not-disturb (`[osd.kinds]` in
 `.config/noctalia/config.toml`). The binds carry `locked = true`, so the keys
 still work on the lock screen while the OSD itself stays out of the way there.
 Noctalia follows PipeWire's default sink and source, so device switches behave
-the same way `polar-volume` used to.
+the same way.
 
 ## Plugins
 
@@ -171,8 +168,8 @@ What the plugins add:
   (`ip-monitor`, click copies it), and CPU and RAM meters whose left click
   opens the process panel.
 - **Process panel**: `process-monitor` shows one row per app with its CPU, RAM
-  and GPU use. It replaces Mission Center, and opens with leader `B` or by
-  left-clicking the CPU or RAM bar widget.
+  and GPU use. It opens with leader `B` or by left-clicking the CPU or RAM bar
+  widget.
 - **Screen toolkit**: the colour picker behind `SUPER+C`, and leader
   `s o / q / m / p` for OCR, QR reading, measuring and palette extraction.
 - **Recorder**: Noctalia's `screen_recorder`, driven by leader
@@ -282,8 +279,7 @@ through midnight. The shell draws its own OSD when the temperature changes.
   shell back if it crashes and it dies with the session. It owns the bar,
   notifications and their history, the OSD, the launcher and clipboard
   panels, the session and power panel, the wallpaper, the lock screen, idle
-  handling and the UI sounds (freedesktop theme, at half volume). There is no
-  separate mako, hyprlock or hypridle to start.
+  handling and the UI sounds (freedesktop theme, at half volume).
 - **Idle**: Noctalia blanks the screen at 5 minutes, locks at 10, and switches
   the panel off at 11 so the lock screen has drawn before the output goes
   dark.

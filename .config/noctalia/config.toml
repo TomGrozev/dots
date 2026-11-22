@@ -7,8 +7,8 @@ time_format = "{:%H:%M}"
 date_format = "%a %d %b"
 clipboard_enabled = true
 clipboard_history_max_entries = 100
-# Noctalia claims the selection when the copying app exits, which is what
-# wl-clip-persist used to do. Password managers are excluded by the shell.
+# Noctalia claims the selection when the copying app exits. Password managers
+# are excluded by the shell.
 clipboard_keep_from_closed_apps = true
 clipboard_auto_paste = "auto"
 
