@@ -1,0 +1,165 @@
+# Noctalia Settings UI overrides, snapshotted from the state file so a fresh
+# host gets the same dock, lockscreen and desktop widgets. Noctalia loads every
+# *.toml in this directory in name order and then the state file at
+# ~/.local/state/noctalia/settings.toml, so this layer overrides config.toml and
+# the state file still wins where one exists.
+#
+# To refresh: copy that state file back here, blank plugin credentials, and
+# rewrite /home/<user> as ~ (Noctalia expands ~ in paths).
+
+[desktop_widgets]
+schema_version = 2
+widget_order = [ "clock", "github", "desktop-widget-0000000000000002", "desktop-widget-0000000000000003" ]
+
+    [desktop_widgets.grid]
+    cell_size = 16
+    major_interval = 4
+    visible = true
+
+    [desktop_widgets.widget.clock]
+    box_height = 0.0
+    box_width = 0.0
+    cx = 973.0
+    cy = 415.25
+    output = "HDMI-A-1"
+    placement_height = 1080.0
+    placement_width = 1920.0
+    rotation = 0.0
+    type = "nirusaki/clearclock:desktop"
+
+        [desktop_widgets.widget.clock.settings]
+        background = false
+        frostedFont = true
+        renderInstance = "clock"
+
+    [desktop_widgets.widget.desktop-widget-0000000000000002]
+    box_height = 0.0
+    box_width = 0.0
+    cx = 960.0
+    cy = 870.0
+    output = "HDMI-A-1"
+    placement_height = 1080.0
+    placement_width = 1920.0
+    rotation = 0.0
+    type = "fancy_audio_visualizer"
+
+        [desktop_widgets.widget.desktop-widget-0000000000000002.settings]
+        background = false
+
+    [desktop_widgets.widget.desktop-widget-0000000000000003]
+    box_height = 0.0
+    box_width = 0.0
+    cx = 1794.5
+    cy = 108.0
+    output = "HDMI-A-1"
+    placement_height = 1080.0
+    placement_width = 1920.0
+    rotation = 0.0
+    type = "weather"
+
+        [desktop_widgets.widget.desktop-widget-0000000000000003.settings]
+        background = false
+
+    [desktop_widgets.widget.github]
+    box_height = 0.0
+    box_width = 0.0
+    cx = 1490.0
+    cy = 410.0
+    output = "HDMI-A-1"
+    placement_height = 1080.0
+    placement_width = 1920.0
+    rotation = 0.0
+    type = "darulqutni-q/github-contributions-desktop:calendar"
+
+        [desktop_widgets.widget.github.settings]
+        cell_size = 10
+        corner_radius = 3
+
+[dock]
+enabled = true
+icon_size = 35
+launcher_position = "start"
+pinned = [ "firefox", "com.mitchellh.ghostty", "sidra" ]
+position = "left"
+reserve_space = false
+smart_auto_hide = true
+
+[location]
+address = "Canberra, Australia"
+custom_schedule = false
+
+[lockscreen]
+fingerprint = false
+
+[lockscreen_widgets]
+enabled = true
+schema_version = 2
+widget_order = [ "lockscreen-login-box@HDMI-A-1", "lockscreen-widget-0000000000000001" ]
+
+    [lockscreen_widgets.grid]
+    cell_size = 16
+    major_interval = 4
+    visible = true
+
+    [lockscreen_widgets.widget."lockscreen-login-box@HDMI-A-1"]
+    box_height = 196.0
+    box_width = 810.0
+    cx = 960.0
+    cy = 898.0
+    output = "HDMI-A-1"
+    placement_height = 1080.0
+    placement_width = 1920.0
+    rotation = 0.0
+    type = "login_box"
+
+        [lockscreen_widgets.widget."lockscreen-login-box@HDMI-A-1".settings]
+        background_color = "surface_container"
+        background_opacity = 0.88
+        background_radius = 12.0
+        center_password_text = false
+        input_opacity = 1.0
+        input_radius = 6.0
+        layout = "regular"
+        show_caps_lock = true
+        show_keyboard_layout = true
+        show_login_button = true
+        show_media = true
+        show_media_controls = true
+        show_password_reveal = true
+        show_session_buttons = true
+        show_unlock_hint = true
+        show_weather = true
+
+    [lockscreen_widgets.widget.lockscreen-widget-0000000000000001]
+    box_height = 0.0
+    box_width = 0.0
+    cx = 960.0
+    cy = 467.0
+    output = "HDMI-A-1"
+    placement_height = 1080.0
+    placement_width = 1920.0
+    rotation = 0.0
+    type = "nirusaki/clearclock:desktop"
+
+        [lockscreen_widgets.widget.lockscreen-widget-0000000000000001.settings]
+        background = false
+
+# The API key is per host; the Settings UI fills it in. .zshenv already has
+# NEURALWATT_API_KEY in the environment for the omp plugin.
+[plugin_settings."omertahaoztop/neuralwatt"]
+api_key = ""
+
+[shell]
+polkit_agent = true
+
+    [shell.screen_corners]
+    enabled = true
+
+[wallpaper.default]
+path = "~/.local/share/polar/wallpapers/aurora-ranges.png"
+
+[wallpaper.last]
+path = "~/.local/share/polar/wallpapers/aurora-ranges.png"
+
+[wallpaper.monitors.HDMI-A-1]
+path = "~/.local/share/polar/wallpapers/aurora-ranges.png"
