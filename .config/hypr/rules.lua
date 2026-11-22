@@ -74,7 +74,7 @@ hl.window_rule({
 })
 
 -- Ghostty is the glass: the terminal and its seven drop-down TUIs are translucent
--- (background-opacity 0.85 in ghostty-glass.conf) and rely on the compositor to
+-- (background-opacity 0.78 in ghostty-glass.conf) and rely on the compositor to
 -- blur behind them. This rule must stay after no-blur-windows, which it overrides.
 hl.window_rule({
     name    = "ghostty-glass",
