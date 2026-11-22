@@ -775,9 +775,9 @@ fi
 # server is how the pod's agent learns the ticket's repo, and the other three are
 # hosted (context7, gh_grep, deepwiki).
 if [ "$AGENT_POD" = "true" ]; then
-  omp_entries=(config.yml mcp.json AGENTS.md PERSONALITY.md agents extensions rules)
+  omp_entries=(config.yml mcp.json AGENTS.md PERSONALITY.md agents extensions rules themes)
 else
-  omp_entries=(config.yml config-devcontainer.yml mcp.json AGENTS.md PERSONALITY.md WATCHDOG.md agents extensions rules skills)
+  omp_entries=(config.yml config-devcontainer.yml mcp.json AGENTS.md PERSONALITY.md WATCHDOG.md agents extensions rules skills themes)
 fi
 
 for entry in "${omp_entries[@]}"; do

@@ -21,7 +21,7 @@ cycleOrder:
   - designer
 symbolPreset: nerd
 theme:
-  dark: dark-nord
+  dark: dark-nord-readable
 setupVersion: 3
 defaultThinkingLevel: auto
 statusLine:
