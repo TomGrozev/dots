@@ -3,6 +3,8 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
+	GH_AUTH_BLOCK_MESSAGE,
+	GH_AUTH_READ_VERBS,
 	GH_READ_ALLOWLIST,
 	GH_READ_NAMESPACES,
 	GH_READ_VERBS,
@@ -357,10 +359,61 @@ describe("gh classification", () => {
 		}
 	});
 
+	test("only `gh auth status` is read; every other gh auth verb is refused before any grant or exec", async () => {
+		const { seen, resolver } = recordingResolver();
+		const server = getGrantServer(dir, resolver);
+		const { shimDir } = installShim(dir, {
+			git: fakeBinary("fake-git"),
+			gh: fakeTokenBinary("fake-gh"),
+			runtime: process.execPath,
+		});
+		const gh = join(shimDir, "gh");
+
+		// `status` stays a read: it asks for the transport env and runs gh.
+		seen.length = 0;
+		const status = await run([gh, "auth", "status"], { GBI_GRANT_SOCK: server.socketPath });
+		expect(status.code).toBe(0);
+		expect(seen).toEqual(["read"]);
+		expect(status.stdout).toContain("TOKEN=granted-read");
+		expect(status.stdout).toContain("ARGS=auth status");
+
+		const refusedVerbs: string[][] = [
+			["auth", "token", "--user", "X"],
+			["auth", "switch", "-u", "X"],
+			["auth", "setup-git"],
+			["auth", "login"],
+			["auth", "refresh"],
+			["auth", "logout"],
+			["auth", "git-credential", "get"],
+			["auth"],
+			["auth", "status", "--show-token"],
+			// The verb is read past leading gh options, like any namespace.
+			["-R", "o/r", "auth", "token"],
+			["--hostname", "x", "auth", "token"],
+		];
+		for (const args of refusedVerbs) {
+			seen.length = 0;
+			const res = await run([gh, ...args], { GBI_GRANT_SOCK: server.socketPath });
+			expect(res.code).toBe(1);
+			expect(res.stderr).toContain(GH_AUTH_BLOCK_MESSAGE);
+			expect(res.stdout).toBe("");
+			// No socket round-trip: the grant server was never asked.
+			expect(seen).toEqual([]);
+		}
+
+		// The refusal needs no grant channel at all.
+		const offline = await run([gh, "auth", "token"]);
+		expect(offline.code).toBe(1);
+		expect(offline.stderr).toContain(GH_AUTH_BLOCK_MESSAGE);
+		expect(offline.stdout).toBe("");
+	});
+
 	test("the allowlist constants exclude codespace and blanket label", () => {
 		expect(GH_READ_ALLOWLIST).not.toContain("codespace");
 		expect(GH_READ_ALLOWLIST).not.toContain("label");
 		expect(GH_READ_ALLOWLIST).not.toContain("api");
+		expect(GH_READ_ALLOWLIST).not.toContain("auth");
+		expect(GH_AUTH_READ_VERBS).toEqual(["status"]);
 		expect(GH_READ_NAMESPACES).toContain("label");
 		expect(GH_READ_VERBS).toContain("list");
 	});

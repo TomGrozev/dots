@@ -223,6 +223,35 @@ bash:
       approval: deny
     - match: security dump-keychain*
       approval: deny
+    # Agents reached the human's GitHub token from the keyring and pushed with it
+    # (2026-11-24). git-bot-identity strips credentials from the env only, so deny
+    # the commands that fetch, switch or re-inject credentials by hand.
+    - match: "*gh auth token*"
+      approval: deny
+    - match: "*gh auth switch*"
+      approval: deny
+    - match: "*gh auth login*"
+      approval: deny
+    - match: "*gh auth refresh*"
+      approval: deny
+    - match: "*gh auth setup-git*"
+      approval: deny
+    - match: "*gh auth git-credential*"
+      approval: deny
+    - match: "*secret-tool*"
+      approval: deny
+    - match: "*credential.helper*"
+      approval: deny
+    - match: "*x-access-token*"
+      approval: deny
+    - match: "*GH_TOKEN*"
+      approval: deny
+    - match: "*GITHUB_TOKEN*"
+      approval: deny
+    - match: "*GIT_SSH_COMMAND*"
+      approval: deny
+    - match: "*GIT_CONFIG_GLOBAL*"
+      approval: deny
     - match: "*rm -rf /"
       approval: deny
     - match: "*rm -fr /"
@@ -296,6 +325,9 @@ bash:
     - match: "* >> /etc/*"
       approval: prompt
     - match: "*git push*"
+      approval: prompt
+    # `git -C repo push` and `git -c k=v push` slip past the pattern above.
+    - match: "*git -* push*"
       approval: prompt
     - match: "*git reset --hard*"
       approval: prompt

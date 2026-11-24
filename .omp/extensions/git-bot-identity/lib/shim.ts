@@ -5,7 +5,7 @@
  *
  * On every invocation it finds the subcommand (and, for gh namespaces, the verb)
  * past leading options (`git -c k=v diff`, `gh -R o/r pr view`), then assigns one
- * of THREE classes:
+ * of FOUR classes:
  *
  *  - read (`git status`, `gh pr view`): asks the grant server for the bot's
  *    transport env. A refused read still execs the real binary under the neutral
@@ -16,6 +16,11 @@
  *  - local (`git add`, `git rebase`): never contacts a remote, so it needs no
  *    credentials — it execs the real binary under the neutral env with NO grant
  *    request (no socket round-trip). See GIT_LOCAL_ALLOWLIST.
+ *  - refuse (`gh auth token`, `gh auth switch`): a `gh auth` verb other than
+ *    `status` (see GH_AUTH_READ_VERBS). It would read, switch or install a
+ *    GitHub credential, which the agent must never do. Prints the block message
+ *    and exits 1 with no grant request and no exec of the real binary: there is
+ *    no credential for the agent to obtain through it.
  *
  * The shim runs the checked-in grant client (lib/grant-client.ts) as a plain bun
  * instance, `BUN_BE_BUN=1 "$RUNTIME" "$CLIENT"`, where RUNTIME is
@@ -78,11 +83,26 @@ export const GIT_LOCAL_ALLOWLIST = [
 
 /** gh top-level subcommands treated as read-only. `api` is absent: it is read
  * only for a GET with no body/field flags (see ghClassify). `codespace` and
- * `label` are not blanket reads either — `labels` has write verbs too. */
+ * `label` are not blanket reads either, since `labels` has write verbs too.
+ * `auth` is absent: only `gh auth status` is a read (GH_AUTH_READ_VERBS); every
+ * other `gh auth` verb is refused by ghClassify. */
 export const GH_READ_ALLOWLIST = [
-	"auth", "version", "help", "completion", "config", "status", "browse",
+	"version", "help", "completion", "config", "status", "browse",
 	"search", "cache", "extension",
 ];
+
+/** The only `gh auth` verb treated as read: it shows the active account without
+ * handing out a token. A bare `gh auth`, `--show-token`, and every other verb
+ * (token, switch, login, refresh, logout, setup-git, git-credential) are
+ * refused (see ghClassify). */
+export const GH_AUTH_READ_VERBS = ["status"];
+
+/** Message printed for a refused `gh auth` call. Plain text: the block is a UX
+ * prompt to stop, not the security boundary (see the header comment). */
+export const GH_AUTH_BLOCK_MESSAGE = `git-bot-identity: gh auth blocked: agents must not read, switch or install GitHub credentials.
+Allowed: gh auth status (which account is active). Refused: token, switch, login, refresh,
+logout, setup-git, git-credential, a bare gh auth, and gh auth status --show-token.
+On a 403 or missing access, stop and report it to the user instead of looking for a credential.`;
 
 /** gh namespaces whose read-only verbs are allowlisted (`gh pr view`, `gh repo
  * list`). Any other verb in these namespaces, and every other namespace, is a
@@ -146,12 +166,25 @@ fi`;
 }
 
 /** gh classification: `api` is read only for a GET without body/field flags;
- * read verbs are allowlisted per namespace; everything else fails closed. */
+ * read verbs are allowlisted per namespace; `gh auth` is refused except
+ * `status`; everything else fails closed. */
 function ghClassify(): string {
 	return `MODE=write
 case "$SUB" in
   "") MODE=read;;
   ${casePattern(GH_READ_ALLOWLIST)}) MODE=read;;
+  auth)
+    case "$SUB2" in
+      ${casePattern(GH_AUTH_READ_VERBS)}) MODE=read;;
+      *) MODE=refuse;;
+    esac
+    # \`gh auth status --show-token\` prints the credential itself.
+    if [ "$MODE" = read ]; then
+      for a do
+        case "$a" in --show-token|--show-token=*) MODE=refuse;; esac
+      done
+    fi
+    ;;
   api)
     MODE=read
     PREV=""
@@ -181,14 +214,15 @@ esac`;
 
 function buildScript(realBinary: string, shimDir: string, runtime: string, classify: string): string {
 	return `#!/bin/sh
-# Installed by omp git-bot-identity. UX/guidance + grant request only —
+# Installed by omp git-bot-identity. UX/guidance + grant request only;
 # security is enforced by the stripped process environment (see
-# lib/neutralize.ts), so this coarse read/write/local split's imprecision is
-# harmless: a misclassified write still fails closed on credentials.
+# lib/neutralize.ts), so this coarse read/write/local/refuse split's imprecision
+# is harmless: a misclassified write still fails closed on credentials.
 SHIMDIR=${shQuote(shimDir)}
 REALBIN=${shQuote(realBinary)}
 RUNTIME=${shQuote(runtime)}
 CLIENT=${shQuote(GRANT_CLIENT_PATH)}
+AUTHBLOCK=${shQuote(GH_AUTH_BLOCK_MESSAGE)}
 # A child must never resolve git/gh back to this shim: strip the shim dir from
 # PATH for the client (and, via the grant env, the real binary gets the real PATH).
 SAFEPATH=""
@@ -214,6 +248,12 @@ for a do
   esac
 done
 ${classify}
+# Refused class: no grant request and no exec. This is a gh credential verb, so
+# there is nothing the shim could legitimately hand it.
+if [ "$MODE" = refuse ]; then
+  printf '%s\\n' "$AUTHBLOCK" >&2
+  exit 1
+fi
 # Re-entry guard, independent of BUN_BE_BUN: anything reached from inside the
 # client's runtime never redeems and never starts a runtime again. Reads and
 # local commands are safe to run; a nested write fails closed.
@@ -307,7 +347,8 @@ function assertRealBinaryOutsideCredsDir(dir: string, name: string, p: string): 
  *   - git           — executable POSIX sh wrapper (grant → real binary;
  *                     read → real binary when refused; local → real binary
  *                     without a grant; else block)
- *   - gh            — same, for the gh CLI
+ *   - gh            — same, for the gh CLI; `gh auth` other than `status`
+ *                     (or a `--show-token` status) blocks before any grant
  * The grant client is NOT generated here: the wrappers run the checked-in
  * lib/grant-client.ts by absolute path. Idempotent: rewrites each file on
  * every call. Throws if the resolved real git/gh is inside `dir`.
