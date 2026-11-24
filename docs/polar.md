@@ -294,10 +294,13 @@ through midnight. The shell draws its own OSD when the temperature changes.
 - **Console palette**: `system/etc/vtrgb` and
   `system/etc/systemd/system/polar-console-palette.service` give the Linux
   console (ly on tty1 and the plain TTYs) the same Nord palette as the
-  desktop; install.sh copies both to `/etc` with sudo and enables the unit. It
-  is a runtime unit rather than `vt.default_*` kernel parameters because those
-  would live in the Secure Boot signed UKI's embedded cmdline and need a
-  rebuild and re-sign on every palette change.
+  desktop; install.sh copies both to `/etc` with sudo and enables the unit.
+  `system/etc/ly/startup.sh` sets ly's own VT over OSC P too, and the unit runs
+  after `plymouth-quit` and before `ly@tty1`, because a VT that Plymouth still
+  holds in `KD_GRAPHICS` ignores palette writes. It is a runtime unit rather
+  than `vt.default_*` kernel parameters because those would live in the Secure
+  Boot signed UKI's embedded cmdline and need a rebuild and re-sign on every
+  palette change.
 - **Noctalia settings**: the repo's `.config/noctalia/config.toml` is the
   base. The settings window (from the bar's session panel) writes runtime
   overrides to `~/.local/state/noctalia/settings.toml`, which loads last and

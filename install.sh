@@ -537,13 +537,20 @@ WRAPPER
 
     # Nord on the Linux console, so ly and plain TTYs match the desktop. System
     # files, hence sudo; the unit's own comment explains why it is not a kernel
-    # parameter.
+    # parameter. ly also gets its own copy in startup.sh, because its VT can come
+    # up before the boot-time unit has a text console to paint.
     if command -v systemctl >/dev/null 2>&1 && command -v setvtrgb >/dev/null 2>&1; then
       sudo install -Dm644 "$DOTFILES_DIR/system/etc/vtrgb" /etc/vtrgb
       sudo install -Dm644 "$DOTFILES_DIR/system/etc/systemd/system/polar-console-palette.service" \
         /etc/systemd/system/polar-console-palette.service
+      if [ -d /etc/ly ]; then
+        sudo install -Dm755 "$DOTFILES_DIR/system/etc/ly/startup.sh" /etc/ly/startup.sh
+      fi
       sudo systemctl daemon-reload
-      sudo systemctl enable --now polar-console-palette.service
+      # reenable, not enable: the unit moved from sysinit.target to
+      # multi-user.target, and enable alone would leave the old .wants link.
+      sudo systemctl reenable polar-console-palette.service
+      sudo systemctl start polar-console-palette.service
       echo "  Applied the Nord console palette"
     fi
 
