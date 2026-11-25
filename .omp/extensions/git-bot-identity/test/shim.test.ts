@@ -11,10 +11,12 @@ import {
 	GIT_LOCAL_ALLOWLIST,
 	GIT_READ_ALLOWLIST,
 	GRANT_CLIENT_PATH,
-	defaultPidIsAlive,
+	defaultProbeGrantSocket,
 	installShim,
 	removeShimState,
+	SWEEP_GRACE_MS,
 	sweepStaleShimState,
+	type ProbeGrantSocket,
 } from "../lib/shim";
 import { getGrantServer, stopGrantServer, type GrantMode } from "../lib/grant-server";
 
@@ -611,36 +613,99 @@ describe("no grant channel", () => {
 });
 
 describe("stale-state sweep", () => {
-	test("removes dead-pid sockets and shim dirs, keeps live ones and the legacy dir another live process may use", () => {
-		mkdirSync(join(dir, "shim-99999"));
+	const live: ProbeGrantSocket = async () => "live";
+	const dead: ProbeGrantSocket = async () => "dead";
+	const unknown: ProbeGrantSocket = async () => "unknown";
+	// A clock far enough ahead that every freshly created entry is older than
+	// the grace, shown by the sweep as "mtime exceeded the grace".
+	const pastGrace = () => Date.now() + SWEEP_GRACE_MS + 1;
+
+	test("keeps a live socket from another pid even when its pid is not ours", async () => {
+		// The sandbox case: a host omp's pid is invisible in this PID namespace,
+		// but its grant socket still accepts connections, so it is alive.
 		writeFileSync(join(dir, "grant-99999.sock"), "");
-		mkdirSync(join(dir, "shim-4242"));
-		writeFileSync(join(dir, "grant-4242.sock"), "");
+		mkdirSync(join(dir, "shim-99999"));
+
+		await sweepStaleShimState(dir, live, pastGrace);
+
+		expect(existsSync(join(dir, "grant-99999.sock"))).toBe(true);
+		expect(existsSync(join(dir, "shim-99999"))).toBe(true);
+	});
+
+	test("removes a refused socket only once it is older than the grace", async () => {
+		writeFileSync(join(dir, "grant-424242.sock"), "");
+
+		await sweepStaleShimState(dir, dead, pastGrace);
+		expect(existsSync(join(dir, "grant-424242.sock"))).toBe(false);
+
+		writeFileSync(join(dir, "grant-424243.sock"), "");
+		await sweepStaleShimState(dir, dead);
+		expect(existsSync(join(dir, "grant-424243.sock"))).toBe(true);
+	});
+
+	test("treats an unknown probe result as live, even past the grace", async () => {
+		writeFileSync(join(dir, "grant-424242.sock"), "");
+		mkdirSync(join(dir, "shim-424242"));
+
+		await sweepStaleShimState(dir, unknown, pastGrace);
+
+		expect(existsSync(join(dir, "grant-424242.sock"))).toBe(true);
+		expect(existsSync(join(dir, "shim-424242"))).toBe(true);
+	});
+
+	test("default probe treats a listening socket as live and a missing path as dead", async () => {
+		const livePath = join(dir, "live.sock");
+		const listener = Bun.listen<Record<string, never>>({
+			unix: livePath,
+			data: {},
+			socket: { data() {} },
+		});
+		try {
+			expect(await defaultProbeGrantSocket(livePath)).toBe("live");
+			expect(await defaultProbeGrantSocket(join(dir, "missing.sock"))).toBe("dead");
+		} finally {
+			listener.stop(true);
+		}
+	});
+
+	test("removes a shim dir with its dead socket and keeps the legacy dir for a live one", async () => {
+		writeFileSync(join(dir, "grant-99999.sock"), "");
+		mkdirSync(join(dir, "shim-99999"));
 		mkdirSync(join(dir, "shim"));
 
-		sweepStaleShimState(dir, pid => pid === 4242);
+		await sweepStaleShimState(dir, dead, pastGrace);
 
 		expect(existsSync(join(dir, "shim-99999"))).toBe(false);
 		expect(existsSync(join(dir, "grant-99999.sock"))).toBe(false);
-		expect(existsSync(join(dir, "shim-4242"))).toBe(true);
-		expect(existsSync(join(dir, "grant-4242.sock"))).toBe(true);
+		// No other live socket, so the legacy shared dir goes too.
+		expect(existsSync(join(dir, "shim"))).toBe(false);
+
+		mkdirSync(join(dir, "shim"));
+		writeFileSync(join(dir, "grant-99998.sock"), "");
+		await sweepStaleShimState(dir, live, pastGrace);
 		expect(existsSync(join(dir, "shim"))).toBe(true);
 	});
 
-	test("drops the legacy shim dir once no other process holds a live socket", () => {
+	test("drops the legacy shim dir once no other process holds a live socket", async () => {
 		writeFileSync(join(dir, "grant-99999.sock"), "");
 		writeFileSync(join(dir, `grant-${process.pid}.sock`), "");
 		mkdirSync(join(dir, "shim"));
 
-		sweepStaleShimState(dir, pid => pid === process.pid);
+		await sweepStaleShimState(dir, dead, pastGrace);
 
 		expect(existsSync(join(dir, "shim"))).toBe(false);
-		expect(existsSync(join(dir, `grant-${process.pid}.sock`))).toBe(true);
 	});
 
-	test("default liveness keeps this process and rejects an invalid pid", () => {
-		expect(defaultPidIsAlive(process.pid)).toBe(true);
-		expect(defaultPidIsAlive(0)).toBe(false);
+	test("never removes this process's own entries", async () => {
+		const sock = join(dir, `grant-${process.pid}.sock`);
+		const shimDir = join(dir, `shim-${process.pid}`);
+		writeFileSync(sock, "");
+		mkdirSync(shimDir);
+
+		await sweepStaleShimState(dir, dead, pastGrace);
+
+		expect(existsSync(sock)).toBe(true);
+		expect(existsSync(shimDir)).toBe(true);
 	});
 });
 

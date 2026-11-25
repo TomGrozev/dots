@@ -54,8 +54,9 @@
  * swept at startup.
  */
 
-import { mkdirSync, readdirSync, rmSync, writeFileSync, type Dirent } from "node:fs";
+import { mkdirSync, readdirSync, rmSync, statSync, writeFileSync, type Dirent } from "node:fs";
 import { isAbsolute, join, relative, sep } from "node:path";
+import { connect } from "node:net";
 import { evalGuidance } from "./guidance";
 
 /** git subcommands treated as read-only (passed through to the real binary).
@@ -378,43 +379,114 @@ export function isShimPathEntry(credsDir: string, entry: string): boolean {
 	return /^shim(-\d+)?$/.test(rel);
 }
 
-/** Whether a pid is still running. EPERM means alive (another user's pid);
- * ESRCH means dead. */
-export function defaultPidIsAlive(pid: number): boolean {
-	if (pid <= 0) return false;
-	try {
-		process.kill(pid, 0);
-		return true;
-	} catch (err) {
-		return (err as NodeJS.ErrnoException).code !== "ESRCH";
-	}
+/**
+ * Outcome of probing a grant socket: `live` (a connect succeeded), `dead` (the
+ * connect was refused or the path vanished), or `unknown` (timeout or any other
+ * error). `unknown` is treated as live: another process's working grant server
+ * must never be swept because a probe raced or stalled.
+ */
+export type GrantSocketProbe = "live" | "dead" | "unknown";
+
+/** Probe one grant socket. Async because it connects to it. */
+export type ProbeGrantSocket = (socketPath: string) => Promise<GrantSocketProbe>;
+
+/** Longest a single probe waits for a connect before it is `unknown`. */
+const PROBE_TIMEOUT_MS = 250;
+
+/** A `dead` socket must be this old before the sweep removes it, so a socket
+ * that is bound but not yet listening is never mistaken for a stale one. */
+export const SWEEP_GRACE_MS = 5000;
+
+/**
+ * Liveness is decided by the socket, never by the pid: `process.kill(pid, 0)`
+ * only sees the caller's PID namespace, so a sandboxed omp (`--unshare-pid`)
+ * would judge every host omp dead and delete its live grant socket. Connect
+ * instead; a refused/unlinked socket is the only proof a pid is gone.
+ */
+export function defaultProbeGrantSocket(socketPath: string): Promise<GrantSocketProbe> {
+	const { promise, resolve } = Promise.withResolvers<GrantSocketProbe>();
+	const socket = connect({ path: socketPath });
+	let settled = false;
+	const settle = (result: GrantSocketProbe) => {
+		if (settled) return;
+		settled = true;
+		socket.destroy();
+		resolve(result);
+	};
+	socket.setTimeout(PROBE_TIMEOUT_MS);
+	socket.once("connect", () => settle("live"));
+	socket.once("timeout", () => settle("unknown"));
+	socket.once("error", err => {
+		const code = (err as NodeJS.ErrnoException).code;
+		settle(code === "ECONNREFUSED" || code === "ENOENT" || code === "ENOTSOCK" ? "dead" : "unknown");
+	});
+	return promise;
 }
 
 /**
  * Remove stale per-process state under `credsDir`: `grant-<pid>.sock` and
- * `shim-<pid>/` entries whose pid is dead, plus the legacy shared `shim/` dir
- * from before per-process dirs. Live pids' entries are left alone. The legacy
- * dir goes only once no other process holds a live grant socket: a process
- * still running the pre-per-process code has `shim/` on its PATH, and removing
- * it would silently route that session's git past the shim.
+ * `shim-<pid>/` entries whose socket no longer accepts a connection, plus the
+ * legacy shared `shim/` dir from before per-process dirs. This process's own
+ * entries are never removed. A socket that fails to connect is removed only
+ * once its mtime is older than `graceMs`, so a starting process's bind is not
+ * swept; a `shim-<pid>/` dir follows its own mtime on the same rule.
+ *
+ * The legacy dir goes only once no other process holds a live grant socket: a
+ * process still running the pre-per-process code has `shim/` on its PATH, and
+ * removing it would silently route that session's git past the shim.
  */
-export function sweepStaleShimState(dir: string, isAlive: (pid: number) => boolean = defaultPidIsAlive): void {
+export async function sweepStaleShimState(
+	dir: string,
+	probe: ProbeGrantSocket = defaultProbeGrantSocket,
+	now: () => number = Date.now,
+	graceMs: number = SWEEP_GRACE_MS,
+): Promise<void> {
 	let entries: Dirent[];
 	try {
 		entries = readdirSync(dir, { withFileTypes: true });
 	} catch {
 		return;
 	}
+	const at = now();
+	const probes = new Map<string, GrantSocketProbe>();
+	const probeOnce = async (socketPath: string): Promise<GrantSocketProbe> => {
+		const cached = probes.get(socketPath);
+		if (cached !== undefined) return cached;
+		const result = await probe(socketPath);
+		probes.set(socketPath, result);
+		return result;
+	};
+	// A path that vanished mid-sweep is not old *enough* to prove anything;
+	// removing it is already a no-op, so err on keeping.
+	const olderThanGrace = (p: string): boolean => {
+		try {
+			return at - statSync(p).mtimeMs > graceMs;
+		} catch {
+			return false;
+		}
+	};
 	let otherLiveSocket = false;
 	for (const entry of entries) {
 		const match = SHIM_STATE_RE.exec(entry.name);
 		if (!match) continue;
 		const pid = Number(match[1] ?? match[2]);
-		if (!isAlive(pid)) {
-			rmSync(join(dir, entry.name), { recursive: true, force: true });
-		} else if (pid !== process.pid && entry.name.startsWith("grant-")) {
-			otherLiveSocket = true;
+		if (pid === process.pid) continue;
+		const path = join(dir, entry.name);
+		if (match[1] !== undefined) {
+			const result = await probeOnce(path);
+			if (result === "live") otherLiveSocket = true;
+			else if (result === "dead" && olderThanGrace(path)) rmSync(path, { force: true });
+			continue;
 		}
+		// shim-<pid>/: live when its matching grant socket probes live.
+		let result: GrantSocketProbe;
+		try {
+			statSync(join(dir, `grant-${pid}.sock`));
+			result = await probeOnce(join(dir, `grant-${pid}.sock`));
+		} catch {
+			result = "dead";
+		}
+		if (result === "dead" && olderThanGrace(path)) rmSync(path, { recursive: true, force: true });
 	}
 	if (!otherLiveSocket) rmSync(join(dir, "shim"), { recursive: true, force: true });
 }

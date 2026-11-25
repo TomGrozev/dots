@@ -318,9 +318,11 @@ export async function createDefault(options: CreateOptions = {}): Promise<BotIde
 	// resolver becomes the live one.
 	const grant = getGrantServer(credsDir, resolver);
 	// Sweep per-process state left by dead pids (sockets and `shim-<pid>` dirs)
-	// plus the legacy shared `shim/`, BEFORE installing this process's shim — a
-	// crashed predecessor's dir must never be mistaken for ours.
-	sweepStaleShimState(credsDir);
+	// plus the legacy shared `shim/`, before installing this process's shim: a
+	// crashed predecessor's dir must never be mistaken for ours. Liveness is
+	// probed on the socket, not the pid, because a pid from another PID
+	// namespace (a sandboxed omp) must never be judged dead.
+	await sweepStaleShimState(credsDir);
 	try {
 		installShim(credsDir, { git: realGit, gh: realGh, runtime: process.execPath });
 	} catch (err) {
