@@ -8,6 +8,10 @@ set -e
 DOTFILES_DIR="$(cd "$(dirname "$0")" && pwd)"
 ZSH_CUSTOM="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}"
 LOCAL_BIN="$HOME/.local/bin"
+# The real omp binary lives outside ~/.local/bin: on a plain host that path is
+# the sandbox wrapper symlink, so every install step addresses the binary
+# directly. `omp update` rewrites this tree in place.
+OMP_REAL="$HOME/.local/lib/omp/omp"
 OMP_AGENT_DIR="$HOME/.omp/agent"
 
 # Host platform detection (reused by the binary install blocks below).
@@ -273,9 +277,18 @@ obsolete_plugins=(
   pi-voice-stt                # removed 6f153196
   "@mikefreno/omp-neuralwatt" # superseded by the TomGrozev fork spec (see OMP_PLUGINS)
 )
-if command -v omp &>/dev/null; then
+omp_uninstall=""
+if [ -x "$OMP_REAL" ]; then
+  omp_uninstall="$OMP_REAL"
+else
+  omp_candidate="$(command -v omp 2>/dev/null || true)"
+  if [ -n "$omp_candidate" ] && [ "$(readlink -f "$omp_candidate" 2>/dev/null)" != "$DOTFILES_DIR/bin/omp-sandbox" ]; then
+    omp_uninstall="$omp_candidate"
+  fi
+fi
+if [ -n "$omp_uninstall" ]; then
   for plugin in "${obsolete_plugins[@]}"; do
-    omp plugin uninstall "$plugin" &>/dev/null || true
+    "$omp_uninstall" plugin uninstall "$plugin" &>/dev/null || true
   done
 fi
 for path in "${obsolete_paths[@]}"; do
@@ -887,39 +900,76 @@ ln -sfn "$DOTFILES_DIR/.cc-safety-net/policy.json" "$CCSN_DIR/policy.json"
 echo "  Linked ~/.cc-safety-net/policy.json"
 
 # --- Install or update omp (Linux) ---
-# This script only manages the copy it put in ~/.local/bin. A host that already
-# has omp elsewhere on PATH — the devcontainer and pod images ship one, and a
-# system install can provide one — keeps that binary: it is managed by the image
-# or the OS, so we leave it untouched. Present in ~/.local/bin → `omp update`
-# patches it in place, so a re-run keeps it current instead of leaving it at the
-# version that first ran. Missing everywhere → fetch the latest release once.
-# The update is best effort: a failure warns and the rest of the install
+# The binary install.sh manages lives at $OMP_REAL, outside ~/.local/bin: on a
+# plain host ~/.local/bin/omp is the sandbox wrapper symlink, so the two roles
+# need separate paths. An older install kept the binary at ~/.local/bin/omp, so
+# a real file there is migrated once. A host whose omp comes from an image or
+# the OS keeps that binary untouched. `omp update` patches $OMP_REAL in place,
+# so a re-run keeps it current instead of leaving it at the version that first
+# ran. The update is best effort: a failure warns and the rest of the install
 # continues, because the binary that is already there still works.
 if [ "$UNAME_OS" = "linux" ]; then
-  if [ -x "$LOCAL_BIN/omp" ]; then
+  if [ -x "$OMP_REAL" ]; then
     echo ""
     echo "Updating omp..."
-    "$LOCAL_BIN/omp" update ||
+    "$OMP_REAL" update ||
       echo "  WARNING: omp update failed; run it again once the network is reachable"
-  elif command -v omp &>/dev/null; then
+  elif [ -f "$LOCAL_BIN/omp" ] && [ ! -L "$LOCAL_BIN/omp" ]; then
     echo ""
-    echo "  Leaving $(command -v omp) alone: not installed by this script, managed outside ~/.local/bin"
+    echo "Migrating ~/.local/bin/omp to $OMP_REAL..."
+    mkdir -p "$(dirname "$OMP_REAL")"
+    mv "$LOCAL_BIN/omp" "$OMP_REAL"
+    chmod +x "$OMP_REAL"
+    "$OMP_REAL" update ||
+      echo "  WARNING: omp update failed; run it again once the network is reachable"
   else
-    case "$UNAME_ARCH" in
-    x86_64) omp_arch="x64" ;;
-    aarch64 | arm64) omp_arch="arm64" ;;
-    *) omp_arch="" ;;
-    esac
-    if [ -n "$omp_arch" ]; then
+    omp_elsewhere="$(command -v omp 2>/dev/null || true)"
+    if [ -n "$omp_elsewhere" ] && [ "$(readlink -f "$omp_elsewhere" 2>/dev/null)" != "$DOTFILES_DIR/bin/omp-sandbox" ]; then
       echo ""
-      echo "Installing omp..."
-      curl -fsSL -o "$LOCAL_BIN/omp" \
-        "https://github.com/can1357/oh-my-pi/releases/latest/download/omp-linux-$omp_arch"
-      chmod +x "$LOCAL_BIN/omp"
-      export PATH="$LOCAL_BIN:$PATH"
+      echo "  Leaving $omp_elsewhere alone: not installed by this script, managed outside ~/.local/lib/omp"
     else
-      echo "  Skipping omp: unsupported arch $UNAME_ARCH"
+      case "$UNAME_ARCH" in
+      x86_64) omp_arch="x64" ;;
+      aarch64 | arm64) omp_arch="arm64" ;;
+      *) omp_arch="" ;;
+      esac
+      if [ -n "$omp_arch" ]; then
+        echo ""
+        echo "Installing omp..."
+        mkdir -p "$(dirname "$OMP_REAL")"
+        curl -fsSL -o "$OMP_REAL" \
+          "https://github.com/can1357/oh-my-pi/releases/latest/download/omp-linux-$omp_arch"
+        chmod +x "$OMP_REAL"
+      else
+        echo "  Skipping omp: unsupported arch $UNAME_ARCH"
+      fi
     fi
+  fi
+fi
+
+# --- Install the sandboxed omp wrapper (plain Linux hosts only) ---
+# The wrapper is for a host where omp talks to real user credentials. A
+# devcontainer and the agent pod are already containment boundaries whose image
+# owns the toolchain, so a nested bwrap would only hide the mounts the image
+# provides. Host-only is the same AGENT_POD/DEVCONTAINER split used by the
+# desktop and self-install blocks above. The wrapper owns ~/.local/bin/omp
+# itself; excluded environments leave a real or image-provided omp there and
+# only remove a symlink that points back at this repo's wrapper.
+#
+# Older installs used ~/.local/bin/sandbox/omp; remove that directory so PATH
+# and `command -v omp` match the new layout.
+rm -f "$LOCAL_BIN/sandbox/omp"
+rmdir "$LOCAL_BIN/sandbox" 2>/dev/null || true
+
+if [ "$UNAME_OS" = "linux" ] && [ "$AGENT_POD" != "true" ] && [ "${DEVCONTAINER:-}" != "true" ]; then
+  if [ -x "$OMP_REAL" ] && [ -f "$LOCAL_BIN/omp" ] && [ ! -L "$LOCAL_BIN/omp" ]; then
+    rm -f "$LOCAL_BIN/omp"
+  fi
+  link_entry "$DOTFILES_DIR/bin/omp-sandbox" "$LOCAL_BIN/omp" "~/.local/bin/omp"
+else
+  if [ -L "$LOCAL_BIN/omp" ] && [ "$(readlink -f "$LOCAL_BIN/omp" 2>/dev/null)" = "$DOTFILES_DIR/bin/omp-sandbox" ]; then
+    rm -f "$LOCAL_BIN/omp"
+    echo "  Removed ~/.local/bin/omp (sandbox wrapper is plain-host only)"
   fi
 fi
 
@@ -941,11 +991,24 @@ fi
 # @mikefreno/omp-neuralwatt port, which lags upstream.
 OMP_PLUGINS=(cc-safety-net "https://github.com/TomGrozev/fork-pi-neuralwatt#feat/omp-support")
 
-if command -v omp &>/dev/null; then
+# Resolve the real binary explicitly: ~/.local/bin/omp may be the sandbox
+# wrapper, and running the plugin installer inside the sandbox would write to
+# the read-only ~/.local mount it also provides.
+OMP_BIN=""
+if [ -x "$OMP_REAL" ]; then
+  OMP_BIN="$OMP_REAL"
+else
+  omp_candidate="$(command -v omp 2>/dev/null || true)"
+  if [ -n "$omp_candidate" ] && [ "$(readlink -f "$omp_candidate" 2>/dev/null)" != "$DOTFILES_DIR/bin/omp-sandbox" ]; then
+    OMP_BIN="$omp_candidate"
+  fi
+fi
+
+if [ -n "$OMP_BIN" ]; then
   for plugin in "${OMP_PLUGINS[@]}"; do
     echo ""
     echo "Installing or updating $plugin plugin for omp..."
-    omp install --force "$plugin"
+    "$OMP_BIN" install --force "$plugin"
   done
 fi
 

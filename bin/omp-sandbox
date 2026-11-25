@@ -1,0 +1,332 @@
+#!/usr/bin/env bash
+
+# omp-sandbox: run omp inside a bubblewrap sandbox.
+#
+# The goal is credential isolation, not a full jail: omp's own process must
+# still sign commits with the human's YubiKey through gpg-agent, so the human
+# keyring is reached only through gpg-agent's restricted extra socket. An agent
+# shell, by contrast, gets no D-Bus session bus, no SSH agent, no keyring files,
+# no ~/.config/gh and no writable human keyring. The bot credential dir stays
+# writable because the git-bot-identity extension writes its shims and grant
+# sockets there.
+#
+# GPG: gpg needs the card-key stubs in private-keys-v1.d to find a smartcard
+# key, but it must never be able to export an on-disk secret key. So the
+# sandbox keyring is a fresh 0700 directory holding only the public keyring and
+# the *shadowed* card stubs (copied out of the human home, never mounted
+# writable). The restricted extra socket denies KEYWRAP_KEY, so even those
+# stubs export nothing: `gpg --export-secret-keys` ends in "nothing exported".
+# A real signing key never leaves the card.
+#
+# Escape hatch: OMP_NO_SANDBOX=1 runs the real omp with the caller's env.
+# `omp update` bypasses the sandbox for that invocation only, because it
+# rewrites ~/.local/lib/omp (read-only inside). OMP_SANDBOX_BWRAP overrides the
+# bwrap path; any setup failure fails closed and never starts omp unsandboxed.
+# Debug hook: OMP_SANDBOX_EXEC='command' runs that command inside the sandbox
+# instead of omp (used to probe the sandbox).
+#
+# Runs on bash 4+ (Linux only; macOS has no bubblewrap).
+
+set -u
+
+warn() { printf 'omp-sandbox: %s\n' "$*" >&2; }
+
+script_path=$(readlink -f "$0") || {
+  warn "cannot resolve own path"
+  exit 1
+}
+
+# The real binary is installed outside ~/.local/bin, because ~/.local/bin/omp
+# is the wrapper symlink on a plain host. Fall back to a PATH scan for images
+# and odd installs, still skipping any entry that resolves to this script.
+real_omp="$HOME/.local/lib/omp/omp"
+if [ ! -f "$real_omp" ] || [ ! -x "$real_omp" ]; then
+  real_omp=""
+  old_ifs=$IFS
+  IFS=:
+  for dir in $PATH; do
+    [ -n "$dir" ] || dir=.
+    candidate="$dir/omp"
+    [ -x "$candidate" ] || continue
+    [ -d "$candidate" ] && continue
+    if [ "$(readlink -f "$candidate" 2>/dev/null)" = "$script_path" ]; then
+      continue
+    fi
+    real_omp="$candidate"
+    break
+  done
+  IFS=$old_ifs
+fi
+
+if [ -z "$real_omp" ]; then
+  warn "no real omp found at $HOME/.local/lib/omp/omp or on PATH (only this wrapper)"
+  exit 127
+fi
+
+# `omp update` rewrites ~/.local/lib/omp itself, so it must run outside the
+# sandbox (that tree is read-only inside it).
+if [ "${1:-}" = "update" ]; then
+  warn "omp update runs outside the sandbox (it rewrites ~/.local/lib/omp)"
+  exec "$real_omp" "$@"
+fi
+
+if [ -n "${OMP_NO_SANDBOX:-}" ]; then
+  exec "$real_omp" "$@"
+fi
+
+bwrap_bin=${OMP_SANDBOX_BWRAP:-}
+if [ -z "$bwrap_bin" ]; then
+  bwrap_bin=$(command -v bwrap 2>/dev/null) || bwrap_bin=""
+  if [ -z "$bwrap_bin" ] && [ -x /usr/sbin/bwrap ]; then
+    bwrap_bin=/usr/sbin/bwrap
+  fi
+fi
+if [ -z "$bwrap_bin" ] || [ ! -x "$bwrap_bin" ]; then
+  warn "bubblewrap is required but was not found/executable (${OMP_SANDBOX_BWRAP:-bwrap})"
+  warn "refusing to run omp unsandboxed; set OMP_NO_SANDBOX=1 to run it directly"
+  exit 126
+fi
+
+# .zshenv reads the API keys from the login keyring, but the sandbox has no
+# D-Bus. Resolve them once here, on the host, when the caller's environment
+# does not already carry them (an agent shell inside omp inherits them).
+if command -v secret-tool >/dev/null 2>&1; then
+  if [ -z "${NEURALWATT_API_KEY:-}" ]; then
+    NEURALWATT_API_KEY=$(secret-tool lookup service neuralwatt-api-key 2>/dev/null) || NEURALWATT_API_KEY=""
+    [ -n "$NEURALWATT_API_KEY" ] && export NEURALWATT_API_KEY
+  fi
+  if [ -z "${ANTHROPIC_OAUTH_TOKEN:-}" ]; then
+    ANTHROPIC_OAUTH_TOKEN=$(secret-tool lookup service anthropic-oauth-token 2>/dev/null) || ANTHROPIC_OAUTH_TOKEN=""
+    [ -n "$ANTHROPIC_OAUTH_TOKEN" ] && export ANTHROPIC_OAUTH_TOKEN
+  fi
+fi
+
+home_dir=$HOME
+uid=$(id -u)
+runtime_dir=${XDG_RUNTIME_DIR:-/run/user/$uid}
+
+cleanup_paths=()
+cleanup() {
+  local path
+  for path in "${cleanup_paths[@]}"; do
+    rm -rf -- "$path"
+  done
+}
+trap cleanup EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
+
+# Fresh, writable GNUPGHOME: public keyring plus shadowed card stubs only.
+gpg_home=$(mktemp -d "${TMPDIR:-/tmp}/omp-sandbox-gpg.XXXXXX") || {
+  warn "cannot create the sandbox GPG home"
+  exit 1
+}
+cleanup_paths+=("$gpg_home")
+chmod 700 "$gpg_home"
+human_gpg=$(env -u GNUPGHOME gpgconf --list-dirs homedir 2>/dev/null) || human_gpg=""
+[ -n "$human_gpg" ] || human_gpg="$home_dir/.gnupg"
+if [ -f "$human_gpg/pubring.kbx" ]; then
+  cp -p "$human_gpg/pubring.kbx" "$gpg_home/pubring.kbx"
+  chmod 600 "$gpg_home/pubring.kbx"
+fi
+mkdir -m 700 "$gpg_home/private-keys-v1.d"
+if [ -n "$human_gpg" ]; then
+  for key_file in "$human_gpg"/private-keys-v1.d/*.key; do
+    [ -e "$key_file" ] || continue
+    # Shadowed stubs are public metadata pointing at the card; a real on-disk
+    # secret key is deliberately not copied into the sandbox.
+    if head -c 4096 "$key_file" 2>/dev/null | grep -q 'shadowed-private-key'; then
+      cp -p "$key_file" "$gpg_home/private-keys-v1.d/"
+    fi
+  done
+fi
+
+# omp's auto-update would try to write its read-only install; turn it off for
+# this run only (the user's config.yml keeps update.auto as they set it).
+overlay=$(mktemp "${TMPDIR:-/tmp}/omp-sandbox-config.XXXXXX") || {
+  warn "cannot create the sandbox config overlay"
+  exit 1
+}
+cleanup_paths+=("$overlay")
+printf 'update:\n  auto: false\n' >"$overlay"
+
+extra_socket=$(env -u GNUPGHOME gpgconf --list-dirs agent-extra-socket 2>/dev/null) || extra_socket=""
+
+# Agent shells inside the sandbox must reach the real binary when they run
+# `omp`; otherwise ~/.local/bin/omp (the wrapper symlink) re-enters bwrap.
+# A one-entry shim directory shadows only omp, so ~/.local/bin stays on PATH
+# for uv and friends. The host directory is bound at a fixed path below.
+shim_dir=$(mktemp -d "${TMPDIR:-/tmp}/omp-sandbox-bin.XXXXXX") || {
+  warn "cannot create the sandbox bin shim"
+  exit 1
+}
+cleanup_paths+=("$shim_dir")
+ln -s "$real_omp" "$shim_dir/omp" || exit 1
+
+clean_path=""
+old_ifs=$IFS
+IFS=:
+for dir in $PATH; do
+  [ -n "$dir" ] || continue
+  # git-bot-identity prepends per-process shim dirs to agent shells; omp
+  # installs its own, so an inherited one must not shadow the real gh/git.
+  case "$dir" in
+  "$home_dir/.config/git-bot-identity/shim" | "$home_dir/.config/git-bot-identity/shim-"*) continue ;;
+  esac
+  clean_path=${clean_path:+$clean_path:}$dir
+done
+IFS=$old_ifs
+clean_path="/run/omp-sandbox-bin${clean_path:+:$clean_path}"
+
+bwrap_args=(
+  --unshare-all
+  --share-net
+  --die-with-parent
+  --cap-drop ALL
+  --ro-bind /usr /usr
+  --symlink usr/bin /bin
+  --symlink usr/lib /lib
+  --symlink usr/lib64 /lib64
+  --symlink usr/bin /sbin
+  --ro-bind /etc /etc
+  --proc /proc
+  --dev /dev
+  --perms 1777 --tmpfs /dev/shm
+  --tmpfs /tmp
+  --tmpfs /run
+  --perms 0700 --dir "$runtime_dir"
+  --tmpfs "$home_dir"
+  --dir "$home_dir/.config"
+)
+
+add_ro() { [ -e "$1" ] && bwrap_args+=(--ro-bind "$1" "$1"); }
+add_rw() { [ -e "$1" ] && bwrap_args+=(--bind "$1" "$1"); }
+
+[ -d /opt ] && bwrap_args+=(--ro-bind /opt /opt)
+[ -d /sys ] && bwrap_args+=(--ro-bind /sys /sys)
+
+# Workspace. ~/dots is writable because it is a checkout agents work in; the
+# gh config inside it is masked, and ~/.config/gh is not mounted at all.
+add_rw "$home_dir/.omp"
+add_rw "$home_dir/Projects"
+add_rw "$home_dir/dots"
+if [ -d "$home_dir/dots/.config/gh" ]; then
+  bwrap_args+=(--tmpfs "$home_dir/dots/.config/gh")
+fi
+
+# Agent toolchains. ~/.local is read-only: it holds the omp binary and the
+# sandbox wrapper, and the keyring directory is masked separately.
+add_rw "$home_dir/.config/git-bot-identity"
+add_rw "$home_dir/.config/r3"
+add_rw "$home_dir/.cache"
+add_rw "$home_dir/.bun"
+add_rw "$home_dir/.cargo"
+add_rw "$home_dir/go"
+add_rw "$home_dir/.asdf"
+if [ -d "$home_dir/.local" ]; then
+  bwrap_args+=(--ro-bind "$home_dir/.local" "$home_dir/.local")
+  bwrap_args+=(--tmpfs "$home_dir/.local/share/keyrings")
+fi
+
+# Read-only identity files: commit_as_me reads user.name/user.email and signs
+# from these, and no agent write path needs them. The dotfiles themselves are
+# recreated as symlinks into ~/dots by the scan below.
+add_ro "$home_dir/.agents"
+add_ro "$home_dir/.diagram-design"
+
+# The sandbox keyring (see the header). Bind it over the human default homedir
+# so gpg, git and pinentry agree on the path, and unset any inherited
+# GNUPGHOME (an agent shell's bot keyring must not leak in).
+bwrap_args+=(--bind "$gpg_home" "$human_gpg")
+bwrap_args+=(--unsetenv GNUPGHOME)
+
+# gpg-agent's restricted extra socket, at the path the client expects.
+if [ -n "$extra_socket" ] && [ -S "$extra_socket" ]; then
+  bwrap_args+=(--perms 0700 --dir "$runtime_dir/gnupg")
+  bwrap_args+=(--bind "$extra_socket" "$runtime_dir/gnupg/S.gpg-agent")
+fi
+
+# Wayland (TUI clipboard/paste) and pipewire are sockets, not the session bus.
+if [ -n "${WAYLAND_DISPLAY:-}" ] && [ -S "$runtime_dir/$WAYLAND_DISPLAY" ]; then
+  bwrap_args+=(--bind "$runtime_dir/$WAYLAND_DISPLAY" "$runtime_dir/$WAYLAND_DISPLAY")
+fi
+for sock in pipewire-0 captain-miao miao; do
+  [ -e "$runtime_dir/$sock" ] && bwrap_args+=(--ro-bind "$runtime_dir/$sock" "$runtime_dir/$sock")
+done
+
+# Credential transport and session services the sandbox must not see. GPG_TTY
+# is set to the caller's terminal, because pinentry runs on the host agent and
+# opens that path itself.
+bwrap_args+=(
+  --unsetenv DBUS_SESSION_BUS_ADDRESS
+  --unsetenv SSH_AUTH_SOCK
+  --unsetenv GPG_AGENT_INFO
+  --unsetenv GH_TOKEN
+  --unsetenv GITHUB_TOKEN
+  --unsetenv GH_ENTERPRISE_TOKEN
+  --unsetenv GITHUB_ENTERPRISE_TOKEN
+  --unsetenv GH_CONFIG_DIR
+  --setenv XDG_RUNTIME_DIR "$runtime_dir"
+  --setenv PATH "$clean_path"
+  --setenv OMP_SANDBOX 1
+)
+caller_tty=$(tty 2>/dev/null) || caller_tty=""
+if [ -n "$caller_tty" ] && [ "$caller_tty" != "not a tty" ]; then
+  bwrap_args+=(--setenv GPG_TTY "$caller_tty")
+else
+  bwrap_args+=(--unsetenv GPG_TTY)
+fi
+
+# Run from the caller's directory, bound writable so omp can work on it even
+# when it is outside the mounted workspace. Anything under $HOME is skipped:
+# the home is a tmpfs, so a cwd bind there would expose exactly the dotfiles
+# and key material the masks above remove. The supported workspaces
+# (~/Projects, ~/dots, ~/.omp) are already in that tmpfs, so a cwd inside them
+# still resolves.
+case "$PWD" in
+"$home_dir" | "$home_dir"/* | / | /tmp | /run | /dev | /proc | /sys | /usr | /etc) ;;
+*)
+  if [ -d "$PWD" ]; then
+    bwrap_args+=(--bind "$PWD" "$PWD" --chdir "$PWD")
+  fi
+  ;;
+esac
+
+bwrap_args+=(--ro-bind "$overlay" /run/omp-sandbox-config.yml)
+bwrap_args+=(--ro-bind "$shim_dir" /run/omp-sandbox-bin)
+
+# ~/dots is mounted at its real path, so the dotfile symlinks the tmpfs home
+# dropped can be recreated with --symlink. Scan the two levels that hold them
+# (~ and ~/.config) instead of hardcoding names, so a new dots link appears in
+# the sandbox without touching this script. ~/.config/gh is the one exclusion:
+# it carries the human's GitHub token. ~/.local is a bind (not scanned here),
+# and .ssh/.kube/.claude/etc. never match a link into ~/dots.
+for link in "$home_dir"/* "$home_dir"/.[!.]* "$home_dir/.config"/*; do
+  [ -L "$link" ] || continue
+  case "$link" in
+  "$home_dir/.config/gh") continue ;;
+  esac
+  target=$(readlink -f "$link" 2>/dev/null) || continue
+  case "$target" in
+  "$home_dir/dots" | "$home_dir/dots/"*) ;;
+  *) continue ;;
+  esac
+  bwrap_args+=(--symlink "$target" "$link")
+done
+
+# A no-op run through the same namespace separates a bwrap setup failure
+# (userns disabled, uid map refused, a bind source vanished) from omp's own
+# exit status. Never fall through to an unsandboxed omp.
+if ! "$bwrap_bin" "${bwrap_args[@]}" -- /bin/true; then
+  warn "the sandbox could not start (bubblewrap/user namespaces/uid map); refusing to run omp unsandboxed"
+  warn "fix bubblewrap, or set OMP_NO_SANDBOX=1 to run omp directly"
+  exit 125
+fi
+
+if [ -n "${OMP_SANDBOX_EXEC:-}" ]; then
+  "$bwrap_bin" "${bwrap_args[@]}" -- bash -c "$OMP_SANDBOX_EXEC"
+  exit $?
+fi
+
+"$bwrap_bin" "${bwrap_args[@]}" -- "$real_omp" --config /run/omp-sandbox-config.yml "$@"
+exit $?
