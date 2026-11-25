@@ -18,6 +18,11 @@
 # stubs export nothing: `gpg --export-secret-keys` ends in "nothing exported".
 # A real signing key never leaves the card.
 #
+# Shells: an interactive shell inside the sandbox sources .zshrc, so it needs
+# the oh-my-zsh tree (read-only: plugin updates belong to the host) and
+# writable run-time state under ~/.local, which is read-only as a whole. The
+# login keyring, ~/.config/gh and the SSH agent stay out of reach.
+#
 # Escape hatch: OMP_NO_SANDBOX=1 runs the real omp with the caller's env.
 # `omp update` bypasses the sandbox for that invocation only, because it
 # rewrites ~/.local/lib/omp (read-only inside). OMP_SANDBOX_BWRAP overrides the
@@ -226,7 +231,17 @@ add_rw "$home_dir/.asdf"
 if [ -d "$home_dir/.local" ]; then
   bwrap_args+=(--ro-bind "$home_dir/.local" "$home_dir/.local")
   bwrap_args+=(--tmpfs "$home_dir/.local/share/keyrings")
+  # Data that interactive tools rewrite as they run: zoxide's database,
+  # direnv's allow-list, and the per-tool directories inside ~/.local/state.
+  for writable in state share/zoxide share/direnv; do
+    [ -e "$home_dir/.local/$writable" ] &&
+      bwrap_args+=(--bind "$home_dir/.local/$writable" "$home_dir/.local/$writable")
+  done
 fi
+
+# oh-my-zsh, with its powerlevel10k theme and the plugins under custom/, is the
+# framework .zshrc sources. Read-only: plugin updates belong to the host.
+add_ro "$home_dir/.oh-my-zsh"
 
 # Read-only identity files: commit_as_me reads user.name/user.email and signs
 # from these, and no agent write path needs them. The dotfiles themselves are
@@ -270,6 +285,11 @@ bwrap_args+=(
   --setenv PATH "$clean_path"
   --setenv OMP_SANDBOX 1
 )
+
+# .zshrc attaches the interactive shell to the host's "main" zellij session.
+# The host server socket is not in this runtime dir, so an agent shell would
+# either fail to attach or spawn a sandbox-only server; opt out instead.
+bwrap_args+=(--setenv ZELLIJ_AUTOATTACH 0)
 caller_tty=$(tty 2>/dev/null) || caller_tty=""
 if [ -n "$caller_tty" ] && [ "$caller_tty" != "not a tty" ]; then
   bwrap_args+=(--setenv GPG_TTY "$caller_tty")
@@ -277,20 +297,22 @@ else
   bwrap_args+=(--unsetenv GPG_TTY)
 fi
 
-# Run from the caller's directory, bound writable so omp can work on it even
-# when it is outside the mounted workspace. Anything under $HOME is skipped:
-# the home is a tmpfs, so a cwd bind there would expose exactly the dotfiles
-# and key material the masks above remove. The supported workspaces
-# (~/Projects, ~/dots, ~/.omp) are already in that tmpfs, so a cwd inside them
-# still resolves.
+# Run from the caller's directory, bound writable so omp can work on it. A
+# project often sits directly in $HOME (~/the-g-house), so a cwd under the home
+# tmpfs is bound too: only that one tree appears, not the dotfiles and key
+# material the masks above removed. The paths that would expose them are
+# refused: $HOME itself (and any ancestor of it, /home included) and a cwd that
+# contains or is one of the private dirs. The supported workspaces (~/Projects,
+# ~/dots, ~/.omp) are already mounted, so a cwd inside them resolves either way.
+cwd_bind=1
 case "$PWD" in
-"$home_dir" | "$home_dir"/* | / | /tmp | /run | /dev | /proc | /sys | /usr | /etc) ;;
-*)
-  if [ -d "$PWD" ]; then
-    bwrap_args+=(--bind "$PWD" "$PWD" --chdir "$PWD")
-  fi
-  ;;
+"$home_dir" | / | /home | /tmp | /run | /dev | /proc | /sys | /usr | /etc) cwd_bind=0 ;;
 esac
+for secret in "$home_dir/.gnupg" "$home_dir/.ssh" "$home_dir/.local" \
+  "$home_dir/.config/gh" "$home_dir/.cc-safety-net"; do
+  case "$secret/" in "$PWD/"*) cwd_bind=0 ;; esac
+done
+[ -d "$PWD" ] || cwd_bind=0
 
 bwrap_args+=(--ro-bind "$overlay" /run/omp-sandbox-config.yml)
 bwrap_args+=(--ro-bind "$shim_dir" /run/omp-sandbox-bin)
@@ -313,6 +335,13 @@ for link in "$home_dir"/* "$home_dir"/.[!.]* "$home_dir/.config"/*; do
   esac
   bwrap_args+=(--symlink "$target" "$link")
 done
+
+# Bind the cwd after the symlinks: a cwd that is itself a dots symlink
+# (~/.config/nvim) is then mounted over the target instead of colliding with the
+# symlink creation.
+if [ "$cwd_bind" = 1 ]; then
+  bwrap_args+=(--bind "$PWD" "$PWD" --chdir "$PWD")
+fi
 
 # A no-op run through the same namespace separates a bwrap setup failure
 # (userns disabled, uid map refused, a bind source vanished) from omp's own
