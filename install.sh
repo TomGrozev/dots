@@ -912,7 +912,10 @@ if [ "$UNAME_OS" = "linux" ]; then
   if [ -x "$OMP_REAL" ]; then
     echo ""
     echo "Updating omp..."
-    "$OMP_REAL" update ||
+    # The updater targets the first `omp` on PATH. On a re-run ~/.local/bin/omp
+    # is the sandbox wrapper symlink, whose target is a shebang script, and the
+    # updater refuses to replace it. Put the real binary's directory first.
+    PATH="$(dirname "$OMP_REAL"):$PATH" "$OMP_REAL" update ||
       echo "  WARNING: omp update failed; run it again once the network is reachable"
   elif [ -f "$LOCAL_BIN/omp" ] && [ ! -L "$LOCAL_BIN/omp" ]; then
     echo ""
@@ -920,7 +923,7 @@ if [ "$UNAME_OS" = "linux" ]; then
     mkdir -p "$(dirname "$OMP_REAL")"
     mv "$LOCAL_BIN/omp" "$OMP_REAL"
     chmod +x "$OMP_REAL"
-    "$OMP_REAL" update ||
+    PATH="$(dirname "$OMP_REAL"):$PATH" "$OMP_REAL" update ||
       echo "  WARNING: omp update failed; run it again once the network is reachable"
   else
     omp_elsewhere="$(command -v omp 2>/dev/null || true)"

@@ -25,8 +25,11 @@
 #
 # Escape hatch: OMP_NO_SANDBOX=1 runs the real omp with the caller's env.
 # `omp update` bypasses the sandbox for that invocation only, because it
-# rewrites ~/.local/lib/omp (read-only inside). OMP_SANDBOX_BWRAP overrides the
-# bwrap path; any setup failure fails closed and never starts omp unsandboxed.
+# rewrites ~/.local/lib/omp (read-only inside). omp's own update.auto cannot
+# write that tree either, so the wrapper runs a detached host-side `omp update`
+# at most once per OMP_UPDATE_INTERVAL seconds (default 86400; 0 disables).
+# OMP_SANDBOX_BWRAP overrides the bwrap path; any setup failure fails closed
+# and never starts omp unsandboxed.
 # Debug hook: OMP_SANDBOX_EXEC='command' runs that command inside the sandbox
 # instead of omp (used to probe the sandbox).
 #
@@ -69,14 +72,59 @@ if [ -z "$real_omp" ]; then
 fi
 
 # `omp update` rewrites ~/.local/lib/omp itself, so it must run outside the
-# sandbox (that tree is read-only inside it).
+# sandbox (that tree is read-only inside it). The updater targets the first
+# `omp` on PATH; ~/.local/bin/omp is this wrapper symlink, which resolves to a
+# shebang script, so the updater refuses it. Point PATH at the real binary's
+# directory for this run so the updater replaces the binary, not the wrapper.
 if [ "${1:-}" = "update" ]; then
   warn "omp update runs outside the sandbox (it rewrites ~/.local/lib/omp)"
-  exec "$real_omp" "$@"
+  PATH="$(dirname "$real_omp"):$PATH" exec "$real_omp" "$@"
 fi
 
 if [ -n "${OMP_NO_SANDBOX:-}" ]; then
   exec "$real_omp" "$@"
+fi
+
+# In-sandbox auto-update is off (the install tree is mounted read-only), so the
+# host does it instead. Detached: a download never delays the launch, and the
+# next launch picks up the new binary. OMP_SANDBOX is set for an agent shell
+# inside the sandbox that reaches this wrapper again; OMP_SANDBOX_EXEC is a
+# probe. Both must skip it.
+omp_host_update() {
+  local cache_dir stamp interval last now update_path
+  cache_dir=${XDG_CACHE_HOME:-$HOME/.cache}/omp
+  stamp=$cache_dir/update-stamp
+  interval=${OMP_UPDATE_INTERVAL:-86400}
+  case "$interval" in '' | *[!0-9]*) interval=86400 ;; esac
+  [ "$interval" -gt 0 ] || return 0
+  now=$(date +%s)
+  last=0
+  if [ -r "$stamp" ]; then
+    last=$(cat "$stamp" 2>/dev/null) || last=0
+  fi
+  case "$last" in '' | *[!0-9]*) last=0 ;; esac
+  [ $((now - last)) -ge "$interval" ] || return 0
+  # Same switch as omp's own auto-update; an unset or unreadable value means no.
+  [ "$("$real_omp" config get update.auto 2>/dev/null)" = "true" ] || return 0
+  mkdir -p "$cache_dir" || return 0
+  # The updater targets the first `omp` on PATH; keep it off the wrapper symlink
+  # (see the `omp update` block above).
+  update_path=$(dirname "$real_omp")${PATH:+:$PATH}
+  # Claim the slot before forking, so parallel launches update once. A failed
+  # attempt waits a full interval instead of retrying on every launch.
+  printf '%s\n' "$now" >"$stamp" || return 0
+  if command -v flock >/dev/null 2>&1; then
+    (
+      flock -n 9 || exit 0
+      PATH="$update_path" timeout 1800 "$real_omp" update >>"$cache_dir/update.log" 2>&1 || true
+    ) 9>"$cache_dir/update.lock" </dev/null >/dev/null 2>&1 &
+  else
+    PATH="$update_path" timeout 1800 "$real_omp" update >>"$cache_dir/update.log" 2>&1 </dev/null >/dev/null 2>&1 &
+  fi
+}
+
+if [ -z "${OMP_SANDBOX:-}" ] && [ -z "${OMP_SANDBOX_EXEC:-}" ]; then
+  omp_host_update
 fi
 
 bwrap_bin=${OMP_SANDBOX_BWRAP:-}
@@ -146,8 +194,9 @@ if [ -n "$human_gpg" ]; then
   done
 fi
 
-# omp's auto-update would try to write its read-only install; turn it off for
-# this run only (the user's config.yml keeps update.auto as they set it).
+# omp's in-process auto-update would try to write its read-only install; turn
+# it off for this run only (the user's config.yml keeps update.auto as they set
+# it). omp_host_update above covers updates from the host side instead.
 overlay=$(mktemp "${TMPDIR:-/tmp}/omp-sandbox-config.XXXXXX") || {
   warn "cannot create the sandbox config overlay"
   exit 1
