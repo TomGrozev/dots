@@ -20,8 +20,12 @@ cycleOrder:
   - slow
   - designer
 symbolPreset: nerd
+# Zellij sessions started from the CLI answer omp's dark/light query
+# (CSI ?996n) with "light" even on this dark Nord terminal, so omp would pick
+# its built-in light theme. Pin both slots to the same dark theme.
 theme:
   dark: dark-nord-readable
+  light: dark-nord-readable
 setupVersion: 3
 defaultThinkingLevel: auto
 statusLine:
