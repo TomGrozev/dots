@@ -37,6 +37,15 @@
 
 set -u
 
+# On-demand embedding runtime: omp installs fastembed, whose onnxruntime-node
+# postinstall downloads a CUDA build from GitHub unless told to skip. That
+# release asset is gone, so the download 404s, bun drops the package, and
+# fastembed fails with "Cannot find module 'onnxruntime-node'" -- which breaks
+# memory embeddings. Fastembed only needs the CPU binding, bundled in the npm
+# package. omp's own installer sets a differently named variable, so set the
+# one onnxruntime-node actually reads for every omp it starts.
+export ONNXRUNTIME_NODE_INSTALL_CUDA=skip
+
 warn() { printf 'omp-sandbox: %s\n' "$*" >&2; }
 
 script_path=$(readlink -f "$0") || {
