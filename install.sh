@@ -1570,5 +1570,15 @@ else
   echo "  npm not found. Install Node.js to install agent skills."
 fi
 
+# Rex's agent skill teaches omp the `rex` CLI (sessions, splits, `rex open`).
+# omp counts as "pi" to Rex, and its skill lands in ~/.agents/skills, which the
+# block above wipes, so this runs after it. Pi has no hooks, so only the skill
+# is installed. Skipped where rex is absent (the Arch laptop) and in agent pods,
+# whose includeSkills allowlist would hide it anyway.
+if [ "$AGENT_POD" != "true" ] && command -v rex &>/dev/null; then
+  echo "  Installing Rex skill..."
+  rex skill setup --agent pi || echo "  WARNING: rex skill setup failed"
+fi
+
 echo ""
 echo "✅ Done! Restart your shell or run: source ~/.zshrc"

@@ -31,6 +31,7 @@ The orchestrator manages agent sessions, roles, and tool integrations.
 
 - **Captain Miao**: Session manager and dashboard. Binary installed via `install.sh`.
 - **r3**: Review tool for human-agent handoffs. Installed via npm.
+- **Rex**: terminal server in the Coder workspaces, reached from Rex for Mac over `coder config-ssh`. Where `rex` is on PATH, `install.sh` runs `rex skill setup --agent pi` so omp gets Rex's skill (omp is a pi fork); Rex finds the agent's pane through `$REX_BLOCK`.
 - **Codebase Memory MCP**: Provides a knowledge graph of the repository. Installed as a binary.
 - **Git Bot Identity**: Specialized extension for managing AI bot identities. See the [Git Bot Identity README](../.omp/extensions/git-bot-identity/README.md).
 - **Diagrams**: the agent draws console diagrams as mermaid; rich pages go on r3 (see `.omp/AGENTS.md` § Talking to the user).
